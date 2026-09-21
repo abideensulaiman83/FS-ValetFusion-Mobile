@@ -7,6 +7,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../components/confirm_dialog.dart';
 import '../services/authentication_service.dart';
 import '../services/valet_service.dart';
 import 'dashboard_page.dart';
@@ -59,6 +60,14 @@ class _AdminHomePageState extends State<AdminHomePage> {
   }
 
   Future<void> _logout() async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Log out?',
+      message: "You'll need to sign in again to continue.",
+      confirmLabel: 'Log out',
+      destructive: true,
+    );
+    if (!confirmed) return;
     await _authService.logoutApi();
     if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }

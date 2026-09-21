@@ -22,6 +22,10 @@ class _LoginPageState extends State<LoginPage> {
   bool _loading = false;
   String _error = '';
 
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
+  bool _biometricAuthenticating = false;
+
   // Add this: Focus nodes to prevent keyboard issues
   final FocusNode _usernameFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
@@ -74,6 +78,63 @@ class _LoginPageState extends State<LoginPage> {
         _keepLoggedIn = true;
       });
     }
+    // Only worth checking device biometric support/enrollment when there's actually something
+    // for it to unlock - no remembered credentials means no auto-fill target either way.
+    if (saved != null) {
+      final available = await _authService.isBiometricAvailable();
+      final enabled = await _authService.isBiometricEnabled();
+      if (mounted) {
+        setState(() {
+          _biometricAvailable = available;
+          _biometricEnabled = enabled;
+        });
+      }
+      if (available && enabled) {
+        _attemptBiometricLogin();
+      }
+    }
+  }
+
+  Future<void> _attemptBiometricLogin() async {
+    if (_biometricAuthenticating || _loading) return;
+    setState(() => _biometricAuthenticating = true);
+    final ok = await _authService.authenticateWithBiometrics(
+      reason: 'Sign in to Valet Fusion',
+    );
+    if (mounted) setState(() => _biometricAuthenticating = false);
+    if (ok && mounted) {
+      await _handleLogin();
+    }
+  }
+
+  // Offered once, right after a manual sign-in with "Remember me" checked - biometric login is
+  // just a faster way to submit those same remembered credentials, so there's nothing to offer
+  // until they exist and the device can actually prompt for Face ID/fingerprint.
+  Future<void> _maybeOfferBiometricEnrollment() async {
+    if (!_keepLoggedIn) return;
+    if (await _authService.isBiometricEnabled()) return;
+    final available = await _authService.isBiometricAvailable();
+    if (!available || !mounted) return;
+
+    final enable = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Enable Face ID / Fingerprint?'),
+        content: const Text('Sign in faster next time using your face or fingerprint instead of typing your password.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Not now')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Enable')),
+        ],
+      ),
+    );
+    if (enable == true) {
+      final confirmed = await _authService.authenticateWithBiometrics(
+        reason: 'Confirm to enable Face ID / Fingerprint sign-in',
+      );
+      if (confirmed) {
+        await _authService.setBiometricEnabled(true);
+      }
+    }
   }
 
   Future<void> _handleLogin() async {
@@ -123,6 +184,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (_keepLoggedIn) {
         await _authService.saveRememberedCredentials(_usernameController.text, _passwordController.text);
+        await _maybeOfferBiometricEnrollment();
       } else {
         await _authService.clearRememberedCredentials();
       }
@@ -563,6 +625,24 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                                   ),
                                 ),
+
+                                if (_biometricAvailable && _biometricEnabled) ...[
+                                  const SizedBox(height: 14),
+                                  TextButton.icon(
+                                    onPressed: (_loading || _biometricAuthenticating) ? null : _attemptBiometricLogin,
+                                    icon: _biometricAuthenticating
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                          )
+                                        : const Icon(Icons.fingerprint, color: Colors.white),
+                                    label: Text(
+                                      _biometricAuthenticating ? 'Authenticating...' : 'Sign in with Face ID / Fingerprint',
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),

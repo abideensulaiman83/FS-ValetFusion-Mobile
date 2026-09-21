@@ -23,6 +23,11 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
   bool _isRegister = true;
   bool _loading = false;
   bool _rememberMe = false;
+  bool _showPassword = false;
+
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
+  bool _biometricAuthenticating = false;
 
   List<PublicCompanyOption> _companies = [];
   bool _loadingCompanies = true;
@@ -49,6 +54,56 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
         _rememberMe = true;
         _isRegister = false;
       });
+    }
+    if (saved != null) {
+      final available = await _authService.isBiometricAvailable();
+      final enabled = await _authService.isBiometricEnabled();
+      if (mounted) {
+        setState(() {
+          _biometricAvailable = available;
+          _biometricEnabled = enabled;
+        });
+      }
+      if (available && enabled) {
+        _attemptBiometricLogin();
+      }
+    }
+  }
+
+  Future<void> _attemptBiometricLogin() async {
+    if (_biometricAuthenticating || _loading) return;
+    setState(() => _biometricAuthenticating = true);
+    final ok = await _authService.authenticateWithBiometrics(reason: 'Sign in to Valet Fusion');
+    if (mounted) setState(() => _biometricAuthenticating = false);
+    if (ok && mounted) {
+      await _submit();
+    }
+  }
+
+  Future<void> _maybeOfferBiometricEnrollment() async {
+    if (!_rememberMe) return;
+    if (await _authService.isBiometricEnabled()) return;
+    final available = await _authService.isBiometricAvailable();
+    if (!available || !mounted) return;
+
+    final enable = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Enable Face ID / Fingerprint?'),
+        content: const Text('Sign in faster next time using your face or fingerprint instead of typing your password.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Not now')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Enable')),
+        ],
+      ),
+    );
+    if (enable == true) {
+      final confirmed = await _authService.authenticateWithBiometrics(
+        reason: 'Confirm to enable Face ID / Fingerprint sign-in',
+      );
+      if (confirmed) {
+        await _authService.setBiometricEnabled(true);
+      }
     }
   }
 
@@ -107,6 +162,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
       if (!_isRegister) {
         if (_rememberMe) {
           await _authService.saveRememberedCredentials(_mobileController.text.trim(), _passwordController.text);
+          await _maybeOfferBiometricEnrollment();
         } else {
           await _authService.clearRememberedCredentials();
         }
@@ -180,8 +236,15 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(labelText: 'Password *', border: OutlineInputBorder()),
+                    obscureText: !_showPassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password *',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setState(() => _showPassword = !_showPassword),
+                      ),
+                    ),
                     validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                   ),
                   if (!_isRegister)
@@ -203,6 +266,16 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
                           : Text(_isRegister ? 'Sign Up' : 'Sign In'),
                     ),
                   ),
+                  if (!_isRegister && _biometricAvailable && _biometricEnabled) ...[
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: (_loading || _biometricAuthenticating) ? null : _attemptBiometricLogin,
+                      icon: _biometricAuthenticating
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.fingerprint),
+                      label: Text(_biometricAuthenticating ? 'Authenticating...' : 'Sign in with Face ID / Fingerprint'),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: _loading ? null : () => setState(() => _isRegister = !_isRegister),

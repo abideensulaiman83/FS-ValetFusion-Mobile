@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
+import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PublicCompanyOption {
@@ -189,6 +190,53 @@ class AuthenticationService {
     await prefs.remove(rememberedPasswordKey);
   }
 
+  // Biometric sign-in: an opt-in shortcut over "Remember me" above, not a separate credential
+  // store - Face ID/fingerprint just unlocks the same remembered username/password and submits
+  // them, the same as if the user had typed them in. So this only ever makes sense (and only
+  // ever gets offered) once remembered credentials already exist.
+  static const String biometricEnabledKey = 'vf_biometric_enabled';
+  final LocalAuthentication _localAuth = LocalAuthentication();
+
+  Future<bool> isBiometricEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(biometricEnabledKey) ?? false;
+  }
+
+  Future<void> setBiometricEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(biometricEnabledKey, enabled);
+  }
+
+  /// Whether this device can actually prompt for Face ID/fingerprint right now - has the
+  /// hardware, and the user has actually enrolled a face/fingerprint with the OS. Checked fresh
+  /// each time rather than cached, since enrollment can change (e.g. fingerprints cleared) after
+  /// the app was first opened.
+  Future<bool> isBiometricAvailable() async {
+    try {
+      final supported = await _localAuth.isDeviceSupported();
+      final canCheck = await _localAuth.canCheckBiometrics;
+      if (!supported || !canCheck) return false;
+      final available = await _localAuth.getAvailableBiometrics();
+      return available.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Returns true only on a genuine successful Face ID/fingerprint match - false for a user
+  /// cancel, a lockout, or any plugin error, so callers can treat "not authenticated" uniformly
+  /// without needing to inspect the failure reason.
+  Future<bool> authenticateWithBiometrics({String reason = 'Sign in to Valet Fusion'}) async {
+    try {
+      return await _localAuth.authenticate(
+        localizedReason: reason,
+        options: const AuthenticationOptions(biometricOnly: true, stickyAuth: true),
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Login API - Authenticates user and returns token + user info
   Future<LoginResponse> loginApi({
     required String username,
@@ -275,25 +323,26 @@ class AuthenticationService {
         developer.log(' ========== API ERROR ==========');
         developer.log(' HTTP Error ${response.statusCode}');
 
+        // Invalid credentials come back as 400/401 with a JSON {"message": "..."} body - that
+        // message ("Invalid username or password") is what should reach the user, not a generic
+        // "status 400" popup. Parsing is separated from the throw below so a *parse* failure
+        // (e.g. an HTML error page instead of JSON) doesn't also swallow a *successfully parsed*
+        // server message - a bug that was previously catching its own deliberate throw.
+        String errorMessage = 'Login failed with status ${response.statusCode}';
         try {
           final errorData = jsonDecode(response.body);
           developer.log(' Error Body: ${jsonEncode(errorData)}');
-
-          String errorMessage = 'Login failed with status ${response.statusCode}';
           if (errorData['message'] != null) {
             errorMessage = errorData['message'];
           } else if (errorData['error'] != null) {
             errorMessage = errorData['error'];
           }
-          developer.log(' Error Message: $errorMessage');
-
-          developer.log(' ========== ERROR END ==========');
-          throw Exception(errorMessage);
-        } catch (e) {
+        } catch (_) {
           developer.log(' Raw Error Response: ${response.body}');
-          developer.log(' ========== ERROR END ==========');
-          throw Exception('Login failed with status: ${response.statusCode}');
         }
+        developer.log(' Error Message: $errorMessage');
+        developer.log(' ========== ERROR END ==========');
+        throw Exception(errorMessage);
       }
     } on http.ClientException catch (e) {
       developer.log(' ========== NETWORK ERROR ==========');
@@ -401,12 +450,18 @@ class AuthenticationService {
         }
         return LoginResponse.fromJson(data);
       } else {
+        // Same fix as loginApi: extract the message without the parse attempt's own catch
+        // swallowing a successfully-parsed one.
+        String errorMessage = 'Registration failed with status ${response.statusCode}';
         try {
           final errorData = jsonDecode(response.body);
-          throw Exception(errorData['message'] ?? 'Registration failed with status ${response.statusCode}');
+          if (errorData['message'] != null) {
+            errorMessage = errorData['message'];
+          }
         } catch (_) {
-          throw Exception('Registration failed with status: ${response.statusCode}');
+          // Body wasn't valid JSON - keep the generic status-based message.
         }
+        throw Exception(errorMessage);
       }
     } on http.ClientException {
       throw Exception('Network error: Please check your internet connection');

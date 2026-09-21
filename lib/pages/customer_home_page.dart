@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../components/barcode_scanner_page.dart';
+import '../components/confirm_dialog.dart';
 import '../components/live_tracking_card.dart';
 import '../services/authentication_service.dart';
 import '../services/valet_service.dart';
@@ -493,6 +494,14 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   }
 
   Future<void> _logout() async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Log out?',
+      message: "You'll need to sign in again to continue.",
+      confirmLabel: 'Log out',
+      destructive: true,
+    );
+    if (!confirmed) return;
     _pollTimer?.cancel();
     await _authService.logoutApi();
     if (mounted) {
