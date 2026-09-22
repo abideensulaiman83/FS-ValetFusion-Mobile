@@ -4,164 +4,194 @@
 // of thing from Driver/Customer (a management portal, not a "role you perform"), so it gets its
 // own visual treatment: Driver and Customer sit as a bento-style pair up top (equal weight, the
 // two everyday roles), Admin is a distinct dark "portal" strip below it.
+
+
 import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'customer_auth_page.dart';
 import 'feedback_page.dart';
 import 'privacy_policy_page.dart';
+import 'package:flutter/services.dart';
+import '../components/confirm_dialog.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
 
+
+
+  Future<void> _handleExit(BuildContext context) async {
+    final shouldExit = await showConfirmDialog(
+      context,
+      title: 'Exit App?',
+      message: 'Are you sure you want to close Valet Fusion?',
+      confirmLabel: 'Exit',
+      cancelLabel: 'Cancel',
+      destructive: true,
+    );
+
+    if (shouldExit && context.mounted) {
+      SystemNavigator.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // The gradient Container below sizes to its scrollable content, not the screen - on a
-      // tall device with short content that leaves the Scaffold's own (white) background
-      // showing underneath. Setting it here too means there's never a white gap regardless of
-      // content height.
-      backgroundColor: const Color(0xFF0B1220),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0B1220), Color(0xFF141F38)],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [Color(0xFF2563EB), Color(0xFF059669)]),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(Icons.local_parking_rounded, color: Colors.white, size: 26),
-                    ),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Text(
-                        'VALET FUSION',
-                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: 1.2),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Who\'s using the app right now?',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 13.5),
-                ),
-                const SizedBox(height: 28),
-
-                // Driver + Customer - the everyday roles, equal weight, side by side.
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _RoleTile(
-                        title: 'Valet Team',
-                        subtitle: 'Drivers, key control & lobby desk',
-                        icon: Icons.directions_car_filled_rounded,
-                        color: const Color(0xFF059669),
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginPage())),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _RoleTile(
-                        title: 'Customer',
-                        subtitle: 'Track & request my car',
-                        icon: Icons.person_rounded,
-                        color: const Color(0xFF2563EB),
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CustomerAuthPage())),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 18),
-
-                // Admin - a distinct "portal" strip, not another role tile: darker, wider, more
-                // formal, signaling "management console" rather than "a job you do".
-                Material(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(18),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(18),
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginPage())),
-                    child: Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFF7C3AED).withValues(alpha: 0.4)),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF7C3AED).withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF7C3AED), size: 28),
-                          ),
-                          const SizedBox(width: 16),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Admin Console', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-                                SizedBox(height: 3),
-                                Text(
-                                  'Insights, operations, reports & full management',
-                                  style: TextStyle(color: Colors.white70, fontSize: 12.5),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 16),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-                Center(
-                  child: Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 4,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+    ),
+    child: PopScope(
+    canPop: false,
+    onPopInvokedWithResult: (didPop, result) async {
+    if (didPop) return;
+    await _handleExit(context);
+    },
+    child: Scaffold(
+    backgroundColor: const Color(0xFF0B1220),
+    body: Container(
+    width: double.infinity,
+    height: double.infinity,
+    decoration: const BoxDecoration(
+    gradient: LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFF0B1220), Color(0xFF141F38)],
+    ),
+    ),
+    child: SafeArea(
+    child: SingleChildScrollView(
+    padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+    child: Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
                     children: [
-                      TextButton.icon(
-                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FeedbackPage())),
-                        icon: Icon(Icons.feedback_outlined, size: 16, color: Colors.white.withValues(alpha: 0.6)),
-                        label: Text('Report an issue', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFF2563EB), Color(0xFF059669)]),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.local_parking_rounded, color: Colors.white, size: 26),
                       ),
-                      TextButton.icon(
-                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyPolicyPage())),
-                        icon: Icon(Icons.privacy_tip_outlined, size: 16, color: Colors.white.withValues(alpha: 0.6)),
-                        label: Text('Privacy & Policy', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Text(
+                          'VALET FUSION',
+                          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 6),
+                  Text(
+                    'Who\'s using the app right now?',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 13.5),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Driver + Customer - the everyday roles, equal weight, side by side.
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _RoleTile(
+                          title: 'Valet Team',
+                          subtitle: 'Drivers, key control & lobby desk',
+                          icon: Icons.directions_car_filled_rounded,
+                          color: const Color(0xFF059669),
+                          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginPage())),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: _RoleTile(
+                          title: 'Customer',
+                          subtitle: 'Track & request my car',
+                          icon: Icons.person_rounded,
+                          color: const Color(0xFF2563EB),
+                          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CustomerAuthPage())),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Admin - a distinct "portal" strip
+                  Material(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(18),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginPage())),
+                      child: Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFF7C3AED).withValues(alpha: 0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF7C3AED).withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF7C3AED), size: 28),
+                            ),
+                            const SizedBox(width: 16),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Admin Console', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                                  SizedBox(height: 3),
+                                  Text(
+                                    'Insights, operations, reports & full management',
+                                    style: TextStyle(color: Colors.white70, fontSize: 12.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+                  Center(
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 4,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FeedbackPage())),
+                          icon: Icon(Icons.feedback_outlined, size: 16, color: Colors.white.withValues(alpha: 0.6)),
+                          label: Text('Report an issue', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyPolicyPage())),
+                          icon: Icon(Icons.privacy_tip_outlined, size: 16, color: Colors.white.withValues(alpha: 0.6)),
+                          label: Text('Privacy & Policy', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
+    ),
     );
   }
 }

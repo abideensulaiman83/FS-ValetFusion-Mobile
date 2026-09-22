@@ -463,11 +463,11 @@
 
 
 
-
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../confirm_dialog.dart';
+import '../../services/authentication_service.dart';
 
 class AppLayout extends StatefulWidget {
   final Widget child;
@@ -528,12 +528,18 @@ class _AppLayoutState extends State<AppLayout> {
   }
 
   Future<void> _handleLogout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('vf_token');
-    await prefs.remove('vf_user');
-    await prefs.remove('vf_location');
-    await prefs.remove('vf_pending_locations');
-    await prefs.remove('vf_pending_user');
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Log out?',
+      message: "You'll need to sign in again to continue.",
+      confirmLabel: 'Log out',
+      destructive: true,
+    );
+
+    if (!confirmed) return;
+
+    final authService = AuthenticationService();
+    await authService.logoutApi();
 
     if (mounted) {
       Navigator.of(context).pushNamedAndRemoveUntil(
@@ -663,24 +669,31 @@ class _AppLayoutState extends State<AppLayout> {
   }
 
   @override
+
   Widget build(BuildContext context) {
     final mainMenuItems = getMainMenuItems();
     final masterMenuItems = getMasterMenuItems();
     final hasMasterMenu = masterMenuItems.isNotEmpty;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title ?? 'Valet Fusion'),
-        actions: [
-          if (widget.actions != null) ...widget.actions!,
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _handleLogout,
-            tooltip: 'Logout',
-          ),
-        ],
-      ),
-      drawer: Drawer(
+    return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+      if (didPop) return;
+      await _handleLogout();
+    },
+    child: Scaffold(
+    appBar: AppBar(
+    title: Text(widget.title ?? 'Valet Fusion'),
+    actions: [
+    if (widget.actions != null) ...widget.actions!,
+    IconButton(
+    icon: const Icon(Icons.logout),
+    onPressed: _handleLogout,
+    tooltip: 'Logout',
+    ),
+    ],
+    ),
+    drawer: Drawer(
         child: SafeArea(
           child: Column(
             children: [
@@ -860,6 +873,7 @@ class _AppLayoutState extends State<AppLayout> {
         ),
       ),
       body: widget.child,
+    ),
     );
   }
 

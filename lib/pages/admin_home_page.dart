@@ -74,50 +74,57 @@ class _AdminHomePageState extends State<AdminHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
-      appBar: AppBar(
-        title: const Text('Admin Console'),
-        actions: [
-          IconButton(onPressed: _logout, icon: const Icon(Icons.logout), tooltip: 'Logout'),
-        ],
-      ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _load,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _sectionLabel('Insights'),
-                const SizedBox(height: 10),
-                _buildInsights(),
-                const SizedBox(height: 24),
-                _sectionLabel('Operations'),
-                const SizedBox(height: 10),
-                _buildOperationsGrid(),
-                const SizedBox(height: 24),
-                _sectionLabel('Reports'),
-                const SizedBox(height: 10),
-                _moduleTile(
-                  icon: Icons.bar_chart_rounded,
-                  color: Colors.indigo,
-                  title: 'Operational Report',
-                  subtitle: 'Today\'s throughput, inventory & payment mix',
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DriverActivityPage())),
-                ),
-                const SizedBox(height: 24),
-                _sectionLabel('More'),
-                const SizedBox(height: 10),
-                _moduleTile(
-                  icon: Icons.privacy_tip_outlined,
-                  color: Colors.grey,
-                  title: 'Privacy & Policy',
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyPolicyPage())),
-                ),
-              ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _logout();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F6FB),
+        appBar: AppBar(
+          title: const Text('Admin Console'),
+          actions: [
+            IconButton(onPressed: _logout, icon: const Icon(Icons.logout), tooltip: 'Logout'),
+          ],
+        ),
+        body: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: _load,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _sectionLabel('Insights'),
+                  const SizedBox(height: 10),
+                  _buildInsights(),
+                  const SizedBox(height: 24),
+                  _sectionLabel('Operations'),
+                  const SizedBox(height: 10),
+                  _buildOperationsGrid(),
+                  const SizedBox(height: 24),
+                  _sectionLabel('Reports'),
+                  const SizedBox(height: 10),
+                  _moduleTile(
+                    icon: Icons.bar_chart_rounded,
+                    color: Colors.indigo,
+                    title: 'Operational Report',
+                    subtitle: 'Today\'s throughput, inventory & payment mix',
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DriverActivityPage())),
+                  ),
+                  const SizedBox(height: 24),
+                  _sectionLabel('More'),
+                  const SizedBox(height: 10),
+                  _moduleTile(
+                    icon: Icons.privacy_tip_outlined,
+                    color: Colors.grey,
+                    title: 'Privacy & Policy',
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyPolicyPage())),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

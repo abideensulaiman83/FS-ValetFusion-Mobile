@@ -7,6 +7,10 @@
 // desktop-Lobby flow (POST /v1/parking-vehicles/{id}/arrive, etc). Role-aware: LOBBY and
 // KEY_CONTROLLER get the simplified scan-only desk (no "receive a new vehicle" form), matching
 // isSimplifiedDesk on the web.
+
+
+
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';

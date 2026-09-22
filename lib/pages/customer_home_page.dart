@@ -541,59 +541,67 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
-      appBar: AppBar(
-        title: const Text('My Valet'),
-        actions: [
-          IconButton(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CustomerHistoryPage())),
-            icon: const Icon(Icons.history),
-            tooltip: 'My Parking History',
-          ),
-          IconButton(
-            onPressed: () => Navigator.of(context).pushNamed('/privacy-policy'),
-            icon: const Icon(Icons.privacy_tip_outlined),
-            tooltip: 'Privacy & Policy',
-          ),
-          IconButton(onPressed: _logout, icon: const Icon(Icons.logout), tooltip: 'Logout'),
-        ],
-      ),
-      body: SafeArea(
-        child: _autoLoading
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _status != null ? _refreshStatus : _loadMyActiveTicket,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Align(alignment: Alignment.centerLeft, child: _buildLocationBar()),
-                      const SizedBox(height: 12),
-                      if (_status != null) ...[
-                        _buildStatusCard(_status!),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: TextButton.icon(
-                            onPressed: () {
-                              _pollTimer?.cancel();
-                              _ticketNoController.clear();
-                              setState(() => _status = null);
-                            },
-                            icon: const Icon(Icons.confirmation_number_outlined, size: 18),
-                            label: const Text('Track a different ticket'),
-                          ),
-                        ),
-                      ] else
-                        _buildLookupCard(),
-                    ],
-                  ),
-                ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _logout();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F6FB),
+        appBar: AppBar(
+          title: const Text('My Valet'),
+          actions: [
+            IconButton(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CustomerHistoryPage())),
+              icon: const Icon(Icons.history),
+              tooltip: 'My Parking History',
+            ),
+            IconButton(
+              onPressed: () => Navigator.of(context).pushNamed('/privacy-policy'),
+              icon: const Icon(Icons.privacy_tip_outlined),
+              tooltip: 'Privacy & Policy',
+            ),
+            IconButton(onPressed: _logout, icon: const Icon(Icons.logout), tooltip: 'Logout'),
+          ],
+        ),
+        body: SafeArea(
+          child: _autoLoading
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+            onRefresh: _status != null ? _refreshStatus : _loadMyActiveTicket,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(alignment: Alignment.centerLeft, child: _buildLocationBar()),
+                  const SizedBox(height: 12),
+                  if (_status != null) ...[
+                    _buildStatusCard(_status!),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () {
+                          _pollTimer?.cancel();
+                          _ticketNoController.clear();
+                          setState(() => _status = null);
+                        },
+                        icon: const Icon(Icons.confirmation_number_outlined, size: 18),
+                        label: const Text('Track a different ticket'),
+                      ),
+                    ),
+                  ] else
+                    _buildLookupCard(),
+                ],
               ),
+            ),
+          ),
+        ),
       ),
     );
   }
