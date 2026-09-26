@@ -1,7 +1,7 @@
 // lib/pages/parking_occupancy_page.dart
 //
-// A genuine parking-management view, not just the valet pickup flow - every currently parked
-// vehicle (status RECEIVED), which bay it's in, and how long it's been parked. This is the kind
+// Every vehicle received from a guest and not yet requested (status RECEIVED) - awaiting a
+// slot or parked, which slot, and how long ago it was received. This is the kind
 // of "which bays are occupied" visibility a property manager actually needs day to day, distinct
 // from the ticket-by-ticket valet desk.
 import 'package:flutter/material.dart';
@@ -78,7 +78,7 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
               .toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Parked Vehicles')),
+      appBar: AppBar(title: const Text('Received Vehicles')),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -110,7 +110,7 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                                 ),
                                 const SizedBox(width: 10),
                                 Text(
-                                  '${_parked.length} vehicles currently parked',
+                                  '${_parked.length} received Â· ${_parked.where((p) => p.parkingLocation == null && (p.bayNo == null || p.bayNo!.isEmpty)).length} awaiting slot',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     color: Colors.indigo.shade800,
@@ -134,7 +134,7 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                       child: filtered.isEmpty
                           ? Center(
                               child: Text(
-                                'No parked vehicles found',
+                                'No received vehicles found',
                                 style: TextStyle(color: Colors.grey.shade500),
                               ),
                             )
@@ -162,11 +162,10 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
       p.vehicleMake,
       p.vehicleModel,
     ].where((s) => s != null && s.isNotEmpty).join(' ');
-    final where =
+    final slot =
         p.parkingLocation ??
-        (p.bayNo != null && p.bayNo!.isNotEmpty
-            ? 'Bay ${p.bayNo}'
-            : 'Slot not recorded yet');
+        (p.bayNo != null && p.bayNo!.isNotEmpty ? 'Bay ${p.bayNo}' : null);
+    final where = slot == null ? 'Awaiting slot' : 'Parked Â· $slot';
     // Self-park check-ins (ParkingSlotService) get a synthetic SP-... number, not a guest
     // ticket, so there's no public tracking page for them.
     final hasGuestTicket = !p.ticketNo.startsWith('SP-');
@@ -233,11 +232,9 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color:
-                          p.parkingLocation == null &&
-                              (p.bayNo == null || p.bayNo!.isEmpty)
-                          ? Colors.orange.shade800
-                          : Colors.indigo.shade700,
+                      color: slot == null
+                          ? const Color(0xFF7C3AED)
+                          : const Color(0xFF64748B),
                     ),
                   ),
                 ],
@@ -254,7 +251,7 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                   ),
                 ),
                 Text(
-                  'parked',
+                  'ago',
                   style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
                 ),
                 if (hasGuestTicket) ...[

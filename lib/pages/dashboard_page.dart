@@ -263,8 +263,8 @@ class _DashboardPageState extends State<DashboardPage> {
   // Every received (parked) car - where it is, since when, and its guest QR - one tap from the
   // desk for drivers, lobby and key controllers, not just the admin home.
   Widget _parkedAction() => IconButton(
-        icon: const Icon(Icons.local_parking),
-        tooltip: 'Parked vehicles',
+        icon: const Icon(Icons.vpn_key_outlined),
+        tooltip: 'Received vehicles',
         onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ParkingOccupancyPage())),
       );
 
@@ -797,8 +797,6 @@ class _DashboardPageState extends State<DashboardPage> {
                 _buildEntryForm(),
               ],
               const SizedBox(height: 16),
-              _buildParkedList(),
-              const SizedBox(height: 16),
               _buildVehicleList('Requested', _dashboard?.requestedVehicles ?? [], isOnTheWay: false),
               const SizedBox(height: 16),
               _buildVehicleList('On The Way', _dashboard?.onthewayVehicles ?? [], isOnTheWay: true),
@@ -999,61 +997,44 @@ class _DashboardPageState extends State<DashboardPage> {
     return '${diff.inMinutes}m';
   }
 
-  Widget _buildParkedList() {
-    final shown = _parked.take(_parkedPreview).toList();
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 6, 4, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text('Parked (${_parked.length})', style: const TextStyle(fontWeight: FontWeight.w600)),
-                ),
-                if (_parked.length > _parkedPreview)
-                  TextButton(
-                    onPressed: () => Navigator.of(context)
-                        .push(MaterialPageRoute(builder: (_) => const ParkingOccupancyPage()))
-                        .then((_) => _fetchDashboard()),
-                    child: const Text('View all'),
-                  )
-                else
-                  const SizedBox(height: 40),
-              ],
-            ),
-          ),
-          if (_parked.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16, left: 14),
-              child: Text('No parked vehicles', style: TextStyle(color: Colors.grey.shade500)),
-            )
-          else
-            ...shown.map((p) {
-              final car = [p.vehicleColor, p.vehicleMake, p.vehicleModel].where((s) => s != null && s.isNotEmpty).join(' ');
-              final where = p.parkingLocation ?? (p.bayNo != null && p.bayNo!.isNotEmpty ? 'Bay ${p.bayNo}' : null);
-              return ListTile(
-                dense: true,
-                leading: Icon(Icons.local_parking, size: 20, color: where == null ? Colors.orange.shade700 : null),
-                title: Text('Ticket ${p.ticketNo} · ${p.plateNo ?? '-'}'),
-                subtitle: Text([
-                  if (car.isNotEmpty) car,
-                  where ?? 'Slot not recorded yet',
-                ].join(' · ')),
-                trailing: Text(_parkedFor(p.parkingInTime), style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                // Same as scanning the ticket: no slot yet -> record where it's parked, else request.
-                onTap: () => _tapListItem(p.ticketNo),
-              );
-            }),
-        ],
-      ),
-    );
+  // Received rows inside the Requested card. Violet = awaiting a slot, grey = parked; the
+  // requested rows above keep their blue "Requested" chip.
+  Widget _statusChip(String label, Color color) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
+        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w700)),
+      );
+
+  static const Color _requestedColor = Color(0xFF2563EB);
+  static const Color _awaitingSlotColor = Color(0xFF7C3AED);
+  static const Color _parkedColor = Color(0xFF64748B);
+
+  List<Widget> _receivedTiles() {
+    String? slotOf(TicketStatusResponse p) =>
+        p.parkingLocation ?? (p.bayNo != null && p.bayNo!.isNotEmpty ? 'Bay ${p.bayNo}' : null);
+    // Awaiting a slot first - someone has to act on those.
+    final ordered = [..._parked]..sort((a, b) => (slotOf(a) == null ? 0 : 1) - (slotOf(b) == null ? 0 : 1));
+    return ordered.take(_parkedPreview).map((p) {
+      final car = [p.vehicleColor, p.vehicleMake, p.vehicleModel].where((s) => s != null && s.isNotEmpty).join(' ');
+      final slot = slotOf(p);
+      final color = slot == null ? _awaitingSlotColor : _parkedColor;
+      return Container(
+        decoration: BoxDecoration(border: Border(left: BorderSide(color: color, width: 3))),
+        child: ListTile(
+          dense: true,
+          leading: Icon(slot == null ? Icons.hourglass_top : Icons.local_parking, size: 20, color: color),
+          title: Text('Ticket ${p.ticketNo} · ${p.plateNo ?? '-'}'),
+          subtitle: Text([
+            if (car.isNotEmpty) car,
+            if (slot != null) slot,
+            'received ${_parkedFor(p.parkingInTime)} ago',
+          ].join(' · ')),
+          trailing: _statusChip(slot == null ? 'Awaiting slot' : 'Parked', color),
+          // Same as scanning the ticket: no slot yet -> record where it's parked, else request.
+          onTap: () => _tapListItem(p.ticketNo),
+        ),
+      );
+    }).toList();
   }
 
   Widget _buildVehicleList(String title, List<Map<String, dynamic>> items, {required bool isOnTheWay}) {
@@ -1067,15 +1048,33 @@ class _DashboardPageState extends State<DashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(14),
-            child: Text('$title (${items.length})', style: const TextStyle(fontWeight: FontWeight.w600)),
+            padding: EdgeInsets.fromLTRB(14, isOnTheWay ? 14 : 6, 4, isOnTheWay ? 14 : 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                      isOnTheWay ? '$title (${items.length})' : '$title (${items.length}) Â· Received (${_parked.length})',
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                ),
+                if (!isOnTheWay && _parked.length > _parkedPreview)
+                  TextButton(
+                    onPressed: () => Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (_) => const ParkingOccupancyPage()))
+                        .then((_) => _fetchDashboard()),
+                    child: const Text('All received'),
+                  )
+                else if (!isOnTheWay)
+                  const SizedBox(height: 40),
+              ],
+            ),
           ),
-          if (items.isEmpty)
+          if (items.isEmpty && (isOnTheWay || _parked.isEmpty))
             Padding(
               padding: const EdgeInsets.only(bottom: 16, left: 14),
-              child: Text('No ${title.toLowerCase()} vehicles', style: TextStyle(color: Colors.grey.shade500)),
+              child: Text(isOnTheWay ? 'No ${title.toLowerCase()} vehicles' : 'No requested or received vehicles',
+                  style: TextStyle(color: Colors.grey.shade500)),
             )
-          else
+          else ...[
             ...items.map((v) {
               final ticketNo = v['ticketNo']?.toString() ?? '';
               final status = v['status']?.toString();
@@ -1093,10 +1092,14 @@ class _DashboardPageState extends State<DashboardPage> {
                         padding: EdgeInsets.zero,
                         visualDensity: VisualDensity.compact,
                       )
-                    : null,
+                    : isOnTheWay
+                        ? null
+                        : _statusChip('Requested', _requestedColor),
                 onTap: () => _tapListItem(ticketNo),
               );
             }),
+            if (!isOnTheWay) ..._receivedTiles(),
+          ],
         ],
       ),
     );
