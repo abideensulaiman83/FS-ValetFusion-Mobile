@@ -46,7 +46,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
   }
 
   Future<void> _loadRememberedCredentials() async {
-    final saved = await _authService.getRememberedCredentials();
+    final saved = await _authService.getRememberedCredentials(customer: true);
     if (saved != null && mounted) {
       setState(() {
         _mobileController.text = saved['username'] ?? '';
@@ -57,7 +57,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
     }
     if (saved != null) {
       final available = await _authService.isBiometricAvailable();
-      final enabled = await _authService.isBiometricEnabled();
+      final enabled = await _authService.isBiometricEnabled(customer: true);
       if (mounted) {
         setState(() {
           _biometricAvailable = available;
@@ -82,7 +82,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
 
   Future<void> _maybeOfferBiometricEnrollment() async {
     if (!_rememberMe) return;
-    if (await _authService.isBiometricEnabled()) return;
+    if (await _authService.isBiometricEnabled(customer: true)) return;
     final available = await _authService.isBiometricAvailable();
     if (!available || !mounted) return;
 
@@ -102,7 +102,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
         reason: 'Confirm to enable Face ID / Fingerprint sign-in',
       );
       if (confirmed) {
-        await _authService.setBiometricEnabled(true);
+        await _authService.setBiometricEnabled(true, customer: true);
       }
     }
   }
@@ -161,10 +161,10 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
 
       if (!_isRegister) {
         if (_rememberMe) {
-          await _authService.saveRememberedCredentials(_mobileController.text.trim(), _passwordController.text);
+          await _authService.saveRememberedCredentials(_mobileController.text.trim(), _passwordController.text, customer: true);
           await _maybeOfferBiometricEnrollment();
         } else {
-          await _authService.clearRememberedCredentials();
+          await _authService.clearRememberedCredentials(customer: true);
         }
       }
 

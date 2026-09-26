@@ -43,6 +43,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
   bool _loading = false;
   DashboardDetails? _dashboard;
+  // Received and still parked - the step before Requested, listed alongside it.
+  List<TicketStatusResponse> _parked = [];
   List<Shop> _shopsList = [];
   List<ServiceType> _serviceTypesList = [];
 
@@ -102,6 +104,12 @@ class _DashboardPageState extends State<DashboardPage> {
     } catch (_) {
       // Non-fatal - the stat strip just stays empty; the scan flow doesn't depend on it.
     }
+    try {
+      final parked = await _valetService.fetchByStatus('RECEIVED');
+      // Newest first - the car just taken from the guest is the one staff are looking for.
+      parked.sort((a, b) => (b.parkingInTime ?? '').compareTo(a.parkingInTime ?? ''));
+      if (mounted) setState(() => _parked = parked);
+    } catch (_) {}
   }
 
   Future<void> _fetchLookups() async {
@@ -789,6 +797,8 @@ class _DashboardPageState extends State<DashboardPage> {
                 _buildEntryForm(),
               ],
               const SizedBox(height: 16),
+              _buildParkedList(),
+              const SizedBox(height: 16),
               _buildVehicleList('Requested', _dashboard?.requestedVehicles ?? [], isOnTheWay: false),
               const SizedBox(height: 16),
               _buildVehicleList('On The Way', _dashboard?.onthewayVehicles ?? [], isOnTheWay: true),
@@ -973,6 +983,74 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  static const int _parkedPreview = 5;
+
+  String _parkedFor(String? isoTime) {
+    if (isoTime == null) return '';
+    final start = DateTime.tryParse(isoTime);
+    if (start == null) return '';
+    final diff = DateTime.now().difference(start);
+    if (diff.inHours >= 1) return '${diff.inHours}h ${diff.inMinutes % 60}m';
+    return '${diff.inMinutes}m';
+  }
+
+  Widget _buildParkedList() {
+    final shown = _parked.take(_parkedPreview).toList();
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 6, 4, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('Parked (${_parked.length})', style: const TextStyle(fontWeight: FontWeight.w600)),
+                ),
+                if (_parked.length > _parkedPreview)
+                  TextButton(
+                    onPressed: () => Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (_) => const ParkingOccupancyPage()))
+                        .then((_) => _fetchDashboard()),
+                    child: const Text('View all'),
+                  )
+                else
+                  const SizedBox(height: 40),
+              ],
+            ),
+          ),
+          if (_parked.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16, left: 14),
+              child: Text('No parked vehicles', style: TextStyle(color: Colors.grey.shade500)),
+            )
+          else
+            ...shown.map((p) {
+              final car = [p.vehicleColor, p.vehicleMake, p.vehicleModel].where((s) => s != null && s.isNotEmpty).join(' ');
+              final where = p.parkingLocation ?? (p.bayNo != null && p.bayNo!.isNotEmpty ? 'Bay ${p.bayNo}' : null);
+              return ListTile(
+                dense: true,
+                leading: Icon(Icons.local_parking, size: 20, color: where == null ? Colors.orange.shade700 : null),
+                title: Text('Ticket ${p.ticketNo} · ${p.plateNo ?? '-'}'),
+                subtitle: Text([
+                  if (car.isNotEmpty) car,
+                  where ?? 'Slot not recorded yet',
+                ].join(' · ')),
+                trailing: Text(_parkedFor(p.parkingInTime), style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                // Same as scanning the ticket: no slot yet -> record where it's parked, else request.
+                onTap: () => _tapListItem(p.ticketNo),
+              );
+            }),
         ],
       ),
     );

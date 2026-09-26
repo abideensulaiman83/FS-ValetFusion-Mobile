@@ -164,49 +164,81 @@ class AuthenticationService {
   static const String locationKey = 'vf_location';
   static const String pendingUserKey = 'vf_pending_user';
   static const String pendingLocationsKey = 'vf_pending_locations';
+  // Staff (driver, lobby, key controller, admin) keep the original keys; customers get their own,
+  // so one phone can remember a staff login and a customer login side by side without either
+  // "Remember me" overwriting the other.
   static const String rememberedUsernameKey = 'vf_remembered_username';
   static const String rememberedPasswordKey = 'vf_remembered_password';
+  static const String customerRememberedUsernameKey = 'vf_customer_remembered_username';
+  static const String customerRememberedPasswordKey = 'vf_customer_remembered_password';
+
+  static String _userKeyFor(bool customer) => customer ? customerRememberedUsernameKey : rememberedUsernameKey;
+  static String _passKeyFor(bool customer) => customer ? customerRememberedPasswordKey : rememberedPasswordKey;
+  static String _biometricKeyFor(bool customer) => customer ? customerBiometricEnabledKey : biometricEnabledKey;
+
+  // Before the split both screens shared the staff keys. A saved username that's a phone number
+  // is a customer's (staff sign in with a username), so move it - and its biometric opt-in - to
+  // the customer slot once, instead of pre-filling it on the staff screen.
+  static final RegExp _phoneLike = RegExp(r'^\+?\d{7,15}$');
+  Future<void> _migrateSharedSlot(SharedPreferences prefs) async {
+    final legacyUser = prefs.getString(rememberedUsernameKey);
+    if (legacyUser == null || !_phoneLike.hasMatch(legacyUser.trim())) return;
+    if (prefs.getString(customerRememberedUsernameKey) == null) {
+      await prefs.setString(customerRememberedUsernameKey, legacyUser);
+      final legacyPass = prefs.getString(rememberedPasswordKey);
+      if (legacyPass != null) await prefs.setString(customerRememberedPasswordKey, legacyPass);
+      await prefs.setBool(customerBiometricEnabledKey, prefs.getBool(biometricEnabledKey) ?? false);
+    }
+    await prefs.remove(rememberedUsernameKey);
+    await prefs.remove(rememberedPasswordKey);
+    await prefs.remove(biometricEnabledKey);
+  }
 
   // "Remember me" on the login form itself - separate from staying logged in across app
   // restarts (see SplashPage, which checks the saved token/session). This just pre-fills the
   // username/password fields next time, for after an explicit logout. Kept in SharedPreferences
   // like the rest of this app's local storage (the session token included) rather than a secure
   // keystore, to match the existing security posture without adding a new native dependency.
-  Future<void> saveRememberedCredentials(String username, String password) async {
+  Future<void> saveRememberedCredentials(String username, String password, {bool customer = false}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(rememberedUsernameKey, username);
-    await prefs.setString(rememberedPasswordKey, password);
+    await _migrateSharedSlot(prefs);
+    await prefs.setString(_userKeyFor(customer), username);
+    await prefs.setString(_passKeyFor(customer), password);
   }
 
-  Future<Map<String, String>?> getRememberedCredentials() async {
+  Future<Map<String, String>?> getRememberedCredentials({bool customer = false}) async {
     final prefs = await SharedPreferences.getInstance();
-    final username = prefs.getString(rememberedUsernameKey);
-    final password = prefs.getString(rememberedPasswordKey);
+    await _migrateSharedSlot(prefs);
+    final username = prefs.getString(_userKeyFor(customer));
+    final password = prefs.getString(_passKeyFor(customer));
     if (username == null || password == null) return null;
     return {'username': username, 'password': password};
   }
 
-  Future<void> clearRememberedCredentials() async {
+  Future<void> clearRememberedCredentials({bool customer = false}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(rememberedUsernameKey);
-    await prefs.remove(rememberedPasswordKey);
+    await prefs.remove(_userKeyFor(customer));
+    await prefs.remove(_passKeyFor(customer));
+    await prefs.remove(_biometricKeyFor(customer));
   }
 
   // Biometric sign-in: an opt-in shortcut over "Remember me" above, not a separate credential
   // store - Face ID/fingerprint just unlocks the same remembered username/password and submits
   // them, the same as if the user had typed them in. So this only ever makes sense (and only
-  // ever gets offered) once remembered credentials already exist.
+  // ever gets offered) once remembered credentials already exist. Tracked per slot, so turning
+  // it on for the customer login doesn't also sign the phone into the staff account.
   static const String biometricEnabledKey = 'vf_biometric_enabled';
+  static const String customerBiometricEnabledKey = 'vf_customer_biometric_enabled';
   final LocalAuthentication _localAuth = LocalAuthentication();
 
-  Future<bool> isBiometricEnabled() async {
+  Future<bool> isBiometricEnabled({bool customer = false}) async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(biometricEnabledKey) ?? false;
+    return prefs.getBool(_biometricKeyFor(customer)) ?? false;
   }
 
-  Future<void> setBiometricEnabled(bool enabled) async {
+  Future<void> setBiometricEnabled(bool enabled, {bool customer = false}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(biometricEnabledKey, enabled);
+    await prefs.setBool(_biometricKeyFor(customer), enabled);
   }
 
   /// Whether this device can actually prompt for Face ID/fingerprint right now - has the
