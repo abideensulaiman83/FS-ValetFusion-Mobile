@@ -167,16 +167,21 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
         (p.bayNo != null && p.bayNo!.isNotEmpty
             ? 'Bay ${p.bayNo}'
             : 'Slot not recorded yet');
+    // Self-park check-ins (ParkingSlotService) get a synthetic SP-... number, not a guest
+    // ticket, so there's no public tracking page for them.
+    final hasGuestTicket = !p.ticketNo.startsWith('SP-');
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => GuestTrackingQr.show(
-        context,
-        ticketNo: p.ticketNo,
-        vehicleText: [
-          vehicle,
-          p.plateNo ?? '',
-        ].where((s) => s.isNotEmpty).join(' · '),
-      ),
+      onTap: !hasGuestTicket
+          ? null
+          : () => GuestTrackingQr.show(
+                context,
+                ticketNo: p.ticketNo,
+                vehicleText: [
+                  vehicle,
+                  p.plateNo ?? '',
+                ].where((s) => s.isNotEmpty).join(' · '),
+              ),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -252,8 +257,10 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                   'parked',
                   style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
                 ),
-                const SizedBox(height: 4),
-                Icon(Icons.qr_code_2, size: 18, color: Colors.grey.shade500),
+                if (hasGuestTicket) ...[
+                  const SizedBox(height: 4),
+                  Icon(Icons.qr_code_2, size: 18, color: Colors.grey.shade500),
+                ],
               ],
             ),
           ],
