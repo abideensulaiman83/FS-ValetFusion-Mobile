@@ -358,9 +358,28 @@ class ValetApiException implements Exception {
   String toString() => message;
 }
 
+class TrackingCompany {
+  final String code;
+  final String name;
+  TrackingCompany(this.code, this.name);
+}
+
 class ValetService {
   static const String apiBaseUrl = AuthenticationService.apiBaseUrl;
   static const Duration timeout = Duration(seconds: 30);
+
+  /// The signed-in user's company code, for the guest tracking link (/track/<CODE>/<TICKET>).
+  Future<TrackingCompany> fetchTrackingCompany() async {
+    final headers = await _headers();
+    final response = await http
+        .get(Uri.parse('$apiBaseUrl/master-locations/mine/tracking-code'), headers: headers)
+        .timeout(timeout);
+    if (response.statusCode != 200) {
+      throw ValetApiException(_errorMessage(response));
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return TrackingCompany(data['code'] as String, data['name'] as String? ?? '');
+  }
 
   // companyCode: only needed when a CUSTOMER is looking up/acting on a ticket at a *different*
   // property than the one their account was created at (see CustomerHomePage's location picker).

@@ -14,6 +14,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../components/guest_tracking_qr_sheet.dart';
 import '../components/layout/app_layout.dart';
 import '../components/live_tracking_card.dart';
 import '../components/slot_picker.dart';
@@ -21,6 +22,7 @@ import '../components/wash_requests_section.dart';
 import '../services/authentication_service.dart';
 import '../services/valet_service.dart';
 import 'driver_receive_page.dart';
+import 'parking_occupancy_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -231,9 +233,17 @@ class _DashboardPageState extends State<DashboardPage> {
       } else {
         _showSnack('Vehicle received successfully!');
       }
+      final vehicleText = [
+        _vehicleColorController.text.trim(),
+        _vehicleMakeController.text.trim(),
+        _vehicleModelController.text.trim(),
+        _plateNoController.text.trim(),
+      ].where((s) => s.isNotEmpty).join(' · ');
       _ticketNoController.clear();
       _resetEntryForm();
       _fetchDashboard();
+      // Guest is still at the stand - let them scan straight to this car's live status.
+      if (mounted) await GuestTrackingQr.show(context, ticketNo: ticketNo, vehicleText: vehicleText);
       _ticketNoFocusNode.requestFocus();
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
@@ -241,6 +251,14 @@ class _DashboardPageState extends State<DashboardPage> {
       if (mounted) setState(() => _loading = false);
     }
   }
+
+  // Every received (parked) car - where it is, since when, and its guest QR - one tap from the
+  // desk for drivers, lobby and key controllers, not just the admin home.
+  Widget _parkedAction() => IconButton(
+        icon: const Icon(Icons.local_parking),
+        tooltip: 'Parked vehicles',
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ParkingOccupancyPage())),
+      );
 
   // ── Park sheet (RECEIVED, no slot yet) ─────────────────────────────────
   // The Key Controller (or desk) records where the car was parked: the nearest free slot is
@@ -741,13 +759,15 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     if (_isDriver) {
-      return const AppLayout(
+      return AppLayout(
         title: 'Driver Desk',
-        child: DriverReceiveFlow(),
+        actions: [_parkedAction()],
+        child: const DriverReceiveFlow(),
       );
     }
     return AppLayout(
       title: 'Valet Desk',
+      actions: [_parkedAction()],
       child: RefreshIndicator(
         onRefresh: () async {
           await _fetchDashboard();

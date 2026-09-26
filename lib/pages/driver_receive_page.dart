@@ -13,6 +13,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../components/barcode_scanner_page.dart';
+import '../components/guest_tracking_qr_sheet.dart';
 import '../components/slot_picker.dart';
 import '../components/wash_requests_section.dart';
 import '../services/delivery_tracker.dart';
@@ -372,8 +373,16 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
         requestedRemarks: 'Received by driver (OCR-assisted)',
       );
       _showSnack('Vehicle linked to ticket $ticketNo - park it in the slot shown below.');
+      final vehicleText = [
+        _vehicleColorController.text.trim(),
+        _brandController.text.trim(),
+        _modelController.text.trim(),
+        _plateNoController.text.trim(),
+      ].where((s) => s.isNotEmpty).join(' · ');
       // Refresh the lookup so the flow drops into the "park it here" step below.
       await _lookup();
+      // The guest is still standing there - let them scan straight to this car's live status.
+      if (mounted) await GuestTrackingQr.show(context, ticketNo: ticketNo, vehicleText: vehicleText);
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
     } finally {
