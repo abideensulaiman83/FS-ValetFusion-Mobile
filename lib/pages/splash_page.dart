@@ -9,6 +9,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/notification_service.dart';
 import '../services/authentication_service.dart';
 
 class SplashPage extends StatefulWidget {
@@ -66,10 +67,10 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
 
     try {
       final roles = List<String>.from(jsonDecode(userStr)['roles'] ?? []);
-      if (roles.contains('SUPER_ADMIN') || roles.contains('LOCATION_ADMIN')) return '/admin/home';
-      if (roles.contains('CUSTOMER')) return '/customer/home';
-      if (roles.isNotEmpty) return '/dashboard'; // Driver/Key Controller/Lobby/Valet Staff share this desk
-      return '/';
+      // Push alerts go to whoever is signed in on this phone - refresh the token on every start.
+      NotificationService.instance.registerDevice();
+      // Driver/Key Controller/Lobby/Valet Staff share the desk; Security goes to Parking Setup.
+      return AuthenticationService.homeRouteFor(roles);
     } catch (_) {
       return '/';
     }

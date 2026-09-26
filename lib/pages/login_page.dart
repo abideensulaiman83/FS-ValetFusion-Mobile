@@ -194,9 +194,9 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (mounted) {
-        final roles = response.user.roles;
-        final isAdmin = roles.contains('SUPER_ADMIN') || roles.contains('LOCATION_ADMIN');
-        Navigator.of(context).pushReplacementNamed(isAdmin ? '/admin/home' : '/dashboard');
+        final route = AuthenticationService.homeRouteFor(response.user.roles);
+        // Customers use their own sign-in; a CUSTOMER account here still gets the desk as before.
+        Navigator.of(context).pushReplacementNamed(route == '/customer/home' ? '/dashboard' : route);
       }
     } catch (e, stackTrace) {
 

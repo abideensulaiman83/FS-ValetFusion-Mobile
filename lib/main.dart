@@ -10,6 +10,8 @@ import 'pages/admin_home_page.dart';
 import 'pages/privacy_policy_page.dart';
 import 'pages/splash_page.dart';
 import 'pages/customer_home_page.dart';
+import 'pages/parking_setup_page.dart';
+import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 
 // Import all pages directly from pages folder
@@ -24,8 +26,11 @@ import 'pages/create_user_page.dart';
 // import 'pages/company_details_page.dart';
 // import 'pages/ticket_details_page.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Local notifications always; Firebase push only once google-services.json is configured.
+  await NotificationService.instance.init();
 
   // FIX: Set preferred orientations and disable text selection toolbar
   SystemChrome.setPreferredOrientations([
@@ -48,6 +53,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      navigatorKey: NotificationService.navigatorKey,
       title: 'Valet Fusion',
       theme: AppTheme.light,
       initialRoute: '/splash',
@@ -60,6 +66,7 @@ class MyApp extends StatelessWidget {
         '/driver/activity': (context) => const DriverActivityPage(),
         '/admin/home': (context) => const AdminHomePage(),
         '/customer/home': (context) => const CustomerHomePage(),
+        '/security/parking': (context) => const ParkingSetupPage(isHome: true),
         '/privacy-policy': (context) => const PrivacyPolicyPage(),
 
         // All pages directly in routes

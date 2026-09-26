@@ -16,6 +16,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // flutter_local_notifications uses java.time APIs that need desugaring below API 26.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -27,7 +29,8 @@ android {
         applicationId = "com.focalsoft.fsvalet.fs_valetfusion"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // 23 (Android 6): required by firebase_messaging.
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -44,4 +47,15 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+
+// Push notifications (FCM) switch on only once the Firebase project's google-services.json is
+// dropped into android/app/. Without it the app still builds and runs; FirebaseBootstrap just
+// skips push and the in-app/local reminders keep working.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }

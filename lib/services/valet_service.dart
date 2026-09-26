@@ -64,6 +64,12 @@ class TicketStatusResponse {
   final String? driverLocationUpdatedAt;
   final double? etaDistanceMeters;
   final int? etaMinutes;
+  final String? etaSource; // GPS (live fix) or SCHEDULE (dispatch estimate / driver's extension)
+  final int? etaExtendedCount;
+  final bool checkInDue; // driver app should ask "still on the way?"
+  final int? driverLocationAgeSeconds; // computed server-side, so no phone/server clock skew
+  final String? vehicleModel;
+  final String? parkingLocation; // "Building · Floor · Area · Slot X" or "Bay X"
   final String? washStatus;
   final String? washRequestedAt;
   final String? washCompletedAt;
@@ -104,6 +110,12 @@ class TicketStatusResponse {
     this.driverLocationUpdatedAt,
     this.etaDistanceMeters,
     this.etaMinutes,
+    this.etaSource,
+    this.etaExtendedCount,
+    this.checkInDue = false,
+    this.driverLocationAgeSeconds,
+    this.vehicleModel,
+    this.parkingLocation,
     this.washStatus,
     this.washRequestedAt,
     this.washCompletedAt,
@@ -146,6 +158,12 @@ class TicketStatusResponse {
       driverLocationUpdatedAt: json['driverLocationUpdatedAt'],
       etaDistanceMeters: (json['etaDistanceMeters'] as num?)?.toDouble(),
       etaMinutes: json['etaMinutes'],
+      etaSource: json['etaSource'],
+      etaExtendedCount: json['etaExtendedCount'],
+      checkInDue: json['checkInDue'] == true,
+      driverLocationAgeSeconds: (json['driverLocationAgeSeconds'] as num?)?.toInt(),
+      vehicleModel: json['vehicleModel'],
+      parkingLocation: json['parkingLocation'],
       washStatus: json['washStatus'],
       washRequestedAt: json['washRequestedAt'],
       washCompletedAt: json['washCompletedAt'],
@@ -301,6 +319,38 @@ class DashboardDetails {
   }
 }
 
+class AvailableSlot {
+  final int slotId;
+  final String slotNumber;
+  final String? areaName;
+  final String? floorName;
+  final String? buildingName;
+  final String label;
+
+  AvailableSlot({
+    required this.slotId,
+    required this.slotNumber,
+    this.areaName,
+    this.floorName,
+    this.buildingName,
+    required this.label,
+  });
+
+  factory AvailableSlot.fromJson(Map<String, dynamic> json) {
+    return AvailableSlot(
+      slotId: (json['slotId'] as num).toInt(),
+      slotNumber: json['slotNumber'] ?? '',
+      areaName: json['areaName'],
+      floorName: json['floorName'],
+      buildingName: json['buildingName'],
+      label: json['label'] ?? 'Slot ${json['slotNumber']}',
+    );
+  }
+
+  /// "Building · Floor · Area" - shown under the big slot number.
+  String get where => [buildingName, floorName, areaName].where((s) => s != null && s.isNotEmpty).join(' · ');
+}
+
 class ValetApiException implements Exception {
   final String message;
   ValetApiException(this.message);
@@ -359,6 +409,7 @@ class ValetService {
     String? plateNo,
     String? bayNo,
     String? vehicleMake,
+    String? vehicleModel,
     String? vehicleColor,
     int? serviceType,
     String? requestedRemarks,
@@ -375,6 +426,7 @@ class ValetService {
             'plateNo': plateNo ?? '',
             if (bayNo != null) 'bayNo': bayNo,
             if (vehicleMake != null) 'vehicleMake': vehicleMake,
+            if (vehicleModel != null) 'vehicleModel': vehicleModel,
             if (vehicleColor != null) 'vehicleColor': vehicleColor,
             if (serviceType != null) 'serviceType': serviceType,
             if (requestedRemarks != null) 'requestedRemarks': requestedRemarks,
@@ -405,11 +457,14 @@ class ValetService {
     }
   }
 
-  /// Driver records where the vehicle was actually parked, once the Gate Scanner has already
-  /// received it via OCR. Mirrors ParkDetailsRequestDTO.
-  Future<void> recordParkDetails({
+  /// Driver / Key Controller records where the vehicle was actually parked. Mirrors
+  /// ParkDetailsRequestDTO: pass slotId when the property has a parking layout (the server claims
+  /// the slot atomically, so two drivers can't take the same one), or a free-text bayNo otherwise.
+  /// Returns the server's message, e.g. "Parked at Tower A · B1 · Zone 1 · Slot 12".
+  Future<String> recordParkDetails({
     required int parkingVehicleId,
-    required String bayNo,
+    int? slotId,
+    String? bayNo,
     String? keyHolderNo,
   }) async {
     final headers = await _headers();
@@ -418,7 +473,8 @@ class ValetService {
           Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/park-details'),
           headers: headers,
           body: jsonEncode({
-            'bayNo': bayNo,
+            if (slotId != null) 'slotId': slotId,
+            if (bayNo != null && bayNo.isNotEmpty) 'bayNo': bayNo,
             if (keyHolderNo != null && keyHolderNo.isNotEmpty) 'keyHolderNo': keyHolderNo,
           }),
         )
@@ -427,6 +483,46 @@ class ValetService {
     if (response.statusCode != 200) {
       throw ValetApiException(_errorMessage(response));
     }
+    return _messageOr(response, 'Parked');
+  }
+
+  String _messageOr(http.Response response, String fallback) {
+    try {
+      return (jsonDecode(response.body)['message'] as String?) ?? fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  /// Free valet slots, nearest first (building -> floor -> area -> slot order, as set up in
+  /// Parking Management). Empty when the property hasn't configured a layout.
+  Future<List<AvailableSlot>> fetchAvailableSlots({int limit = 50}) async {
+    final headers = await _headers();
+    final response = await http
+        .get(Uri.parse('$apiBaseUrl/v1/parking-layout/available-slots?limit=$limit'), headers: headers)
+        .timeout(timeout);
+    if (response.statusCode != 200) {
+      throw ValetApiException(_errorMessage(response));
+    }
+    final list = jsonDecode(response.body) as List;
+    return list.map((e) => AvailableSlot.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// Driver answers "Still on the way?" - extendMinutes 0 means "on time", 5..60 pushes the
+  /// customer's ETA back by that much.
+  Future<String> etaCheckIn({required int parkingVehicleId, required int extendMinutes}) async {
+    final headers = await _headers();
+    final response = await http
+        .post(
+          Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/eta-checkin'),
+          headers: headers,
+          body: jsonEncode({'extendMinutes': extendMinutes}),
+        )
+        .timeout(timeout);
+    if (response.statusCode != 200) {
+      throw ValetApiException(_errorMessage(response));
+    }
+    return _messageOr(response, 'Updated');
   }
 
   /// Mirrors ShopChargePreviewRequestDTO / ShopChargePreviewResponseDTO.
@@ -546,6 +642,12 @@ class ValetService {
       driverLng: (json['driverLng'] as num?)?.toDouble(),
       etaDistanceMeters: (json['etaDistanceMeters'] as num?)?.toDouble(),
       etaMinutes: json['etaMinutes'],
+      etaSource: json['etaSource'],
+      etaExtendedCount: json['etaExtendedCount'],
+      checkInDue: json['checkInDue'] == true,
+      driverLocationAgeSeconds: (json['driverLocationAgeSeconds'] as num?)?.toInt(),
+      vehicleModel: json['vehicleModel'],
+      parkingLocation: json['parkingLocation'],
       washStatus: json['washStatus'],
       parkingInTime: json['parkingInTime'],
     );

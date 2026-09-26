@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../components/layout/app_layout.dart';
 import '../components/live_tracking_card.dart';
+import '../components/slot_picker.dart';
 import '../components/wash_requests_section.dart';
 import '../services/authentication_service.dart';
 import '../services/valet_service.dart';
@@ -48,10 +49,12 @@ class _DashboardPageState extends State<DashboardPage> {
   final _vpaInController = TextEditingController();
   final _plateNoController = TextEditingController();
   final _vehicleMakeController = TextEditingController();
+  final _vehicleModelController = TextEditingController();
   final _vehicleColorController = TextEditingController();
   final _bayNoController = TextEditingController();
   final _commentsController = TextEditingController();
   int? _selectedServiceTypeId;
+  AvailableSlot? _entrySlot; // slot picked in the entry form; null = typed bay / none
 
   @override
   void initState() {
@@ -71,6 +74,7 @@ class _DashboardPageState extends State<DashboardPage> {
     _vpaInController.dispose();
     _plateNoController.dispose();
     _vehicleMakeController.dispose();
+    _vehicleModelController.dispose();
     _vehicleColorController.dispose();
     _bayNoController.dispose();
     _commentsController.dispose();
@@ -126,11 +130,13 @@ class _DashboardPageState extends State<DashboardPage> {
     _vpaInController.clear();
     _plateNoController.clear();
     _vehicleMakeController.clear();
+    _vehicleModelController.clear();
     _vehicleColorController.clear();
     _bayNoController.clear();
     _commentsController.clear();
     setState(() {
       _showEntryForm = false;
+      _entrySlot = null;
       if (_serviceTypesList.isNotEmpty) _selectedServiceTypeId = _serviceTypesList.first.id;
     });
   }
@@ -154,7 +160,13 @@ class _DashboardPageState extends State<DashboardPage> {
 
       switch (data.status) {
         case 'RECEIVED':
-          await _openRequestDialog(data);
+          // Key just handed over and nobody has recorded where the car is yet - mark the slot
+          // first; otherwise carry on to the request/payment step as before.
+          if ((data.bayNo == null || data.bayNo!.trim().isEmpty) && data.parkingLocation == null) {
+            await _openParkSheet(data);
+          } else {
+            await _openRequestDialog(data);
+          }
           break;
         case 'REQUESTED':
           await _openDispatchDialog(data);
@@ -195,13 +207,30 @@ class _DashboardPageState extends State<DashboardPage> {
         ticketNo: ticketNo,
         vpaIn: _vpaInController.text.trim(),
         plateNo: _plateNoController.text.trim(),
-        bayNo: _bayNoController.text.trim().isEmpty ? null : _bayNoController.text.trim(),
+        bayNo: _entrySlot != null || _bayNoController.text.trim().isEmpty ? null : _bayNoController.text.trim(),
         vehicleMake: _vehicleMakeController.text.trim().isEmpty ? null : _vehicleMakeController.text.trim(),
+        vehicleModel: _vehicleModelController.text.trim().isEmpty ? null : _vehicleModelController.text.trim(),
         vehicleColor: _vehicleColorController.text.trim().isEmpty ? null : _vehicleColorController.text.trim(),
         serviceType: _selectedServiceTypeId,
         requestedRemarks: _commentsController.text.trim().isEmpty ? null : _commentsController.text.trim(),
       );
-      _showSnack('Vehicle received successfully!');
+      final slot = _entrySlot;
+      if (slot != null) {
+        // Claim the chosen slot for the car we just received.
+        try {
+          final received = await _valetService.checkTicketStatus(ticketNo);
+          final message = await _valetService.recordParkDetails(
+            parkingVehicleId: received.parkingVehicleId!,
+            slotId: slot.slotId,
+          );
+          _showSnack('Vehicle received - $message');
+        } catch (e) {
+          _showSnack('Vehicle received, but the slot was not saved: ${e.toString().replaceAll('Exception: ', '')}. '
+              'Scan the ticket again to pick a slot.', error: true);
+        }
+      } else {
+        _showSnack('Vehicle received successfully!');
+      }
       _ticketNoController.clear();
       _resetEntryForm();
       _fetchDashboard();
@@ -211,6 +240,95 @@ class _DashboardPageState extends State<DashboardPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  // ── Park sheet (RECEIVED, no slot yet) ─────────────────────────────────
+  // The Key Controller (or desk) records where the car was parked: the nearest free slot is
+  // pre-selected, or they pick another / type a bay.
+  Future<void> _openParkSheet(TicketStatusResponse data) async {
+    if (data.parkingVehicleId == null) return;
+    final bayController = TextEditingController();
+    final keyController = TextEditingController(text: data.keyHolderNo ?? '');
+    final pickerKey = GlobalKey<SlotPickerState>();
+    AvailableSlot? slot;
+    bool saving = false;
+    final car = [data.vehicleColor, data.vehicleMake, data.vehicleModel].where((s) => s != null && s.isNotEmpty).join(' ');
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(builder: (context, setSheetState) {
+        Future<void> save() async {
+          if (slot == null && bayController.text.trim().isEmpty) {
+            _showSnack('Pick a slot or type the bay', error: true);
+            return;
+          }
+          setSheetState(() => saving = true);
+          try {
+            final message = await _valetService.recordParkDetails(
+              parkingVehicleId: data.parkingVehicleId!,
+              slotId: slot?.slotId,
+              bayNo: slot == null ? bayController.text.trim() : null,
+              keyHolderNo: keyController.text.trim(),
+            );
+            if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+            _showSnack('Ticket ${data.ticketNo}: $message');
+            _ticketNoController.clear();
+            _ticketNoFocusNode.requestFocus();
+          } catch (e) {
+            final msg = e.toString().replaceAll('Exception: ', '');
+            _showSnack(msg, error: true);
+            if (msg.contains('just taken')) pickerKey.currentState?.reload();
+          } finally {
+            if (context.mounted) setSheetState(() => saving = false);
+          }
+        }
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('Where is this car parked?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text('Ticket ${data.ticketNo} · ${data.plateNo ?? '-'}${car.isEmpty ? '' : ' · $car'}',
+                    style: TextStyle(color: Colors.grey.shade600)),
+                const SizedBox(height: 16),
+                SlotPicker(key: pickerKey, bayController: bayController, onChanged: (s) => slot = s),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: keyController,
+                  decoration: const InputDecoration(labelText: 'Key Holder Number', border: OutlineInputBorder(), isDense: true),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 46,
+                  child: ElevatedButton.icon(
+                    onPressed: saving ? null : save,
+                    icon: const Icon(Icons.local_parking),
+                    label: Text(saving ? 'Saving...' : 'Save Parking Location'),
+                  ),
+                ),
+                TextButton(
+                  onPressed: saving
+                      ? null
+                      : () {
+                          Navigator.of(sheetContext).pop();
+                          _openRequestDialog(data);
+                        },
+                  child: const Text('Skip - request the car instead'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+    bayController.dispose();
+    keyController.dispose();
   }
 
   // ── Request dialog (RECEIVED -> REQUESTED) ──────────────────────────────
@@ -785,29 +903,32 @@ class _DashboardPageState extends State<DashboardPage> {
             onChanged: (v) => setState(() => _selectedServiceTypeId = v),
           ),
           const SizedBox(height: 10),
-          TextField(
-            controller: _bayNoController,
-            decoration: const InputDecoration(labelText: 'Bay Number', border: OutlineInputBorder(), isDense: true),
-          ),
-          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _vehicleMakeController,
-                  decoration:
-                      const InputDecoration(labelText: 'Vehicle Model', border: OutlineInputBorder(), isDense: true),
+                  decoration: const InputDecoration(labelText: 'Brand', border: OutlineInputBorder(), isDense: true),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: TextField(
-                  controller: _vehicleColorController,
-                  decoration: const InputDecoration(labelText: 'Color', border: OutlineInputBorder(), isDense: true),
+                  controller: _vehicleModelController,
+                  decoration: const InputDecoration(labelText: 'Model', border: OutlineInputBorder(), isDense: true),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _vehicleColorController,
+            decoration: const InputDecoration(labelText: 'Color', border: OutlineInputBorder(), isDense: true),
+          ),
+          const SizedBox(height: 14),
+          const Text('Parking slot', style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          SlotPicker(bayController: _bayNoController, onChanged: (slot) => _entrySlot = slot),
           const SizedBox(height: 10),
           TextField(
             controller: _commentsController,

@@ -17,6 +17,7 @@ import 'create_company_page.dart';
 import 'driver_activity_page.dart';
 import 'privacy_policy_page.dart';
 import 'parking_occupancy_page.dart';
+import 'parking_setup_page.dart';
 
 class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
@@ -193,6 +194,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
         'color': Colors.teal,
         'title': 'Parking Occupancy',
         'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ParkingOccupancyPage())),
+      },
+      {
+        'icon': Icons.grid_view_outlined,
+        'color': Colors.green,
+        'title': 'Parking Setup',
+        'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ParkingSetupPage())),
       },
       {
         'icon': Icons.forum_outlined,

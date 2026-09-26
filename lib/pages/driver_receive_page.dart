@@ -1,25 +1,21 @@
 // lib/pages/driver_receive_page.dart
-
-// D:\FlutterProjects\SVN PROJECTS\SVN-FS_ValetFusion\FS-ValetFusion-Mobile\
-// lib\pages\driver_receive_page.dart:
 //
 // The Driver's full flow - one person, one continuous handoff, matching how the valet stand
 // actually works: the Driver takes the car from the guest (scan the ticket while it's still
-// FREE), walks it to the gate where OCR reads the plate/color/make and links it to the ticket,
-// parks it and records the bay, then hands the physical key to the Key Controller. Previously
-// this was split across a separate "Gate Scanner" role, but that meant two people/logins for
-// what is really one driver's single trip with the car - merged back into one flow per updated
-// requirements.
+// FREE), photographs it so OCR fills in the plate/color/brand/model, links it to the ticket, is
+// shown the nearest free parking slot, parks it there and confirms, then hands the physical key
+// to the Key Controller. Previously this was split across a separate "Gate Scanner" role, but
+// that meant two people/logins for what is really one driver's single trip with the car.
 
 
 
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import '../components/barcode_scanner_page.dart';
+import '../components/slot_picker.dart';
 import '../components/wash_requests_section.dart';
+import '../services/delivery_tracker.dart';
 import '../services/ocr_service.dart';
 import '../services/valet_service.dart';
 
@@ -32,8 +28,8 @@ class DriverReceiveFlow extends StatefulWidget {
 
 // Shows any car a Key Controller has assigned to this driver, with full vehicle/ticket detail,
 // and lets the driver mark it Arrived/Delivered - no need to already know the ticket number.
-// While at least one delivery is ONTHEWAY, also pushes this device's GPS position periodically
-// so the Customer and Lobby apps can see live movement + a rough ETA.
+// The list, the background GPS and the 5-minute "Still on the way?" check all come from the
+// app-level DeliveryTracker, so they keep running when this screen isn't showing.
 class MyDeliveriesSection extends StatefulWidget {
   const MyDeliveriesSection({super.key});
 
@@ -43,85 +39,21 @@ class MyDeliveriesSection extends StatefulWidget {
 
 class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
   final ValetService _valetService = ValetService();
-  List<TicketStatusResponse> _deliveries = [];
-  bool _loading = true;
-  Timer? _refreshTimer;
-  Timer? _locationTimer;
+  final DeliveryTracker _tracker = DeliveryTracker.instance;
   final Set<int> _acting = {};
 
   @override
   void initState() {
     super.initState();
-    _load();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 20), (_) => _load(silent: true));
-    _locationTimer = Timer.periodic(const Duration(seconds: 15), (_) => _pushLocation());
+    _tracker.start();
   }
 
-  @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    _locationTimer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _load({bool silent = false}) async {
-    if (!silent) setState(() => _loading = true);
-    try {
-      final deliveries = await _valetService.fetchMyDeliveries();
-      if (mounted) setState(() => _deliveries = deliveries);
-    } catch (_) {
-      // Non-fatal on background refresh - keep showing the last known list.
-    } finally {
-      if (mounted && !silent) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _pushLocation() async {
-    final onTheWay = _deliveries.where((d) => d.status == 'ONTHEWAY').toList();
-    if (onTheWay.isEmpty) return;
-    try {
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) return;
-      if (!await Geolocator.isLocationServiceEnabled()) return;
-
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      );
-      for (final delivery in onTheWay) {
-        if (delivery.parkingVehicleId == null) continue;
-        await _valetService.updateDriverLocation(
-          parkingVehicleId: delivery.parkingVehicleId!,
-          lat: position.latitude,
-          lng: position.longitude,
-        );
-      }
-    } catch (_) {
-      // Non-fatal - a missed GPS ping just means one stale ETA update, not worth alarming the driver.
-    }
-  }
-
-  Future<void> _markArrived(TicketStatusResponse d) async {
+  Future<void> _act(TicketStatusResponse d, Future<void> Function(int id) action) async {
     if (d.parkingVehicleId == null) return;
     setState(() => _acting.add(d.parkingVehicleId!));
     try {
-      await _valetService.arriveVehicle(d.parkingVehicleId!);
-      await _load();
-    } catch (e) {
-      _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
-    } finally {
-      if (mounted) setState(() => _acting.remove(d.parkingVehicleId));
-    }
-  }
-
-  Future<void> _markDelivered(TicketStatusResponse d) async {
-    if (d.parkingVehicleId == null) return;
-    setState(() => _acting.add(d.parkingVehicleId!));
-    try {
-      await _valetService.deliverVehicle(d.parkingVehicleId!);
-      await _load();
+      await action(d.parkingVehicleId!);
+      await _tracker.refresh();
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
     } finally {
@@ -139,31 +71,42 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-    if (_deliveries.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('My Deliveries', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.grey.shade800)),
-        const SizedBox(height: 10),
-        for (final d in _deliveries) ...[
-          _buildDeliveryCard(d),
-          const SizedBox(height: 12),
-        ],
-        const Divider(height: 28),
-      ],
+    return ValueListenableBuilder<bool>(
+      valueListenable: _tracker.loaded,
+      builder: (context, loaded, _) {
+        if (!loaded) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return ValueListenableBuilder<List<TicketStatusResponse>>(
+          valueListenable: _tracker.deliveries,
+          builder: (context, deliveries, _) {
+            if (deliveries.isEmpty) return const SizedBox.shrink();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('My Deliveries',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.grey.shade800)),
+                const SizedBox(height: 10),
+                for (final d in deliveries) ...[
+                  _buildDeliveryCard(d),
+                  const SizedBox(height: 12),
+                ],
+                const Divider(height: 28),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
   Widget _buildDeliveryCard(TicketStatusResponse d) {
     final isActing = d.parkingVehicleId != null && _acting.contains(d.parkingVehicleId);
     final isArrived = d.status == 'ARRIVED';
+    final car = [d.vehicleColor, d.vehicleMake, d.vehicleModel].where((s) => s != null && s.isNotEmpty).join(' ');
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -173,7 +116,7 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.indigo.shade100),
+        border: Border.all(color: d.checkInDue ? Colors.orange.shade400 : Colors.indigo.shade100),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,13 +126,12 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
               Icon(Icons.directions_car_filled, color: Colors.indigo.shade400),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  '${d.vehicleColor ?? ''} ${d.vehicleMake ?? 'Vehicle'}'.trim(),
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                ),
+                child: Text(car.isEmpty ? 'Vehicle' : car,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
               ),
               Chip(
-                label: Text(isArrived ? 'Arrived' : 'On the way', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                label: Text(isArrived ? 'Arrived' : 'On the way',
+                    style: const TextStyle(color: Colors.white, fontSize: 11)),
                 backgroundColor: isArrived ? Colors.green.shade600 : Colors.orange.shade700,
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
@@ -203,16 +145,46 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
             children: [
               _detail('Ticket', d.ticketNo),
               _detail('Plate', d.plateNo ?? '-'),
-              _detail('Bay', d.bayNo ?? '-'),
+              if (d.keyHolderNo != null && d.keyHolderNo!.isNotEmpty) _detail('Key', d.keyHolderNo!),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.local_parking, size: 16, color: Colors.grey.shade600),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(d.parkingLocation ?? (d.bayNo != null ? 'Bay ${d.bayNo}' : 'Parking spot not recorded'),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade800, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          if (!isArrived && d.etaMinutes != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(Icons.schedule, size: 16, color: Colors.orange.shade700),
+                const SizedBox(width: 4),
+                Text(
+                  d.etaMinutes! <= 0 ? 'Guest expects the car now' : 'Guest expects the car in ${d.etaMinutes} min',
+                  style: TextStyle(fontSize: 13, color: Colors.orange.shade800, fontWeight: FontWeight.w600),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => _tracker.promptCheckIn(d),
+                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                  child: const Text('Update ETA'),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 10),
           Row(
             children: [
               if (!isArrived)
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: isActing ? null : () => _markArrived(d),
+                    onPressed: isActing ? null : () => _act(d, _valetService.arriveVehicle),
                     icon: const Icon(Icons.flag_outlined, size: 18),
                     label: const Text('Mark Arrived'),
                   ),
@@ -220,11 +192,12 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
               if (!isArrived) const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: isActing ? null : () => _markDelivered(d),
+                  onPressed: isActing ? null : () => _act(d, _valetService.deliverVehicle),
                   icon: isActing
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(
+                          width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.check_circle_outline, size: 18),
-                  label: Text(isActing ? 'Saving...' : 'Hand Over to Customer'),
+                  label: Text(isActing ? 'Saving...' : 'Hand Over'),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo.shade600),
                 ),
               ),
@@ -253,24 +226,29 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
 
   final _ticketNoController = TextEditingController();
   final _plateNoController = TextEditingController();
-  final _vehicleMakeController = TextEditingController();
+  final _brandController = TextEditingController();
+  final _modelController = TextEditingController();
   final _vehicleColorController = TextEditingController();
   final _bayNoController = TextEditingController();
   final _keyHolderNoController = TextEditingController();
+  final _slotPickerKey = GlobalKey<SlotPickerState>();
 
   bool _loading = false;
   TicketStatusResponse? _lastLookup;
 
   File? _vehicleImage;
   bool _ocrRunning = false;
-  OcrRecognitionResult? _ocrResult;
+  bool _ocrFilled = false;
+  String? _ocrProblem;
   bool _submitting = false;
+  AvailableSlot? _chosenSlot;
 
   @override
   void dispose() {
     _ticketNoController.dispose();
     _plateNoController.dispose();
-    _vehicleMakeController.dispose();
+    _brandController.dispose();
+    _modelController.dispose();
     _vehicleColorController.dispose();
     _bayNoController.dispose();
     _keyHolderNoController.dispose();
@@ -295,6 +273,15 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     }
   }
 
+  void _clearVehicleFields() {
+    _plateNoController.clear();
+    _brandController.clear();
+    _modelController.clear();
+    _vehicleColorController.clear();
+    _bayNoController.clear();
+    _keyHolderNoController.clear();
+  }
+
   Future<void> _lookup() async {
     final ticketNo = _ticketNoController.text.trim();
     if (ticketNo.isEmpty) {
@@ -305,16 +292,14 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
       _loading = true;
       _lastLookup = null;
       _vehicleImage = null;
-      _ocrResult = null;
+      _ocrFilled = false;
+      _ocrProblem = null;
+      _chosenSlot = null;
     });
     try {
       final data = await _valetService.checkTicketStatus(ticketNo);
       setState(() => _lastLookup = data);
-      _plateNoController.clear();
-      _vehicleMakeController.clear();
-      _vehicleColorController.clear();
-      _bayNoController.clear();
-      _keyHolderNoController.clear();
+      _clearVehicleFields();
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
     } finally {
@@ -330,28 +315,33 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     setState(() {
       _vehicleImage = file;
       _ocrRunning = true;
-      _ocrResult = null;
+      _ocrFilled = false;
+      _ocrProblem = null;
     });
 
     try {
       final result = await _ocrService.recognize(file);
-      setState(() {
-        _ocrResult = result;
-        _plateNoController.text = result.plate?.raw ?? result.plate?.display ?? '';
-        _vehicleColorController.text = _capitalize(result.color?.name);
-        _vehicleMakeController.text = [result.vehicle?.brand, result.vehicle?.model]
-            .where((s) => s != null && s.isNotEmpty)
-            .join(' ');
-      });
+      if (!mounted) return;
       if (result.reason == 'no_vehicle_detected') {
-        _showSnack('No vehicle detected in the photo - retake it, or fill in the details manually.', error: true);
-      } else if (result.needsReview) {
-        _showSnack('OCR read this with low confidence - please double-check the fields below.', error: true);
-      } else {
-        _showSnack('Plate, color and make/model filled in from the photo.');
+        setState(() => _ocrProblem = 'No vehicle found in the photo - retake it, or type the details below.');
+        return;
       }
+      // Only the four things the desk needs - plate, color, brand, model. Keep anything the
+      // driver already typed if OCR couldn't read that part.
+      void fill(TextEditingController c, String? value) {
+        if (value != null && value.trim().isNotEmpty) c.text = value.trim();
+      }
+
+      setState(() {
+        fill(_plateNoController, result.plate?.raw ?? result.plate?.display);
+        fill(_vehicleColorController, _capitalize(result.color?.name));
+        fill(_brandController, result.vehicle?.brand);
+        fill(_modelController, result.vehicle?.model);
+        _ocrFilled = true;
+        if (result.plate == null) _ocrProblem = 'Plate not readable - please type it.';
+      });
     } catch (e) {
-      _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
+      if (mounted) setState(() => _ocrProblem = e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _ocrRunning = false);
     }
@@ -362,12 +352,12 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     return s[0].toUpperCase() + s.substring(1);
   }
 
-  String _pct(double? v) => v == null ? '-' : '${(v * 100).round()}%';
+  String? _textOrNull(TextEditingController c) => c.text.trim().isEmpty ? null : c.text.trim();
 
   Future<void> _submitReceive() async {
     final ticketNo = _ticketNoController.text.trim();
     if (_plateNoController.text.trim().isEmpty) {
-      _showSnack('Please enter the Plate Number (or capture a photo first)', error: true);
+      _showSnack('Please enter the Plate Number (or take a photo first)', error: true);
       return;
     }
 
@@ -376,12 +366,13 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
       await _valetService.receiveVehicle(
         ticketNo: ticketNo,
         plateNo: _plateNoController.text.trim(),
-        vehicleMake: _vehicleMakeController.text.trim().isEmpty ? null : _vehicleMakeController.text.trim(),
-        vehicleColor: _vehicleColorController.text.trim().isEmpty ? null : _vehicleColorController.text.trim(),
+        vehicleMake: _textOrNull(_brandController),
+        vehicleModel: _textOrNull(_modelController),
+        vehicleColor: _textOrNull(_vehicleColorController),
         requestedRemarks: 'Received by driver (OCR-assisted)',
       );
-      _showSnack('Vehicle linked to ticket $ticketNo - now park it and record the bay.');
-      // Refresh the lookup so the flow drops into the "record parking details" step below.
+      _showSnack('Vehicle linked to ticket $ticketNo - park it in the slot shown below.');
+      // Refresh the lookup so the flow drops into the "park it here" step below.
       await _lookup();
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
@@ -393,26 +384,29 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
   Future<void> _submitParkDetails() async {
     final data = _lastLookup;
     if (data == null || data.parkingVehicleId == null) return;
-    if (_bayNoController.text.trim().isEmpty) {
-      _showSnack('Please enter the bay number', error: true);
+    final slot = _chosenSlot;
+    if (slot == null && _bayNoController.text.trim().isEmpty) {
+      _showSnack('Pick a slot or type the bay where you parked', error: true);
       return;
     }
 
     setState(() => _submitting = true);
     try {
-      await _valetService.recordParkDetails(
+      final message = await _valetService.recordParkDetails(
         parkingVehicleId: data.parkingVehicleId!,
-        bayNo: _bayNoController.text.trim(),
-        keyHolderNo: _keyHolderNoController.text.trim().isEmpty ? null : _keyHolderNoController.text.trim(),
+        slotId: slot?.slotId,
+        bayNo: slot == null ? _bayNoController.text.trim() : null,
+        keyHolderNo: _textOrNull(_keyHolderNoController),
       );
-      _showSnack(
-        _keyHolderNoController.text.trim().isEmpty
-            ? 'Parked - ticket ${data.ticketNo}, bay ${_bayNoController.text.trim()}. Hand the key to the Key Controller.'
-            : 'Parked - ticket ${data.ticketNo}, bay ${_bayNoController.text.trim()}, key holder ${_keyHolderNoController.text.trim()}.',
-      );
+      _showSnack(_keyHolderNoController.text.trim().isEmpty
+          ? '$message. Hand the key to the Key Controller.'
+          : '$message, key holder ${_keyHolderNoController.text.trim()}.');
       _resetFlow();
     } catch (e) {
-      _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
+      final msg = e.toString().replaceAll('Exception: ', '');
+      _showSnack(msg, error: true);
+      // Someone else took the slot a moment ago - show the next nearest one.
+      if (msg.contains('just taken')) _slotPickerKey.currentState?.reload();
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -420,15 +414,13 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
 
   void _resetFlow() {
     _ticketNoController.clear();
-    _plateNoController.clear();
-    _vehicleMakeController.clear();
-    _vehicleColorController.clear();
-    _bayNoController.clear();
-    _keyHolderNoController.clear();
+    _clearVehicleFields();
     setState(() {
       _lastLookup = null;
       _vehicleImage = null;
-      _ocrResult = null;
+      _ocrFilled = false;
+      _ocrProblem = null;
+      _chosenSlot = null;
     });
   }
 
@@ -451,10 +443,6 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
           if (needsReceive) ...[
             const SizedBox(height: 16),
             _buildPhotoCard(),
-            if (_ocrResult != null) ...[
-              const SizedBox(height: 16),
-              _buildOcrDetailCard(),
-            ],
             const SizedBox(height: 16),
             _buildReceiveConfirmCard(),
           ],
@@ -468,7 +456,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
               icon: Icons.check_circle,
               color: Colors.green,
               title: 'Already parked',
-              message: 'Ticket ${data.ticketNo} is parked in bay ${data.bayNo}'
+              message: 'Ticket ${data.ticketNo} is parked at ${data.parkingLocation ?? 'bay ${data.bayNo}'}'
                   '${data.keyHolderNo != null && data.keyHolderNo!.isNotEmpty ? ' (key: ${data.keyHolderNo})' : ''}.',
             ),
           ],
@@ -500,7 +488,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
           const Text('Scan Ticket', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           Text(
-            'Scan when taking the car from the guest, and again after parking to record the bay.',
+            'Scan when taking the car from the guest - you will then be shown where to park it.',
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 12),
@@ -552,10 +540,10 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('At the Gate: Capture Vehicle Photo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const Text('Photograph the Vehicle', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           Text(
-            'Ticket is free - photograph the vehicle to auto-fill plate, color and make.',
+            'Plate, color, brand and model are filled in from the photo.',
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 12),
@@ -564,6 +552,16 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
               borderRadius: BorderRadius.circular(10),
               child: Image.file(_vehicleImage!, height: 180, width: double.infinity, fit: BoxFit.cover),
             ),
+          if (_ocrProblem != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.error_outline, size: 18, color: Colors.orange.shade800),
+                const SizedBox(width: 6),
+                Expanded(child: Text(_ocrProblem!, style: TextStyle(fontSize: 13, color: Colors.orange.shade900))),
+              ],
+            ),
+          ],
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -574,7 +572,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.camera_alt_outlined),
               label: Text(_ocrRunning
-                  ? 'Reading plate...'
+                  ? 'Reading the car...'
                   : (_vehicleImage == null ? 'Take Photo' : 'Retake Photo')),
             ),
           ),
@@ -583,106 +581,9 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     );
   }
 
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-          Flexible(
-            child: Text(value, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOcrDetailCard() {
-    final r = _ocrResult!;
-    if (r.reason != null) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.red.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.red.shade200),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.error_outline, color: Colors.red.shade700),
-            const SizedBox(width: 10),
-            Expanded(child: Text('OCR result: ${r.reason}', style: TextStyle(color: Colors.red.shade800))),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: r.needsReview ? Colors.orange.shade300 : Colors.grey.shade300),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('OCR Result', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              const Spacer(),
-              if (r.needsReview)
-                Chip(
-                  label: const Text('Needs review', style: TextStyle(fontSize: 11, color: Colors.white)),
-                  backgroundColor: Colors.orange.shade700,
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                ),
-            ],
-          ),
-          const Divider(height: 20),
-          if (r.plate != null) ...[
-            Text('Plate', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey.shade700, fontSize: 12)),
-            _detailRow('Display', r.plate!.display ?? '-'),
-            _detailRow('Raw', r.plate!.raw ?? '-'),
-            _detailRow('Emirate', r.plate!.emirate != null ? '${r.plate!.emirate} (${r.plate!.emirateCode})' : '-'),
-            _detailRow('Category / Number', '${r.plate!.category ?? '-'} / ${r.plate!.number ?? '-'}'),
-            _detailRow('Confidence', _pct(r.plate!.confidence)),
-            _detailRow('Source', r.plate!.source ?? '-'),
-            _detailRow('Cross-verified', r.plate!.verified == null ? 'n/a' : (r.plate!.verified! ? 'Yes' : 'No')),
-            const SizedBox(height: 10),
-          ] else
-            const Padding(
-              padding: EdgeInsets.only(bottom: 10),
-              child: Text('No plate read - enter it manually below.', style: TextStyle(fontStyle: FontStyle.italic)),
-            ),
-          if (r.color != null) ...[
-            Text('Color', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey.shade700, fontSize: 12)),
-            _detailRow('Name', _capitalize(r.color!.name)),
-            _detailRow('Confidence', _pct(r.color!.confidence)),
-            _detailRow('Source', r.color!.source ?? '-'),
-            const SizedBox(height: 10),
-          ],
-          if (r.vehicle != null) ...[
-            Text('Vehicle', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey.shade700, fontSize: 12)),
-            _detailRow('Brand', r.vehicle!.brand ?? '-'),
-            _detailRow('Brand confidence', _pct(r.vehicle!.brandConfidence)),
-            _detailRow('Brand source', r.vehicle!.brandSource ?? '-'),
-            _detailRow('Model', r.vehicle!.model ?? '-'),
-            _detailRow('Year', r.vehicle!.year?.toString() ?? '-'),
-            _detailRow('Model confidence', _pct(r.vehicle!.modelConfidence)),
-            const SizedBox(height: 10),
-          ],
-          if (r.latencySeconds != null)
-            Text('OCR processed in ${r.latencySeconds!.toStringAsFixed(2)}s',
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-        ],
-      ),
-    );
-  }
-
   Widget _buildReceiveConfirmCard() {
+    InputDecoration field(String label) =>
+        InputDecoration(labelText: label, border: const OutlineInputBorder(), isDense: true);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -693,26 +594,43 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Confirm & Link to Ticket', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Row(
+            children: [
+              const Text('Vehicle Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const Spacer(),
+              if (_ocrFilled)
+                Text('From photo - check', style: TextStyle(fontSize: 12, color: Colors.green.shade700)),
+            ],
+          ),
           const SizedBox(height: 12),
           TextField(
             controller: _plateNoController,
-            decoration: const InputDecoration(labelText: 'Plate Number *', border: OutlineInputBorder(), isDense: true),
+            textCapitalization: TextCapitalization.characters,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: 1),
+            decoration: field('Plate *'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _vehicleColorController,
+            textCapitalization: TextCapitalization.words,
+            decoration: field('Color'),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
                 child: TextField(
-                  controller: _vehicleMakeController,
-                  decoration: const InputDecoration(labelText: 'Make / Model', border: OutlineInputBorder(), isDense: true),
+                  controller: _brandController,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: field('Brand'),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: TextField(
-                  controller: _vehicleColorController,
-                  decoration: const InputDecoration(labelText: 'Color', border: OutlineInputBorder(), isDense: true),
+                  controller: _modelController,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: field('Model'),
                 ),
               ),
             ],
@@ -733,6 +651,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
   }
 
   Widget _buildParkDetailsCard(TicketStatusResponse data) {
+    final car = [data.vehicleColor, data.vehicleMake, data.vehicleModel].where((s) => s != null && s.isNotEmpty).join(' ');
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -743,14 +662,15 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Record Parking Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const Text('Park the Car', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          Text('Ticket ${data.ticketNo} · ${data.plateNo ?? 'plate unknown'} · ${data.vehicleColor ?? ''} ${data.vehicleMake ?? ''}'.trim(),
+          Text('Ticket ${data.ticketNo} · ${data.plateNo ?? 'plate unknown'}${car.isEmpty ? '' : ' · $car'}',
               style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
           const SizedBox(height: 14),
-          TextField(
-            controller: _bayNoController,
-            decoration: const InputDecoration(labelText: 'Bay Number *', border: OutlineInputBorder(), isDense: true),
+          SlotPicker(
+            key: _slotPickerKey,
+            bayController: _bayNoController,
+            onChanged: (slot) => _chosenSlot = slot,
           ),
           const SizedBox(height: 10),
           TextField(
@@ -769,7 +689,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             child: ElevatedButton.icon(
               onPressed: _submitting ? null : _submitParkDetails,
               icon: const Icon(Icons.local_parking),
-              label: Text(_submitting ? 'Saving...' : 'Save Parking Details'),
+              label: Text(_submitting ? 'Saving...' : 'Parked Here - Confirm'),
             ),
           ),
         ],

@@ -10,6 +10,7 @@ import '../components/barcode_scanner_page.dart';
 import '../components/confirm_dialog.dart';
 import '../components/live_tracking_card.dart';
 import '../services/authentication_service.dart';
+import '../services/notification_service.dart';
 import '../services/valet_service.dart';
 import 'customer_history_page.dart';
 
@@ -31,6 +32,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   bool _autoLoading = true;
   TicketStatusResponse? _status;
   Timer? _pollTimer;
+  StreamSubscription<AppAlert>? _alertSub;
 
   // Multi-property support: a guest's account is tied to the hotel they signed up at, but they
   // may hand in/request a car at a *different* property on a later visit. `_selectedLocation`
@@ -55,6 +57,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     super.initState();
     _loadMyActiveTicket();
     _initLocationPicker();
+    // "On the way" / "ETA updated" / "Arrived" pushes refresh the card straight away instead of
+    // waiting for the next 15s poll.
+    _alertSub = NotificationService.instance.alerts.listen((_) => _refreshStatus());
   }
 
   Future<void> _initLocationPicker() async {
@@ -164,6 +169,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _alertSub?.cancel();
     _ticketNoController.dispose();
     super.dispose();
   }
@@ -730,8 +736,27 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-                  child: Text('${data.vehicleColor ?? ''} ${data.vehicleMake ?? ''} · ${data.plateNo}'.trim(),
+                  child: Text(
+                      [
+                        [data.vehicleColor, data.vehicleMake, data.vehicleModel]
+                            .where((s) => s != null && s.isNotEmpty)
+                            .join(' '),
+                        data.plateNo,
+                      ].where((s) => s != null && s.isNotEmpty).join(' · '),
                       style: TextStyle(color: Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w600)),
+                ),
+              ],
+              if (data.parkingLocation != null && (data.status == 'RECEIVED' || data.status == 'REQUESTED')) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.local_parking, size: 18, color: Colors.grey.shade700),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text('Parked at ${data.parkingLocation}',
+                          style: TextStyle(color: Colors.grey.shade800, fontSize: 13, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
                 ),
               ],
               if (data.paymentMethod != null && data.paymentMethod!.isNotEmpty) ...[

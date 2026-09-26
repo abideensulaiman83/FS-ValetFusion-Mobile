@@ -1,3 +1,5 @@
+import 'delivery_tracker.dart';
+import 'notification_service.dart';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
@@ -547,7 +549,21 @@ class AuthenticationService {
     }
   }
 
+  /// Where a signed-in user lands. SECURITY (the client's car-park staff) only sets up the
+  /// valet parking slots, so they go straight to Parking Setup.
+  static String homeRouteFor(List<String> roles) {
+    if (roles.contains('SUPER_ADMIN') || roles.contains('LOCATION_ADMIN')) return '/admin/home';
+    if (roles.contains('CUSTOMER')) return '/customer/home';
+    const deskRoles = ['DRIVER', 'GATE_SCANNER', 'KEY_CONTROLLER', 'LOBBY', 'VALET_STAFF'];
+    if (roles.contains('SECURITY') && !roles.any(deskRoles.contains)) return '/security/parking';
+    if (roles.isNotEmpty) return '/dashboard';
+    return '/';
+  }
+
   Future<void> logoutApi() async {
+    // Stop delivery GPS/reminders and detach this phone from push before the token goes.
+    await DeliveryTracker.instance.stop();
+    await NotificationService.instance.unregisterDevice();
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString(tokenKey);
@@ -671,5 +687,8 @@ class AuthenticationService {
     }
 
     developer.log(' Storage save complete!');
+
+    // Let the backend push delivery/ETA alerts to this phone (no-op until Firebase is set up).
+    NotificationService.instance.registerDevice();
   }
 }
