@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as ll;
 import '../services/valet_service.dart';
+import '../l10n/app_strings.dart';
 
 class LiveTrackingCard extends StatefulWidget {
   final TicketStatusResponse data;
@@ -40,22 +41,22 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> {
   String _freshnessLabel() {
     final age = data.driverLocationAgeSeconds;
     if (age == null) return '';
-    if (age < 60) return 'Updated ${age}s ago';
-    return 'Updated ${(age / 60).floor()} min ago';
+    if (age < 60) return tr(context, 'Updated {n}s ago', {'n': age});
+    return tr(context, 'Updated {n} min ago', {'n': (age / 60).floor()});
   }
 
   String _etaHeadline() {
     final eta = data.etaMinutes;
-    if (eta == null) return 'On the way';
-    if (eta <= 1) return 'Arriving now';
-    return '$eta min';
+    if (eta == null) return tr(context, 'On the way');
+    if (eta <= 1) return tr(context, 'Arriving now');
+    return tr(context, '{n} min', {'n': eta});
   }
 
   String _etaSubline() {
     final eta = data.etaMinutes;
-    if (eta == null) return 'Your driver is bringing the car to you.';
-    final source = data.etaSource == 'GPS' ? 'Based on your driver\'s live location' : 'Estimated arrival time';
-    final extended = (data.etaExtendedCount ?? 0) > 0 ? ' · updated by your driver' : '';
+    if (eta == null) return tr(context, 'Your driver is bringing the car to you.');
+    final source = data.etaSource == 'GPS' ? tr(context, 'Based on your driver\'s live location') : tr(context, 'Estimated arrival time');
+    final extended = (data.etaExtendedCount ?? 0) > 0 ? tr(context, ' · updated by your driver') : '';
     return '$source$extended';
   }
 
@@ -90,7 +91,7 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Estimated arrival', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      Text(tr(context, 'Estimated arrival'), style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                       Text(
                         _etaHeadline(),
                         style: TextStyle(
@@ -141,8 +142,8 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> {
                 children: [
                   Icon(Icons.location_searching, size: 18, color: Colors.blue.shade400),
                   const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text('The live map appears as soon as your driver\'s location comes through.',
+                  Expanded(
+                    child: Text(tr(context, 'The live map appears as soon as your driver\'s location comes through.'),
                         style: TextStyle(fontSize: 13)),
                   ),
                 ],
@@ -155,7 +156,7 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> {
                 children: [
                   Icon(Icons.circle, size: 8, color: Colors.green.shade600),
                   const SizedBox(width: 6),
-                  const Expanded(child: Text('Live location', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+                  Expanded(child: Text(tr(context, 'Live location'), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
                   Text(_freshnessLabel(), style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                 ],
               ),

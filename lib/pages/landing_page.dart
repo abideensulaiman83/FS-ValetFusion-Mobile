@@ -13,6 +13,7 @@ import 'feedback_page.dart';
 import 'privacy_policy_page.dart';
 import 'package:flutter/services.dart';
 import '../components/confirm_dialog.dart';
+import '../l10n/app_strings.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
@@ -22,10 +23,10 @@ class LandingPage extends StatelessWidget {
   Future<void> _handleExit(BuildContext context) async {
     final shouldExit = await showConfirmDialog(
       context,
-      title: 'Exit App?',
-      message: 'Are you sure you want to close Valet Fusion?',
-      confirmLabel: 'Exit',
-      cancelLabel: 'Cancel',
+      title: tr(context, 'Exit App?'),
+      message: tr(context, 'Are you sure you want to close Valet Fusion?'),
+      confirmLabel: tr(context, 'Exit'),
+      cancelLabel: tr(context, 'Cancel'),
       destructive: true,
     );
 
@@ -84,11 +85,12 @@ class LandingPage extends StatelessWidget {
                           style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: 1.2),
                         ),
                       ),
+                      const LanguageToggle(color: Colors.white),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Who\'s using the app right now?',
+                    tr(context, 'Who\'s using the app right now?'),
                     style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 13.5),
                   ),
                   const SizedBox(height: 28),
@@ -99,8 +101,8 @@ class LandingPage extends StatelessWidget {
                     children: [
                       Expanded(
                         child: _RoleTile(
-                          title: 'Valet Team',
-                          subtitle: 'Drivers, key control & lobby desk',
+                          title: tr(context, 'Valet Team'),
+                          subtitle: tr(context, 'Drivers, key control & lobby desk'),
                           icon: Icons.directions_car_filled_rounded,
                           color: const Color(0xFF059669),
                           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginPage())),
@@ -109,8 +111,8 @@ class LandingPage extends StatelessWidget {
                       const SizedBox(width: 14),
                       Expanded(
                         child: _RoleTile(
-                          title: 'Customer',
-                          subtitle: 'Track & request my car',
+                          title: tr(context, 'Customer'),
+                          subtitle: tr(context, 'Track & request my car'),
                           icon: Icons.person_rounded,
                           color: const Color(0xFF2563EB),
                           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CustomerAuthPage())),
@@ -146,14 +148,14 @@ class LandingPage extends StatelessWidget {
                               child: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF7C3AED), size: 28),
                             ),
                             const SizedBox(width: 16),
-                            const Expanded(
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Admin Console', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                                  Text(tr(context, 'Admin Console'), style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
                                   SizedBox(height: 3),
                                   Text(
-                                    'Insights, operations, reports & full management',
+                                    tr(context, 'Insights, operations, reports & full management'),
                                     style: TextStyle(color: Colors.white70, fontSize: 12.5),
                                   ),
                                 ],
@@ -175,12 +177,12 @@ class LandingPage extends StatelessWidget {
                         TextButton.icon(
                           onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FeedbackPage())),
                           icon: Icon(Icons.feedback_outlined, size: 16, color: Colors.white.withValues(alpha: 0.6)),
-                          label: Text('Report an issue', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
+                          label: Text(tr(context, 'Report an issue'), style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
                         ),
                         TextButton.icon(
                           onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyPolicyPage())),
                           icon: Icon(Icons.privacy_tip_outlined, size: 16, color: Colors.white.withValues(alpha: 0.6)),
-                          label: Text('Privacy & Policy', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
+                          label: Text(tr(context, 'Privacy & Policy'), style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
                         ),
                       ],
                     ),

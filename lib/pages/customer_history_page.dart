@@ -5,6 +5,7 @@
 // list already fetched (no separate stats endpoint needed).
 import 'package:flutter/material.dart';
 import '../services/valet_service.dart';
+import '../l10n/app_strings.dart';
 
 class CustomerHistoryPage extends StatefulWidget {
   const CustomerHistoryPage({super.key});
@@ -65,7 +66,7 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FB),
-      appBar: AppBar(title: const Text('My Parking History')),
+      appBar: AppBar(title: Text(tr(context, 'My Parking History'))),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -80,7 +81,7 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
                               SizedBox(
                                 height: 400,
                                 child: Center(
-                                  child: Text('No parking history yet', style: TextStyle(color: Colors.grey.shade500)),
+                                  child: Text(tr(context, 'No parking history yet'), style: TextStyle(color: Colors.grey.shade500)),
                                 ),
                               ),
                             ],
@@ -91,7 +92,7 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
                             children: [
                               _buildStatsGrid(),
                               const SizedBox(height: 20),
-                              const Text('All Visits', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                              Text(tr(context, 'All Visits'), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
                               const SizedBox(height: 10),
                               ..._history.map((e) => Padding(
                                     padding: const EdgeInsets.only(bottom: 10),
@@ -107,15 +108,15 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
   Widget _buildStatsGrid() {
     final rating = _averageRating;
     final stats = <_StatTile>[
-      _StatTile(label: 'Total Visits', value: '$_totalVisits', icon: Icons.directions_car_filled, color: Colors.blue),
-      _StatTile(label: 'This Month', value: '$_visitsThisMonth', icon: Icons.calendar_month, color: Colors.indigo),
+      _StatTile(label: tr(context, 'Total Visits'), value: '$_totalVisits', icon: Icons.directions_car_filled, color: Colors.blue),
+      _StatTile(label: tr(context, 'This Month'), value: '$_visitsThisMonth', icon: Icons.calendar_month, color: Colors.indigo),
       _StatTile(
-        label: 'Avg Rating',
+        label: tr(context, 'Avg Rating'),
         value: rating != null ? rating.toStringAsFixed(1) : '-',
         icon: Icons.star_rounded,
         color: Colors.amber,
       ),
-      _StatTile(label: 'Total Spent', value: 'AED ${_totalSpent.toStringAsFixed(0)}', icon: Icons.payments_outlined, color: Colors.green),
+      _StatTile(label: tr(context, 'Total Spent'), value: tr(context, 'AED {amount}', {'amount': _totalSpent.toStringAsFixed(0)}), icon: Icons.payments_outlined, color: Colors.green),
     ];
     return GridView.count(
       crossAxisCount: 2,
@@ -178,7 +179,7 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Ticket ${entry.ticketNo}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                Text(tr(context, 'Ticket {no}', {'no': entry.ticketNo}), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                 Text(
                   '${entry.vehicleColor ?? ''} ${entry.vehicleMake ?? ''} · ${entry.plateNo ?? '-'}'.trim(),
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),

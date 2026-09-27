@@ -13,6 +13,7 @@ import '../services/authentication_service.dart';
 import '../services/notification_service.dart';
 import '../services/valet_service.dart';
 import 'customer_history_page.dart';
+import '../l10n/app_strings.dart';
 
 class CustomerHomePage extends StatefulWidget {
   const CustomerHomePage({super.key});
@@ -138,7 +139,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   }
 
   Widget _buildLocationBar() {
-    final label = _selectedLocation?.name ?? 'My property';
+    final label = _selectedLocation?.name ?? tr(context, 'My property');
     return InkWell(
       onTap: _showLocationPicker,
       borderRadius: BorderRadius.circular(20),
@@ -206,7 +207,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
 
   Future<void> _scanTicket() async {
     final scanned = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const BarcodeScannerPage(title: 'Scan Your Ticket')),
+      MaterialPageRoute(builder: (_) => BarcodeScannerPage(title: tr(context, 'Scan Your Ticket'))),
     );
     if (scanned != null && scanned.trim().isNotEmpty) {
       _ticketNoController.text = scanned.trim();
@@ -217,7 +218,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   Future<void> _lookup() async {
     final ticketNo = _ticketNoController.text.trim();
     if (ticketNo.isEmpty) {
-      _showSnack('Enter or scan your ticket number', error: true);
+      _showSnack(tr(context, 'Enter or scan your ticket number'), error: true);
       return;
     }
     setState(() => _loading = true);
@@ -333,7 +334,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       builder: (dialogContext) {
         return StatefulBuilder(builder: (context, setDialogState) {
           return AlertDialog(
-            title: const Text('How was your experience?'),
+            title: Text(tr(context, 'How was your experience?')),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -354,13 +355,13 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: commentController,
-                  decoration: const InputDecoration(hintText: 'Any comments? (optional)', border: OutlineInputBorder()),
+                  decoration: InputDecoration(hintText: tr(context, 'Any comments? (optional)'), border: OutlineInputBorder()),
                   maxLines: 2,
                 ),
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Skip')),
+              TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: Text(tr(context, 'Skip'))),
               ElevatedButton(
                 onPressed: () async {
                   Navigator.of(dialogContext).pop();
@@ -372,10 +373,10 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                       comment: commentController.text.trim().isEmpty ? null : commentController.text.trim(),
                       companyCode: _lookupCompanyCode,
                     );
-                    _showSnack('Thanks for your feedback!');
+                    _showSnack(tr(context, 'Thanks for your feedback!'));
                   } catch (_) {}
                 },
-                child: const Text('Submit'),
+                child: Text(tr(context, 'Submit')),
               ),
             ],
           );
@@ -390,7 +391,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     setState(() => _requestingWash = true);
     try {
       await _valetService.requestWash(data.parkingVehicleId!, companyCode: _lookupCompanyCode);
-      _showSnack('Wash requested - the team has been notified.');
+      _showSnack(tr(context, 'Wash requested - the team has been notified.'));
       _refreshStatus();
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
@@ -408,14 +409,14 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         child: OutlinedButton.icon(
           onPressed: _requestingWash ? null : _requestWash,
           icon: const Icon(Icons.local_car_wash_outlined),
-          label: Text(_requestingWash ? 'Requesting...' : 'Request a Wash'),
+          label: Text(_requestingWash ? tr(context, 'Requesting...') : tr(context, 'Request a Wash')),
         ),
       );
     }
     final labels = {
-      'REQUESTED': 'Wash requested - waiting for a driver',
-      'IN_PROGRESS': 'Your car is being washed',
-      'DONE': 'Wash complete',
+      'REQUESTED': tr(context, 'Wash requested - waiting for a driver'),
+      'IN_PROGRESS': tr(context, 'Your car is being washed'),
+      'DONE': tr(context, 'Wash complete'),
     };
     final colors = {
       'REQUESTED': Colors.orange,
@@ -459,7 +460,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         paymentMethod: paymentMethod,
         companyCode: _lookupCompanyCode,
       );
-      _showSnack('Your car has been requested!');
+      _showSnack(tr(context, 'Your car has been requested!'));
       _refreshStatus();
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
@@ -472,27 +473,27 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     return showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Payment Method'),
+        title: Text(tr(context, 'Payment Method')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Parking charge: AED ${charge.toStringAsFixed(2)}'),
+            Text(tr(context, 'Parking charge: AED {amount}', {'amount': charge.toStringAsFixed(2)})),
             const SizedBox(height: 12),
-            const Text('How would you like to pay at the lobby desk?'),
+            Text(tr(context, 'How would you like to pay at the lobby desk?')),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: Text(tr(context, 'Cancel'))),
           OutlinedButton.icon(
             onPressed: () => Navigator.of(dialogContext).pop('CASH'),
             icon: const Icon(Icons.payments_outlined),
-            label: const Text('Cash'),
+            label: Text(tr(context, 'Cash')),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(dialogContext).pop('CARD'),
             icon: const Icon(Icons.credit_card),
-            label: const Text('Card'),
+            label: Text(tr(context, 'Card')),
           ),
         ],
       ),
@@ -502,9 +503,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   Future<void> _logout() async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Log out?',
-      message: "You'll need to sign in again to continue.",
-      confirmLabel: 'Log out',
+      title: tr(context, 'Log out?'),
+      message: tr(context, "You'll need to sign in again to continue."),
+      confirmLabel: tr(context, 'Log out'),
       destructive: true,
     );
     if (!confirmed) return;
@@ -526,16 +527,15 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Delete your account?'),
+          title: Text(tr(context, 'Delete your account?')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'This permanently removes your name, mobile number and email from Valet Fusion and signs '
-                  'you out on this phone. You can register again later with the same number.\n\n'
-                  'Past ticket records stay with the property that parked your car, without your contact details.',
+                Text(
+                  '${tr(context, 'This permanently removes your name, mobile number and email from Valet Fusion and signs you out on this phone. You can register again later with the same number.')}\n\n'
+                  '${tr(context, 'Past ticket records stay with the property that parked your car, without your contact details.')}',
                   style: TextStyle(fontSize: 13.5, height: 1.4),
                 ),
                 const SizedBox(height: 14),
@@ -544,7 +544,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                   obscureText: true,
                   enabled: !deleting,
                   decoration: InputDecoration(
-                    labelText: 'Enter your password to confirm',
+                    labelText: tr(context, 'Enter your password to confirm'),
                     border: const OutlineInputBorder(),
                     errorText: error,
                   ),
@@ -555,14 +555,14 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
           actions: [
             TextButton(
               onPressed: deleting ? null : () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
+              child: Text(tr(context, 'Cancel')),
             ),
             TextButton(
               onPressed: deleting
                   ? null
                   : () async {
                       if (passwordController.text.isEmpty) {
-                        setDialogState(() => error = 'Enter your password');
+                        setDialogState(() => error = tr(context, 'Enter your password'));
                         return;
                       }
                       setDialogState(() {
@@ -580,7 +580,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                       }
                     },
               style: TextButton.styleFrom(foregroundColor: Colors.red.shade700),
-              child: Text(deleting ? 'Deleting...' : 'Delete account'),
+              child: Text(deleting ? tr(context, 'Deleting...') : tr(context, 'Delete account')),
             ),
           ],
         ),
@@ -589,24 +589,42 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     passwordController.dispose();
     if (deleted != true || !mounted) return;
     _pollTimer?.cancel();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Your account has been deleted.')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(context, 'Your account has been deleted.'))));
     Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+  }
+
+  String _statusLabel(String? status) {
+    switch (status) {
+      case 'RECEIVED':
+        return tr(context, 'Parked');
+      case 'REQUESTED':
+      case 'VALIDATED':
+        return tr(context, 'Requested');
+      case 'ONTHEWAY':
+        return tr(context, 'On the way');
+      case 'ARRIVED':
+        return tr(context, 'Arrived');
+      case 'DELIVERED':
+        return tr(context, 'Delivered');
+      default:
+        return status ?? '-';
+    }
   }
 
   String _friendlyMessage(String? status) {
     switch (status) {
       case 'RECEIVED':
-        return 'Your vehicle is safely parked.';
+        return tr(context, 'Your vehicle is safely parked.');
       case 'REQUESTED':
-        return "We've received your request - a valet is on the way to get your vehicle.";
+        return tr(context, "We've received your request - a valet is on the way to get your vehicle.");
       case 'ONTHEWAY':
-        return 'Your vehicle is on its way to you now.';
+        return tr(context, 'Your vehicle is on its way to you now.');
       case 'ARRIVED':
-        return "Your vehicle has arrived and is waiting for you.";
+        return tr(context, "Your vehicle has arrived and is waiting for you.");
       case 'DELIVERED':
-        return 'Your vehicle has been delivered. Thank you!';
+        return tr(context, 'Your vehicle has been delivered. Thank you!');
       default:
-        return 'Status updated.';
+        return tr(context, 'Status updated.');
     }
   }
 
@@ -637,30 +655,31 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF4F6FB),
         appBar: AppBar(
-          title: const Text('My Valet'),
+          title: Text(tr(context, 'My Valet')),
           actions: [
             IconButton(
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CustomerHistoryPage())),
               icon: const Icon(Icons.history),
-              tooltip: 'My Parking History',
+              tooltip: tr(context, 'My Parking History'),
             ),
-            IconButton(onPressed: _logout, icon: const Icon(Icons.logout), tooltip: 'Logout'),
+            const LanguageToggle(),
+            IconButton(onPressed: _logout, icon: const Icon(Icons.logout), tooltip: tr(context, 'Logout')),
             PopupMenuButton<String>(
-              tooltip: 'More',
+              tooltip: tr(context, 'More'),
               onSelected: (value) {
                 if (value == 'privacy') Navigator.of(context).pushNamed('/privacy-policy');
                 if (value == 'delete') _deleteAccount();
               },
               itemBuilder: (_) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'privacy',
-                  child: ListTile(leading: Icon(Icons.privacy_tip_outlined), title: Text('Privacy & Policy'), dense: true),
+                  child: ListTile(leading: Icon(Icons.privacy_tip_outlined), title: Text(tr(context, 'Privacy & Policy')), dense: true),
                 ),
                 PopupMenuItem(
                   value: 'delete',
                   child: ListTile(
                     leading: Icon(Icons.person_remove_outlined, color: Colors.red.shade700),
-                    title: Text('Delete my account', style: TextStyle(color: Colors.red.shade700)),
+                    title: Text(tr(context, 'Delete my account'), style: TextStyle(color: Colors.red.shade700)),
                     dense: true,
                   ),
                 ),
@@ -692,7 +711,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                           setState(() => _status = null);
                         },
                         icon: const Icon(Icons.confirmation_number_outlined, size: 18),
-                        label: const Text('Track a different ticket'),
+                        label: Text(tr(context, 'Track a different ticket')),
                       ),
                     ),
                   ] else
@@ -717,15 +736,15 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Track Your Vehicle', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+          Text(tr(context, 'Track Your Vehicle'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text('Enter or scan your ticket number to see live status.', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+          Text(tr(context, 'Enter or scan your ticket number to see live status.'), style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
           const SizedBox(height: 16),
           TextField(
             controller: _ticketNoController,
             enabled: !_loading,
-            decoration: const InputDecoration(
-              labelText: 'Ticket Number',
+            decoration: InputDecoration(
+              labelText: tr(context, 'Ticket Number'),
               prefixIcon: Icon(Icons.confirmation_number_outlined),
               border: OutlineInputBorder(),
             ),
@@ -738,7 +757,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 child: OutlinedButton.icon(
                   onPressed: _loading ? null : _scanTicket,
                   icon: const Icon(Icons.qr_code_scanner),
-                  label: const Text('Scan'),
+                  label: Text(tr(context, 'Scan')),
                 ),
               ),
               const SizedBox(width: 10),
@@ -747,7 +766,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                   onPressed: _loading ? null : _lookup,
                   child: _loading
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Check Status'),
+                      : Text(tr(context, 'Check Status')),
                 ),
               ),
             ],
@@ -779,10 +798,10 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               child: Icon(Icons.info_outline_rounded, color: Colors.amber.shade800, size: 28),
             ),
             const SizedBox(height: 14),
-            const Text("This ticket hasn't been used yet", style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700)),
+            Text(tr(context, "This ticket hasn't been used yet"), style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Text(
-              'No vehicle has been checked in against this ticket at ${_selectedLocation?.name ?? 'this property'} yet.',
+              tr(context, 'No vehicle has been checked in against this ticket at {place} yet.', {'place': _selectedLocation?.name ?? tr(context, 'this property')}),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.4),
             ),
@@ -819,7 +838,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(data.status ?? '-', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: color)),
+                    child: Text(_statusLabel(data.status), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: color)),
                   ),
                 ],
               ),
@@ -847,7 +866,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                     Icon(Icons.local_parking, size: 18, color: Colors.grey.shade700),
                     const SizedBox(width: 6),
                     Expanded(
-                      child: Text('Parked at ${data.parkingLocation}',
+                      child: Text(tr(context, 'Parked at {place}', {'place': data.parkingLocation}),
                           style: TextStyle(color: Colors.grey.shade800, fontSize: 13, fontWeight: FontWeight.w600)),
                     ),
                   ],
@@ -855,7 +874,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               ],
               if (data.paymentMethod != null && data.paymentMethod!.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Text('Payment: ${data.paymentMethod}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                Text(tr(context, 'Payment: {method}', {'method': data.paymentMethod}), style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
               ],
               if (data.status == 'RECEIVED') ...[
                 const SizedBox(height: 16),
@@ -865,7 +884,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                   child: ElevatedButton.icon(
                     onPressed: _requesting ? null : _requestPickup,
                     icon: const Icon(Icons.local_shipping_outlined),
-                    label: Text(_requesting ? 'Requesting...' : 'Request My Car'),
+                    label: Text(_requesting ? tr(context, 'Requesting...') : tr(context, 'Request My Car')),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -948,10 +967,10 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                   child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
                 ),
                 const SizedBox(height: 16),
-                const Text('Which property are you at?', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                Text(tr(context, 'Which property are you at?'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text(
-                  'Picking a property looks up tickets there instead of your home property.',
+                  tr(context, 'Picking a property looks up tickets there instead of your home property.'),
                   style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 14),
@@ -960,7 +979,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                   icon: _detecting
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.my_location, size: 18),
-                  label: Text(_detecting ? 'Detecting...' : 'Detect automatically (GPS)'),
+                  label: Text(_detecting ? tr(context, 'Detecting...') : tr(context, 'Detect automatically (GPS)')),
                 ),
                 if (_noMatchFound) ...[
                   const SizedBox(height: 8),
@@ -972,7 +991,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                 const SizedBox(height: 10),
                 Expanded(
                   child: widget.locations.isEmpty
-                      ? Center(child: Text('No properties available.', style: TextStyle(color: Colors.grey.shade500)))
+                      ? Center(child: Text(tr(context, 'No properties available.'), style: TextStyle(color: Colors.grey.shade500)))
                       : ListView.builder(
                           controller: scrollController,
                           itemCount: widget.locations.length,
@@ -987,7 +1006,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                                 color: isSelected ? Colors.blue.shade600 : Colors.grey.shade400,
                               ),
                               title: Text(loc.name),
-                              subtitle: isHome ? const Text('Your property', style: TextStyle(fontSize: 12)) : null,
+                              subtitle: isHome ? Text(tr(context, 'Your property'), style: TextStyle(fontSize: 12)) : null,
                             );
                           },
                         ),

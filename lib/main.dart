@@ -5,6 +5,8 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_strings.dart';
 import 'pages/login_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/landing_page.dart';
@@ -36,6 +38,7 @@ Future<void> main() async {
 
   // Local notifications always; Firebase push only once google-services.json is configured.
   await NotificationService.instance.init();
+  await LocaleController.load();
 
   // Anything a driver saved without signal (basement parking) is sent once the network is back.
   OfflineQueue.instance.start();
@@ -72,11 +75,23 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    // English by default; Arabic (right-to-left) only once someone picks it with the language
+    // switch - staff screens are English-only, so following an Arabic phone automatically would
+    // mirror them with English text.
+    return ValueListenableBuilder<Locale?>(
+      valueListenable: LocaleController.locale,
+      builder: (context, locale, _) => MaterialApp(
       debugShowCheckedModeBanner: false,
       navigatorKey: NotificationService.navigatorKey,
       title: 'Valet Fusion',
       theme: AppTheme.light,
+      locale: locale ?? const Locale('en'),
+      supportedLocales: const [Locale('en'), Locale('ar')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       initialRoute: '/splash',
       routes: {
         '/splash': (context) => const SplashPage(),
@@ -102,6 +117,7 @@ class MyApp extends StatelessWidget {
         // '/master/company-details': (context) => const CompanyDetailsPage(),
         // '/master/ticket-details': (context) => const TicketDetailsPage(),
       },
+      ),
     );
   }
 }

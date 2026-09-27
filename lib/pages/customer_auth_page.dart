@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../services/authentication_service.dart';
 import 'customer_home_page.dart';
 import 'forgot_password_page.dart';
+import '../l10n/app_strings.dart';
 
 class CustomerAuthPage extends StatefulWidget {
   const CustomerAuthPage({super.key});
@@ -73,7 +74,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
   Future<void> _attemptBiometricLogin() async {
     if (_biometricAuthenticating || _loading) return;
     setState(() => _biometricAuthenticating = true);
-    final ok = await _authService.authenticateWithBiometrics(reason: 'Sign in to Valet Fusion');
+    final ok = await _authService.authenticateWithBiometrics(reason: tr(context, 'Sign in to Valet Fusion'));
     if (mounted) setState(() => _biometricAuthenticating = false);
     if (ok && mounted) {
       await _submit();
@@ -89,17 +90,17 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
     final enable = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Enable Face ID / Fingerprint?'),
-        content: const Text('Sign in faster next time using your face or fingerprint instead of typing your password.'),
+        title: Text(tr(context, 'Enable Face ID / Fingerprint?')),
+        content: Text(tr(context, 'Sign in faster next time using your face or fingerprint instead of typing your password.')),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Not now')),
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Enable')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: Text(tr(context, 'Not now'))),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: Text(tr(context, 'Enable'))),
         ],
       ),
     );
     if (enable == true) {
       final confirmed = await _authService.authenticateWithBiometrics(
-        reason: 'Confirm to enable Face ID / Fingerprint sign-in',
+        reason: tr(context, 'Confirm to enable Face ID / Fingerprint sign-in'),
       );
       if (confirmed) {
         await _authService.setBiometricEnabled(true, customer: true);
@@ -139,7 +140,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_isRegister && _selectedCompany == null) {
-      _showSnack('Please select your property');
+      _showSnack(tr(context, 'Please select your property'));
       return;
     }
     setState(() => _loading = true);
@@ -184,7 +185,10 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FB),
-      appBar: AppBar(title: Text(_isRegister ? 'Guest Sign Up' : 'Guest Sign In')),
+      appBar: AppBar(
+        title: Text(_isRegister ? tr(context, 'Guest Sign Up') : tr(context, 'Guest Sign In')),
+        actions: const [LanguageToggle()],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -203,7 +207,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
                   Icon(Icons.local_parking_rounded, size: 40, color: Colors.blue.shade600),
                   const SizedBox(height: 8),
                   Text(
-                    _isRegister ? 'Create your guest account' : 'Welcome back',
+                    _isRegister ? tr(context, 'Create your guest account') : tr(context, 'Welcome back'),
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
@@ -213,15 +217,15 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(labelText: 'Your Name', border: OutlineInputBorder()),
+                      decoration: InputDecoration(labelText: tr(context, 'Your Name'), border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email (optional)',
-                        helperText: 'Lets you reset your password later',
+                      decoration: InputDecoration(
+                        labelText: tr(context, 'Email (optional)'),
+                        helperText: tr(context, 'Lets you reset your password later'),
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -230,28 +234,28 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
                   TextFormField(
                     controller: _mobileController,
                     keyboardType: TextInputType.text,
-                    decoration: const InputDecoration(labelText: 'Mobile Number *', border: OutlineInputBorder()),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    decoration: InputDecoration(labelText: tr(context, 'Mobile Number *'), border: OutlineInputBorder()),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? tr(context, 'Required') : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _passwordController,
                     obscureText: !_showPassword,
                     decoration: InputDecoration(
-                      labelText: 'Password *',
+                      labelText: tr(context, 'Password *'),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility),
                         onPressed: () => setState(() => _showPassword = !_showPassword),
                       ),
                     ),
-                    validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                    validator: (v) => (v == null || v.isEmpty) ? tr(context, 'Required') : null,
                   ),
                   if (!_isRegister)
                     CheckboxListTile(
                       value: _rememberMe,
                       onChanged: (v) => setState(() => _rememberMe = v ?? false),
-                      title: const Text('Remember me', style: TextStyle(fontSize: 13)),
+                      title: Text(tr(context, 'Remember me'), style: TextStyle(fontSize: 13)),
                       controlAffinity: ListTileControlAffinity.leading,
                       contentPadding: EdgeInsets.zero,
                       dense: true,
@@ -263,7 +267,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
                       onPressed: _loading ? null : _submit,
                       child: _loading
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : Text(_isRegister ? 'Sign Up' : 'Sign In'),
+                          : Text(_isRegister ? tr(context, 'Sign Up') : tr(context, 'Sign In')),
                     ),
                   ),
                   if (!_isRegister && _biometricAvailable && _biometricEnabled) ...[
@@ -273,13 +277,13 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
                       icon: _biometricAuthenticating
                           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.fingerprint),
-                      label: Text(_biometricAuthenticating ? 'Authenticating...' : 'Sign in with Face ID / Fingerprint'),
+                      label: Text(_biometricAuthenticating ? tr(context, 'Authenticating...') : tr(context, 'Sign in with Face ID / Fingerprint')),
                     ),
                   ],
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: _loading ? null : () => setState(() => _isRegister = !_isRegister),
-                    child: Text(_isRegister ? 'Already have an account? Sign in' : "New guest? Sign up"),
+                    child: Text(_isRegister ? tr(context, 'Already have an account? Sign in') : tr(context, "New guest? Sign up")),
                   ),
                   if (!_isRegister)
                     TextButton(
@@ -288,7 +292,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
                           : () => Navigator.of(context).push(
                                 MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
                               ),
-                      child: const Text('Forgot Password?'),
+                      child: Text(tr(context, 'Forgot Password?')),
                     ),
                 ],
               ),
@@ -311,8 +315,8 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
           children: [
             Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 20),
             const SizedBox(width: 8),
-            const Expanded(child: Text('Could not load properties.', style: TextStyle(fontSize: 12))),
-            TextButton(onPressed: _loadCompanies, child: const Text('Retry')),
+            Expanded(child: Text(tr(context, 'Could not load properties.'), style: TextStyle(fontSize: 12))),
+            TextButton(onPressed: _loadCompanies, child: Text(tr(context, 'Retry'))),
           ],
         ),
       );
@@ -320,12 +324,12 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
     return DropdownButtonFormField<PublicCompanyOption>(
       value: _selectedCompany,
       isExpanded: true,
-      decoration: const InputDecoration(labelText: 'Property *', border: OutlineInputBorder()),
+      decoration: InputDecoration(labelText: tr(context, 'Property *'), border: OutlineInputBorder()),
       items: _companies
           .map((c) => DropdownMenuItem(value: c, child: Text('${c.name} (${c.code})', overflow: TextOverflow.ellipsis)))
           .toList(),
       onChanged: (v) => setState(() => _selectedCompany = v),
-      validator: (v) => v == null ? 'Please select your property' : null,
+      validator: (v) => v == null ? tr(context, 'Please select your property') : null,
     );
   }
 }

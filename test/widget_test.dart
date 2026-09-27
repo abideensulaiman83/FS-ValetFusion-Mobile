@@ -1,30 +1,75 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+// Tests for the English/Arabic layer (lib/l10n/app_strings.dart). They run without a device.
+// (Replaces Flutter's default counter template, which never matched this app.)
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fs_valetfusion/l10n/app_strings.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fs_valetfusion/main.dart';
+Widget _app(Widget child) => ValueListenableBuilder<Locale?>(
+      valueListenable: LocaleController.locale,
+      builder: (context, locale, _) => MaterialApp(
+        locale: locale ?? const Locale('en'),
+        supportedLocales: const [Locale('en'), Locale('ar')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: Scaffold(body: child),
+      ),
+    );
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    LocaleController.locale.value = null;
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  testWidgets('English by default', (tester) async {
+    await tester.pumpWidget(_app(Builder(builder: (c) => Text(tr(c, 'Check Status')))));
+    expect(find.text('Check Status'), findsOneWidget);
+    expect(Directionality.of(tester.element(find.text('Check Status'))), TextDirection.ltr);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  testWidgets('Arabic text and right-to-left layout', (tester) async {
+    LocaleController.locale.value = const Locale('ar');
+    await tester.pumpWidget(_app(Builder(builder: (c) => Text(tr(c, 'Check Status')))));
+    await tester.pumpAndSettle();
+    expect(find.text('عرض الحالة'), findsOneWidget);
+    expect(Directionality.of(tester.element(find.text('عرض الحالة'))), TextDirection.rtl);
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('placeholders are filled in both languages', (tester) async {
+    LocaleController.locale.value = const Locale('ar');
+    await tester.pumpWidget(_app(Builder(builder: (c) => Text(tr(c, 'Parked at {place}', {'place': 'B1-12'})))));
+    await tester.pumpAndSettle();
+    expect(find.text('مصفوفة في B1-12'), findsOneWidget);
+  });
+
+  testWidgets('a missing translation falls back to English', (tester) async {
+    LocaleController.locale.value = const Locale('ar');
+    await tester.pumpWidget(_app(Builder(builder: (c) => Text(tr(c, 'Not in the dictionary')))));
+    await tester.pumpAndSettle();
+    expect(find.text('Not in the dictionary'), findsOneWidget);
+  });
+
+  testWidgets('language switch flips the app and remembers the choice', (tester) async {
+    await tester.pumpWidget(_app(Column(children: [
+      const LanguageToggle(),
+      Builder(builder: (c) => Text(tr(c, 'Track Your Vehicle'))),
+    ])));
+    expect(find.text('Track Your Vehicle'), findsOneWidget);
+
+    await tester.tap(find.text('العربية'));
+    await tester.pumpAndSettle();
+    expect(find.text('تتبّع سيارتك'), findsOneWidget);
+    expect(find.text('English'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('vf_locale'), 'ar');
+
+    await tester.tap(find.text('English'));
+    await tester.pumpAndSettle();
+    expect(find.text('Track Your Vehicle'), findsOneWidget);
   });
 }
