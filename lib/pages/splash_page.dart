@@ -9,8 +9,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/app_update_service.dart';
 import '../services/notification_service.dart';
 import '../services/authentication_service.dart';
+import '../services/secure_store.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -50,17 +52,24 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
 
   Future<void> _routeAfterSplash() async {
     if (!mounted) return;
+    final update = await AppUpdateService.check();
+    if (!mounted) return;
+    if (update.status == UpdateStatus.required) {
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => UpdateRequiredPage(update: update)));
+      return;
+    }
+    await AppUpdateService.maybeOfferOptional(context, update);
     final route = await _resolveStartRoute();
     if (mounted) Navigator.of(context).pushReplacementNamed(route);
   }
 
   Future<String> _resolveStartRoute() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(AuthenticationService.tokenKey);
+    final token = await SecureStore.token();
     final userStr = prefs.getString(AuthenticationService.userKey);
     if (token == null || userStr == null) return '/';
     if (_isJwtExpired(token)) {
-      await prefs.remove(AuthenticationService.tokenKey);
+      await SecureStore.clearToken();
       await prefs.remove(AuthenticationService.userKey);
       return '/';
     }

@@ -5,6 +5,7 @@ import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'secure_store.dart';
 
 class PublicCompanyOption {
   final String code;
@@ -185,32 +186,31 @@ class AuthenticationService {
     if (legacyUser == null || !_phoneLike.hasMatch(legacyUser.trim())) return;
     if (prefs.getString(customerRememberedUsernameKey) == null) {
       await prefs.setString(customerRememberedUsernameKey, legacyUser);
-      final legacyPass = prefs.getString(rememberedPasswordKey);
-      if (legacyPass != null) await prefs.setString(customerRememberedPasswordKey, legacyPass);
+      final legacyPass = await SecureStore.read(rememberedPasswordKey);
+      if (legacyPass != null) await SecureStore.write(customerRememberedPasswordKey, legacyPass);
       await prefs.setBool(customerBiometricEnabledKey, prefs.getBool(biometricEnabledKey) ?? false);
     }
     await prefs.remove(rememberedUsernameKey);
-    await prefs.remove(rememberedPasswordKey);
+    await SecureStore.delete(rememberedPasswordKey);
     await prefs.remove(biometricEnabledKey);
   }
 
   // "Remember me" on the login form itself - separate from staying logged in across app
   // restarts (see SplashPage, which checks the saved token/session). This just pre-fills the
-  // username/password fields next time, for after an explicit logout. Kept in SharedPreferences
-  // like the rest of this app's local storage (the session token included) rather than a secure
-  // keystore, to match the existing security posture without adding a new native dependency.
+  // username/password fields next time, for after an explicit logout. The username is plain
+  // SharedPreferences; the password goes in the platform keystore (SecureStore).
   Future<void> saveRememberedCredentials(String username, String password, {bool customer = false}) async {
     final prefs = await SharedPreferences.getInstance();
     await _migrateSharedSlot(prefs);
     await prefs.setString(_userKeyFor(customer), username);
-    await prefs.setString(_passKeyFor(customer), password);
+    await SecureStore.write(_passKeyFor(customer), password);
   }
 
   Future<Map<String, String>?> getRememberedCredentials({bool customer = false}) async {
     final prefs = await SharedPreferences.getInstance();
     await _migrateSharedSlot(prefs);
     final username = prefs.getString(_userKeyFor(customer));
-    final password = prefs.getString(_passKeyFor(customer));
+    final password = await SecureStore.read(_passKeyFor(customer));
     if (username == null || password == null) return null;
     return {'username': username, 'password': password};
   }
@@ -218,7 +218,7 @@ class AuthenticationService {
   Future<void> clearRememberedCredentials({bool customer = false}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_userKeyFor(customer));
-    await prefs.remove(_passKeyFor(customer));
+    await SecureStore.delete(_passKeyFor(customer));
     await prefs.remove(_biometricKeyFor(customer));
   }
 
@@ -504,8 +504,7 @@ class AuthenticationService {
 
   Future<List<LocationDto>> fetchActiveLocations() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString(tokenKey);
+      final token = await SecureStore.token();
 
       final url = Uri.parse('$apiBaseUrl/master-locations/status/ACTIVE');
 
@@ -541,8 +540,7 @@ class AuthenticationService {
     required int locationId,
   }) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString(tokenKey);
+      final token = await SecureStore.token();
 
       final url = Uri.parse('$apiBaseUrl/auth/select-location');
 
@@ -597,8 +595,7 @@ class AuthenticationService {
     await DeliveryTracker.instance.stop();
     await NotificationService.instance.unregisterDevice();
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString(tokenKey);
+      final token = await SecureStore.token();
 
       if (token != null) {
         final url = Uri.parse('$apiBaseUrl/auth/logout');
@@ -630,8 +627,7 @@ class AuthenticationService {
   /// the saved customer login and its fingerprint opt-in, and the push registration. Throws with
   /// the server's message on a wrong password or network failure.
   Future<void> deleteMyAccount(String password) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(tokenKey);
+    final token = await SecureStore.token();
     final response = await http
         .post(
           Uri.parse('$apiBaseUrl/account/delete'),
@@ -657,7 +653,7 @@ class AuthenticationService {
 
   Future<void> clearStorage() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(tokenKey);
+    await SecureStore.clearToken();
     await prefs.remove(userKey);
     await prefs.remove(locationKey);
     await prefs.remove(pendingUserKey);
@@ -668,7 +664,7 @@ class AuthenticationService {
   /// Check if user is authenticated
   Future<bool> isAuthenticated() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(tokenKey);
+    final token = await SecureStore.token();
     final user = prefs.getString(userKey);
 
     final isAuth = token != null && user != null;
@@ -719,8 +715,7 @@ class AuthenticationService {
 
   /// Get auth token
   Future<String?> getAuthToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(tokenKey);
+    final token = await SecureStore.token();
     developer.log(' Token retrieved: ${token != null ? "Yes (${token.substring(0, 10)}...)" : "No"}');
     return token;
   }
@@ -735,7 +730,7 @@ class AuthenticationService {
 
     final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setString(tokenKey, token);
+    await SecureStore.setToken(token);
     developer.log('    Token saved');
 
     await prefs.setString(userKey, jsonEncode(user.toJson()));

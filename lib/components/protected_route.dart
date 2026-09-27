@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../services/secure_store.dart';
 
 class ProtectedRoute extends StatefulWidget {
   final Widget child;
@@ -35,7 +36,7 @@ class _ProtectedRouteState extends State<ProtectedRoute> {
     debugPrint('🔒 ProtectedRoute Check started');
 
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('vf_token');
+    final token = await SecureStore.token();
     final userStr = prefs.getString('vf_user');
 
     debugPrint('🔒 Auth Check: token=${token?.substring(0, 20) ?? 'null'}...');
@@ -128,7 +129,7 @@ class _ProtectedRouteState extends State<ProtectedRoute> {
 class AuthService {
   static Future<bool> isAuthenticated() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('vf_token');
+    final token = await SecureStore.token();
     final user = prefs.getString('vf_user');
     return token != null && user != null;
   }

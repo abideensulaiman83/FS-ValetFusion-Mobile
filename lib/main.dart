@@ -1,4 +1,8 @@
 
+import 'dart:ui' show PlatformDispatcher;
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'pages/login_page.dart';
@@ -31,6 +35,19 @@ Future<void> main() async {
 
   // Local notifications always; Firebase push only once google-services.json is configured.
   await NotificationService.instance.init();
+
+  // Crash reporting (Firebase Crashlytics) - only when Firebase came up, and only collecting from
+  // release builds so developers' debug crashes don't mix with real ones from the field.
+  if (Firebase.apps.isNotEmpty) {
+    try {
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(kReleaseMode);
+      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true;
+      };
+    } catch (_) {}
+  }
 
   // FIX: Set preferred orientations and disable text selection toolbar
   SystemChrome.setPreferredOrientations([

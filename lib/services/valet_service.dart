@@ -4,8 +4,8 @@
 // against the same backend contract (backend/evaletFusion .../ParkingVehicleController.java).
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'authentication_service.dart';
+import 'secure_store.dart';
 
 class Shop {
   final int id;
@@ -386,8 +386,7 @@ class ValetService {
   // The backend's JwtAuthenticationFilter re-points the tenant DB for this request when it sees
   // X-Company-Code on a CUSTOMER token - ignored (and ignored server-side) for every other role.
   Future<Map<String, String>> _headers({String? companyCode}) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(AuthenticationService.tokenKey);
+    final token = await SecureStore.token();
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',

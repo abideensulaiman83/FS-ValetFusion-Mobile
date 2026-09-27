@@ -81,4 +81,6 @@ dependencies {
 // skips push and the in-app/local reminders keep working.
 if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
+    // Crash reports from testers' / customers' phones (Firebase console > Crashlytics).
+    apply(plugin = "com.google.firebase.crashlytics")
 }

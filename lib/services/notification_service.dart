@@ -20,8 +20,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'authentication_service.dart';
+import 'secure_store.dart';
 
 /// One alert, from either path. [type] matches the backend's push types:
 /// DELIVERY_ASSIGNED, ETA_CHECK_IN (driver); ON_THE_WAY, ETA_UPDATED, ARRIVED (customer).
@@ -251,8 +251,7 @@ class NotificationService {
   }
 
   Future<void> _post(String path, Map<String, dynamic> body) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jwt = prefs.getString(AuthenticationService.tokenKey);
+    final jwt = await SecureStore.token();
     if (jwt == null) return;
     await http
         .post(

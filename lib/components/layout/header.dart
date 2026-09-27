@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../../services/secure_store.dart';
 
 class Header extends StatefulWidget {
   const Header({Key? key}) : super(key: key);
@@ -36,7 +37,7 @@ class _HeaderState extends State<Header> {
     debugPrint('🚪 Logging out user...');
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('vf_token');
+    await SecureStore.clearToken();
     await prefs.remove('vf_user');
     await prefs.remove('vf_location');
     await prefs.remove('vf_pending_locations');

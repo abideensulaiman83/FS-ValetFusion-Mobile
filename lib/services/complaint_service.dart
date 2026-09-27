@@ -5,8 +5,8 @@
 // and ComplaintController.
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'authentication_service.dart';
+import 'secure_store.dart';
 
 class CaptchaChallenge {
   final String token;
@@ -137,8 +137,7 @@ class ComplaintService {
   }
 
   Future<Map<String, String>> _authHeaders() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(AuthenticationService.tokenKey);
+    final token = await SecureStore.token();
     return {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',

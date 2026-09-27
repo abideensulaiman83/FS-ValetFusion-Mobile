@@ -6,9 +6,9 @@
 // slots on each floor from the phone, and switches slots off/on as the site changes.
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'authentication_service.dart';
 import 'valet_service.dart' show ValetApiException;
+import 'secure_store.dart';
 
 class LayoutSlot {
   final int id;
@@ -137,8 +137,7 @@ class ParkingLayoutService {
   static const Duration _timeout = Duration(seconds: 30);
 
   Future<Map<String, String>> _headers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(AuthenticationService.tokenKey);
+    final token = await SecureStore.token();
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
