@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,9 +8,21 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Play Store upload key. android/key.properties (git-ignored) points at the keystore, which lives
+// outside the repo. Without it - e.g. on a co-developer's machine - release builds fall back to
+// the debug key: fine for testing, but Play rejects them, so store builds must come from a machine
+// that has the upload key.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val hasUploadKey = keystorePropertiesFile.exists()
+if (hasUploadKey) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.focalsoft.fsvalet.fs_valetfusion"
-    compileSdk = flutter.compileSdkVersion
+    // Google Play requires new apps and updates to target a recent API level; 36 = Android 16.
+    compileSdk = 36
     // flutter.ndkVersion (26.3.11579264) resolves to a broken/incomplete NDK install on this
     // machine (empty toolchain/llvm/prebuilt bin dir - CMAKE_C_COMPILER not set). Pinned to
     // 26.1.10909125, which is fully present, until the SDK manager's 26.3 download is repaired.
@@ -25,22 +40,30 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Permanent once published on Play (and registered in Firebase) - never change it.
         applicationId = "com.focalsoft.fsvalet.fs_valetfusion"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         // 23 (Android 6): required by firebase_messaging.
         minSdk = 23
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
+        // From pubspec.yaml "version: x.y.z+N" - bump N for every Play upload.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasUploadKey) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasUploadKey) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
     }
 }

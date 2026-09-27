@@ -4,14 +4,16 @@
 // screen so it keeps working when the driver switches tabs, locks the phone, or has Maps open:
 //
 //  * Polls /my-deliveries every 20s and publishes the list (MyDeliveriesSection renders it).
-//  * While any delivery is ONTHEWAY, runs geolocator's position stream as an Android foreground
-//    service ("Sharing your location...") and uploads the fix every ~15s, so the customer's live
-//    map and GPS ETA keep moving in the background.
+//  * While any delivery is ONTHEWAY, runs geolocator's position stream - an Android foreground
+//    service ("Sharing your location..."), or on iPhone background location updates with the blue
+//    status-bar indicator - and uploads the fix every ~15s, so the customer's live map and GPS ETA
+//    keep moving in the background.
 //  * Every 5 minutes (the server decides via checkInDue) asks "Still on the way?" - a dialog when
-//    the app is open, a full-screen notification when it isn't - and sends the answer (+5/+10/
+//    the app is open, a high-priority notification when it isn't - and sends the answer (+5/+10/
 //    +15/+20 min, on time, or arrived) to /eta-checkin, which updates the customer's ETA.
 import 'dart:async';
 import 'dart:developer' as developer;
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../components/eta_check_in_dialog.dart';
@@ -128,18 +130,30 @@ class DeliveryTracker with WidgetsBindingObserver {
       }
       if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) return;
 
-      final settings = AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 0,
-        intervalDuration: const Duration(seconds: 10),
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationTitle: 'Delivering a car',
-          notificationText: 'Sharing your location with the guest until you hand the car over.',
-          notificationChannelName: 'Delivery location',
-          enableWakeLock: true,
-          setOngoing: true,
-        ),
-      );
+      final LocationSettings settings = Platform.isIOS
+          // Started while the app is open, so "While Using" permission is enough; iOS keeps the
+          // updates coming in the background (Info.plist UIBackgroundModes: location) and shows
+          // the blue indicator so the driver can see location is being shared.
+          ? AppleSettings(
+              accuracy: LocationAccuracy.high,
+              activityType: ActivityType.automotiveNavigation,
+              distanceFilter: 10,
+              pauseLocationUpdatesAutomatically: false,
+              allowBackgroundLocationUpdates: true,
+              showBackgroundLocationIndicator: true,
+            )
+          : AndroidSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 0,
+              intervalDuration: const Duration(seconds: 10),
+              foregroundNotificationConfig: const ForegroundNotificationConfig(
+                notificationTitle: 'Delivering a car',
+                notificationText: 'Sharing your location with the guest until you hand the car over.',
+                notificationChannelName: 'Delivery location',
+                enableWakeLock: true,
+                setOngoing: true,
+              ),
+            );
       _positionSub = Geolocator.getPositionStream(locationSettings: settings).listen(
         (position) => _lastFix = position,
         onError: (e) => developer.log('Position stream error: $e'),

@@ -515,6 +515,84 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     }
   }
 
+  // Store requirement: guests who signed up here can delete their account from inside the app.
+  // Password re-entry, so an unlocked phone in someone else's hands can't do it.
+  Future<void> _deleteAccount() async {
+    final passwordController = TextEditingController();
+    String? error;
+    bool deleting = false;
+    final deleted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Delete your account?'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'This permanently removes your name, mobile number and email from Valet Fusion and signs '
+                  'you out on this phone. You can register again later with the same number.\n\n'
+                  'Past ticket records stay with the property that parked your car, without your contact details.',
+                  style: TextStyle(fontSize: 13.5, height: 1.4),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  enabled: !deleting,
+                  decoration: InputDecoration(
+                    labelText: 'Enter your password to confirm',
+                    border: const OutlineInputBorder(),
+                    errorText: error,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: deleting ? null : () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: deleting
+                  ? null
+                  : () async {
+                      if (passwordController.text.isEmpty) {
+                        setDialogState(() => error = 'Enter your password');
+                        return;
+                      }
+                      setDialogState(() {
+                        deleting = true;
+                        error = null;
+                      });
+                      try {
+                        await _authService.deleteMyAccount(passwordController.text);
+                        if (dialogContext.mounted) Navigator.of(dialogContext).pop(true);
+                      } catch (e) {
+                        setDialogState(() {
+                          deleting = false;
+                          error = e.toString().replaceAll('Exception: ', '');
+                        });
+                      }
+                    },
+              style: TextButton.styleFrom(foregroundColor: Colors.red.shade700),
+              child: Text(deleting ? 'Deleting...' : 'Delete account'),
+            ),
+          ],
+        ),
+      ),
+    );
+    passwordController.dispose();
+    if (deleted != true || !mounted) return;
+    _pollTimer?.cancel();
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Your account has been deleted.')));
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+  }
+
   String _friendlyMessage(String? status) {
     switch (status) {
       case 'RECEIVED':
@@ -566,12 +644,28 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               icon: const Icon(Icons.history),
               tooltip: 'My Parking History',
             ),
-            IconButton(
-              onPressed: () => Navigator.of(context).pushNamed('/privacy-policy'),
-              icon: const Icon(Icons.privacy_tip_outlined),
-              tooltip: 'Privacy & Policy',
-            ),
             IconButton(onPressed: _logout, icon: const Icon(Icons.logout), tooltip: 'Logout'),
+            PopupMenuButton<String>(
+              tooltip: 'More',
+              onSelected: (value) {
+                if (value == 'privacy') Navigator.of(context).pushNamed('/privacy-policy');
+                if (value == 'delete') _deleteAccount();
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'privacy',
+                  child: ListTile(leading: Icon(Icons.privacy_tip_outlined), title: Text('Privacy & Policy'), dense: true),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: ListTile(
+                    leading: Icon(Icons.person_remove_outlined, color: Colors.red.shade700),
+                    title: Text('Delete my account', style: TextStyle(color: Colors.red.shade700)),
+                    dense: true,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
         body: SafeArea(

@@ -60,10 +60,12 @@ class PrivacyPolicyPage extends StatelessWidget {
               ),
               _section(
                 'Your choices',
-                'You can stop using the app at any time; this does not delete historical ticket '
-                    'records the property is required to keep for its own operations. For a specific '
-                    'data request, contact the property directly - they control your data as the '
-                    'operator of the service you used.',
+                'You can delete your account at any time from inside the app: My Valet > the menu '
+                    '(three dots) > Delete my account. This erases your name, mobile number and email '
+                    'and closes the account. Historical ticket records the property is required to keep '
+                    'for its own operations stay with that property, without your contact details. For '
+                    'any other data request, contact the property directly - they control your data as '
+                    'the operator of the service you used.',
               ),
               const SizedBox(height: 12),
               Container(

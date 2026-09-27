@@ -625,6 +625,36 @@ class AuthenticationService {
     }
   }
 
+  /// Customer deletes their own account (store requirement). The password is re-checked on the
+  /// server. On success everything this phone kept for that account is cleared too: the session,
+  /// the saved customer login and its fingerprint opt-in, and the push registration. Throws with
+  /// the server's message on a wrong password or network failure.
+  Future<void> deleteMyAccount(String password) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(tokenKey);
+    final response = await http
+        .post(
+          Uri.parse('$apiBaseUrl/account/delete'),
+          headers: {
+            'Content-Type': 'application/json',
+            if (token != null) 'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({'password': password}),
+        )
+        .timeout(timeout);
+    if (response.statusCode != 200) {
+      String message = 'We couldn\'t delete your account right now. Please try again.';
+      try {
+        message = (jsonDecode(response.body) as Map<String, dynamic>)['message'] as String? ?? message;
+      } catch (_) {}
+      throw Exception(message);
+    }
+    // Server already dropped this phone's push token with the account.
+    await DeliveryTracker.instance.stop();
+    await clearRememberedCredentials(customer: true);
+    await clearStorage();
+  }
+
   Future<void> clearStorage() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(tokenKey);

@@ -61,7 +61,9 @@ class AppAlert {
         if (ticketNo != null) 'ticketNo': ticketNo,
       };
 
-  /// Types that should wake the screen and pop over whatever is showing.
+  /// Types that should pop over whatever is showing (max-priority heads-up with sound, shown on
+  /// the lock screen). Not a full-screen intent: Google Play restricts those to calling/alarm
+  /// apps (Android 14+), so a store build must not rely on them.
   bool get urgent => type == 'ETA_CHECK_IN' || type == 'DELIVERY_ASSIGNED' || type == 'ARRIVED';
 }
 
@@ -72,7 +74,13 @@ final FlutterLocalNotificationsPlugin _local = FlutterLocalNotificationsPlugin()
 
 Future<void> _initLocal({DidReceiveNotificationResponseCallback? onTap}) async {
   await _local.initialize(
-    settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
+    // Monochrome status-bar icon (Android draws small notification icons as a white silhouette,
+    // so the full-colour launcher icon would show as a blank square). iOS asks for permission at
+    // first launch.
+    settings: const InitializationSettings(
+      android: AndroidInitializationSettings('@drawable/ic_stat_valet'),
+      iOS: DarwinInitializationSettings(),
+    ),
     onDidReceiveNotificationResponse: onTap,
   );
   final android = _local.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -96,12 +104,12 @@ Future<void> _showLocal(AppAlert alert) async {
         _channelName,
         importance: Importance.max,
         priority: Priority.max,
-        category: alert.urgent ? AndroidNotificationCategory.call : AndroidNotificationCategory.status,
-        fullScreenIntent: alert.urgent,
+        category: alert.urgent ? AndroidNotificationCategory.reminder : AndroidNotificationCategory.status,
         visibility: NotificationVisibility.public,
         ticker: alert.title,
         styleInformation: BigTextStyleInformation(alert.body),
       ),
+      iOS: const DarwinNotificationDetails(presentAlert: true, presentBanner: true, presentList: true, presentSound: true),
     ),
     payload: jsonEncode(alert.toData()),
   );
@@ -181,12 +189,14 @@ class NotificationService {
     }
   }
 
-  /// Ask for the Android 13+ notification permission (and full-screen intent on 14+).
+  /// Ask for the notification permission: Android 13+, and iOS (needed for the local reminders
+  /// too, not only push). No full-screen-intent request - the store build doesn't declare it.
   Future<void> requestPermissions() async {
     try {
       final android = _local.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
       await android?.requestNotificationsPermission();
-      await android?.requestFullScreenIntentPermission();
+      final ios = _local.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+      await ios?.requestPermissions(alert: true, badge: true, sound: true);
     } catch (_) {}
   }
 
