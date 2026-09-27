@@ -40,13 +40,17 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> {
   // A position older than this is shown as "last known" (grey car, low-signal note) rather than
   // hidden - underground car parks drop GPS, and a last-seen pin reassures more than nothing.
   static const int _liveMaxAgeSeconds = 120;
+  // Past this, "underground car park" stops being a believable reason - point the guest to the desk.
+  static const int _overdueAgeSeconds = 30 * 60;
 
   // Age is computed by the server, so a phone clock that's off doesn't skew it.
   String _freshnessLabel() {
     final age = data.driverLocationAgeSeconds;
     if (age == null) return '';
     if (age < 60) return tr(context, 'Updated {n}s ago', {'n': age});
-    return tr(context, 'Updated {n} min ago', {'n': (age / 60).floor()});
+    final minutes = (age / 60).floor();
+    if (minutes < 60) return tr(context, 'Updated {n} min ago', {'n': minutes});
+    return tr(context, 'Updated {h} h {m} min ago', {'h': minutes ~/ 60, 'm': minutes % 60});
   }
 
   String _etaHeadline() {
@@ -190,7 +194,9 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> {
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
               child: Text(
-                tr(context, 'Your driver may be in an underground car park or a low-signal area. The position updates as soon as their phone reconnects - your car is on its way.'),
+                (data.driverLocationAgeSeconds ?? 0) > _overdueAgeSeconds
+                    ? tr(context, "This is taking longer than usual. If you're already at the lobby, please ask the valet desk for an update.")
+                    : tr(context, 'Your driver may be in an underground car park or a low-signal area. The position updates as soon as their phone reconnects - your car is on its way.'),
                 style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600, height: 1.35),
               ),
             ),

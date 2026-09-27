@@ -185,6 +185,9 @@ const Map<String, String> _ar = {
   "The live map appears as soon as your driver's location comes through.": 'ستظهر الخريطة المباشرة فور وصول موقع السائق.',
   'Live location': 'الموقع المباشر',
   'Last known position': 'آخر موقع معروف',
+  'Updated {h} h {m} min ago': 'تم التحديث قبل {h} ساعة و{m} دقيقة',
+  "This is taking longer than usual. If you're already at the lobby, please ask the valet desk for an update.":
+      'يستغرق الأمر وقتًا أطول من المعتاد. إذا كنت عند المدخل، يرجى سؤال مكتب خدمة صف السيارات عن آخر المستجدات.',
   'Your driver may be in an underground car park or a low-signal area. The position updates as soon as their phone reconnects - your car is on its way.':
       'قد يكون السائق في موقف تحت الأرض أو في منطقة ضعيفة الإشارة. سيتحدّث الموقع فور عودة الاتصال - سيارتك في الطريق.',
   'Your driver added {n} min to the arrival time': 'أضاف السائق {n} دقيقة إلى وقت الوصول',
