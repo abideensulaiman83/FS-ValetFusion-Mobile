@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../components/eta_check_in_dialog.dart';
 import 'notification_service.dart';
+import 'offline_queue.dart';
 import 'valet_service.dart';
 
 class DeliveryTracker with WidgetsBindingObserver {
@@ -228,6 +229,9 @@ class DeliveryTracker with WidgetsBindingObserver {
     if (_promptingFor == null) promptCheckIn(due.first);
   }
 
+  bool _lastChoiceArrived = false;
+  int _lastChoiceExtend = 0;
+
   /// Opens the check-in dialog for [d] (also used by the "Update ETA" button on the card).
   Future<void> promptCheckIn(TicketStatusResponse d) async {
     final context = NotificationService.navigatorKey.currentContext;
@@ -237,6 +241,8 @@ class DeliveryTracker with WidgetsBindingObserver {
     try {
       final choice = await showEtaCheckInDialog(context, d);
       if (choice == null) return;
+      _lastChoiceArrived = choice.arrived;
+      _lastChoiceExtend = choice.extendMinutes;
       _answeredAt[id] = DateTime.now();
       _notifiedDue.remove(id);
       NotificationService.instance.cancelFor(id);
@@ -250,8 +256,15 @@ class DeliveryTracker with WidgetsBindingObserver {
       _snack(message);
       await refresh();
     } catch (e) {
-      _answeredAt.remove(id);
-      _snack(e.toString().replaceAll('Exception: ', ''), error: true);
+      if (isNetworkError(e) && !_lastChoiceArrived) {
+        // No signal - keep the answer on the phone; it goes out as soon as the network is back.
+        await OfflineQueue.instance.queueEtaCheckIn(
+            parkingVehicleId: id, extendMinutes: _lastChoiceExtend, ticketNo: d.ticketNo);
+        _snack('No signal - your update is saved and will be sent automatically.');
+      } else {
+        _answeredAt.remove(id);
+        _snack(e.toString().replaceAll('Exception: ', ''), error: true);
+      }
     } finally {
       _promptingFor = null;
     }

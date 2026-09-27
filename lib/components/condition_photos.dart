@@ -4,9 +4,11 @@
 // left, right - tap a slot to photograph it); ConditionPhotosStrip is the read-only row the lobby
 // looks at when handing the car back, so any new damage can be checked against how it came in.
 // Photos are resized on the phone (1600 px, ~70% JPEG) before upload - a few hundred KB each.
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../services/offline_queue.dart';
 import '../services/valet_service.dart';
 
 const List<String> _angles = ['FRONT', 'BACK', 'LEFT', 'RIGHT'];
@@ -79,10 +81,27 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
   final Set<String> _uploading = {};
   String? _error;
 
+  int _queuedBefore = 0;
+
   @override
   void initState() {
     super.initState();
     reload();
+    OfflineQueue.instance.pending.addListener(_onQueueChanged);
+  }
+
+  @override
+  void dispose() {
+    OfflineQueue.instance.pending.removeListener(_onQueueChanged);
+    super.dispose();
+  }
+
+  // A queued photo just went up - fetch the server copy so the slot shows it.
+  void _onQueueChanged() {
+    final now = OfflineQueue.instance.pendingPhotosFor(widget.parkingVehicleId).length;
+    if (now < _queuedBefore) reload();
+    _queuedBefore = now;
+    if (mounted) setState(() {});
   }
 
   Future<void> reload() async {
@@ -102,7 +121,12 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
       await _service.uploadPhoto(widget.parkingVehicleId, filePath, angle);
       await reload();
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      if (isNetworkError(e)) {
+        await OfflineQueue.instance.queuePhoto(parkingVehicleId: widget.parkingVehicleId, filePath: filePath, angle: angle);
+        _queuedBefore = OfflineQueue.instance.pendingPhotosFor(widget.parkingVehicleId).length;
+      } else if (mounted) {
+        setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => _uploading.remove(angle));
     }
@@ -140,6 +164,10 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
           Row(
             children: _angles.map((angle) {
               final photo = _photos.where((p) => p.angle == angle).lastOrNull;
+              final queued = photo == null
+                  ? OfflineQueue.instance.pendingPhotosFor(widget.parkingVehicleId)
+                      .where((a) => a.payload['angle'] == angle).lastOrNull
+                  : null;
               final busy = _uploading.contains(angle);
               return Expanded(
                 child: Padding(
@@ -159,7 +187,20 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
                                     child: const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
                                 : photo != null
                                     ? LayoutBuilder(builder: (_, c) => _PhotoThumb(url: photo.url, size: c.maxWidth))
-                                    : Container(
+                                    : queued != null
+                                        // Taken without signal - shown from the phone until it uploads.
+                                        ? Stack(fit: StackFit.expand, children: [
+                                            Image.file(File(queued.payload['filePath'] as String), fit: BoxFit.cover),
+                                            Container(
+                                              alignment: Alignment.bottomCenter,
+                                              color: Colors.black26,
+                                              child: const Padding(
+                                                padding: EdgeInsets.all(3),
+                                                child: Icon(Icons.cloud_upload_outlined, size: 18, color: Colors.white),
+                                              ),
+                                            ),
+                                          ])
+                                        : Container(
                                         decoration: BoxDecoration(
                                           color: Colors.grey.shade50,
                                           border: Border.all(color: Colors.grey.shade300),

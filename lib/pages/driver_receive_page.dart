@@ -14,6 +14,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../components/barcode_scanner_page.dart';
 import '../components/condition_photos.dart';
+import '../components/pending_sync_banner.dart';
+import '../services/offline_queue.dart';
 import '../components/guest_tracking_qr_sheet.dart';
 import '../components/slot_picker.dart';
 import '../components/wash_requests_section.dart';
@@ -423,6 +425,19 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
           : '$message, key holder ${_keyHolderNoController.text.trim()}.');
       _resetFlow();
     } catch (e) {
+      if (isNetworkError(e)) {
+        // Basement, no signal: keep it on the phone and move on - it's sent when back online.
+        await OfflineQueue.instance.queueParkDetails(
+          parkingVehicleId: data.parkingVehicleId!,
+          ticketNo: data.ticketNo,
+          slotId: slot?.slotId,
+          bayNo: slot == null ? _bayNoController.text.trim() : null,
+          keyHolderNo: _textOrNull(_keyHolderNoController),
+        );
+        _showSnack('No signal - parking saved on this phone and will be sent automatically.');
+        _resetFlow();
+        return;
+      }
       final msg = e.toString().replaceAll('Exception: ', '');
       _showSnack(msg, error: true);
       // Someone else took the slot a moment ago - show the next nearest one.
@@ -457,6 +472,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const PendingSyncBanner(),
           const MyDeliveriesSection(),
           const WashRequestsSection(),
           _buildScanCard(),

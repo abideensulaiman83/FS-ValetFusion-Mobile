@@ -16,6 +16,7 @@ import 'pages/splash_page.dart';
 import 'pages/customer_home_page.dart';
 import 'pages/parking_setup_page.dart';
 import 'services/notification_service.dart';
+import 'services/offline_queue.dart';
 import 'theme/app_theme.dart';
 
 // Import all pages directly from pages folder
@@ -35,6 +36,9 @@ Future<void> main() async {
 
   // Local notifications always; Firebase push only once google-services.json is configured.
   await NotificationService.instance.init();
+
+  // Anything a driver saved without signal (basement parking) is sent once the network is back.
+  OfflineQueue.instance.start();
 
   // Crash reporting (Firebase Crashlytics) - only when Firebase came up, and only collecting from
   // release builds so developers' debug crashes don't mix with real ones from the field.
