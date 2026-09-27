@@ -37,6 +37,10 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> {
     }
   }
 
+  // A position older than this is shown as "last known" (grey car, low-signal note) rather than
+  // hidden - underground car parks drop GPS, and a last-seen pin reassures more than nothing.
+  static const int _liveMaxAgeSeconds = 120;
+
   // Age is computed by the server, so a phone clock that's off doesn't skew it.
   String _freshnessLabel() {
     final age = data.driverLocationAgeSeconds;
@@ -63,9 +67,10 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> {
   @override
   Widget build(BuildContext context) {
     final hasPosition = data.driverLat != null && data.driverLng != null;
-    // Stale fixes (driver's phone lost signal) would show the car somewhere it no longer is.
-    final positionFresh = hasPosition && (data.driverLocationAgeSeconds == null || data.driverLocationAgeSeconds! <= 300);
+    final isLive = hasPosition && (data.driverLocationAgeSeconds == null || data.driverLocationAgeSeconds! <= _liveMaxAgeSeconds);
+    final positionFresh = hasPosition; // shown however old - labelled live / last known below
     if (!positionFresh) _mapReady = false; // the map (and its controller binding) is being dropped
+    final extendedMin = data.etaExtendedMinutes ?? 0;
 
     return Container(
       decoration: BoxDecoration(
@@ -77,6 +82,24 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (extendedMin > 0)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.amber.shade200),
+              ),
+              child: Text(
+                tr(context, 'Your driver added {n} min to the arrival time', {'n': extendedMin}) +
+                    (data.etaExtendedAgoMinutes == null
+                        ? ''
+                        : ' · ${data.etaExtendedAgoMinutes! < 1 ? tr(context, 'just now') : tr(context, '{n} min ago', {'n': data.etaExtendedAgoMinutes})}'),
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Colors.amber.shade900),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
             child: Row(
@@ -128,7 +151,7 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> {
                       point: ll.LatLng(data.driverLat!, data.driverLng!),
                       width: 44,
                       height: 44,
-                      child: const Icon(Icons.directions_car, color: Colors.indigo, size: 34),
+                      child: Icon(Icons.directions_car, color: isLive ? Colors.indigo : Colors.blueGrey, size: 34),
                     ),
                   ]),
                 ],
@@ -154,11 +177,21 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Row(
                 children: [
-                  Icon(Icons.circle, size: 8, color: Colors.green.shade600),
+                  Icon(Icons.circle, size: 8, color: isLive ? Colors.green.shade600 : Colors.amber.shade700),
                   const SizedBox(width: 6),
-                  Expanded(child: Text(tr(context, 'Live location'), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+                  Expanded(
+                      child: Text(tr(context, isLive ? 'Live location' : 'Last known position'),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
                   Text(_freshnessLabel(), style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                 ],
+              ),
+            ),
+          if (positionFresh && !isLive)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+              child: Text(
+                tr(context, 'Your driver may be in an underground car park or a low-signal area. The position updates as soon as their phone reconnects - your car is on its way.'),
+                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600, height: 1.35),
               ),
             ),
         ],

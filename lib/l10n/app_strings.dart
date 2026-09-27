@@ -184,6 +184,12 @@ const Map<String, String> _ar = {
   'Estimated arrival': 'الوصول المتوقع',
   "The live map appears as soon as your driver's location comes through.": 'ستظهر الخريطة المباشرة فور وصول موقع السائق.',
   'Live location': 'الموقع المباشر',
+  'Last known position': 'آخر موقع معروف',
+  'Your driver may be in an underground car park or a low-signal area. The position updates as soon as their phone reconnects - your car is on its way.':
+      'قد يكون السائق في موقف تحت الأرض أو في منطقة ضعيفة الإشارة. سيتحدّث الموقع فور عودة الاتصال - سيارتك في الطريق.',
+  'Your driver added {n} min to the arrival time': 'أضاف السائق {n} دقيقة إلى وقت الوصول',
+  'just now': 'الآن',
+  '{n} min ago': 'قبل {n} دقيقة',
 
   // History
   'No parking history yet': 'لا يوجد سجل صف بعد',

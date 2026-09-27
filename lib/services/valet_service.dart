@@ -67,6 +67,8 @@ class TicketStatusResponse {
   final int? etaMinutes;
   final String? etaSource; // GPS (live fix) or SCHEDULE (dispatch estimate / driver's extension)
   final int? etaExtendedCount;
+  final int? etaExtendedMinutes; // total minutes the driver added
+  final int? etaExtendedAgoMinutes; // since the last extension
   final bool checkInDue; // driver app should ask "still on the way?"
   final int? driverLocationAgeSeconds; // computed server-side, so no phone/server clock skew
   final String? vehicleModel;
@@ -113,6 +115,8 @@ class TicketStatusResponse {
     this.etaMinutes,
     this.etaSource,
     this.etaExtendedCount,
+    this.etaExtendedMinutes,
+    this.etaExtendedAgoMinutes,
     this.checkInDue = false,
     this.driverLocationAgeSeconds,
     this.vehicleModel,
@@ -161,6 +165,8 @@ class TicketStatusResponse {
       etaMinutes: json['etaMinutes'],
       etaSource: json['etaSource'],
       etaExtendedCount: json['etaExtendedCount'],
+      etaExtendedMinutes: (json['etaExtendedMinutes'] as num?)?.toInt(),
+      etaExtendedAgoMinutes: (json['etaExtendedAgoMinutes'] as num?)?.toInt(),
       checkInDue: json['checkInDue'] == true,
       driverLocationAgeSeconds: (json['driverLocationAgeSeconds'] as num?)?.toInt(),
       vehicleModel: json['vehicleModel'],
@@ -719,6 +725,8 @@ class ValetService {
       etaMinutes: json['etaMinutes'],
       etaSource: json['etaSource'],
       etaExtendedCount: json['etaExtendedCount'],
+      etaExtendedMinutes: (json['etaExtendedMinutes'] as num?)?.toInt(),
+      etaExtendedAgoMinutes: (json['etaExtendedAgoMinutes'] as num?)?.toInt(),
       checkInDue: json['checkInDue'] == true,
       driverLocationAgeSeconds: (json['driverLocationAgeSeconds'] as num?)?.toInt(),
       vehicleModel: json['vehicleModel'],
