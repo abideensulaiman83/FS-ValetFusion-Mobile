@@ -14,6 +14,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../components/condition_photos.dart';
 import '../components/guest_tracking_qr_sheet.dart';
 import '../components/layout/app_layout.dart';
 import '../components/live_tracking_card.dart';
@@ -528,6 +529,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     try {
       drivers = await _valetService.fetchAvailableDrivers();
+      selectedDriver = drivers.where((d) => d.suggested).firstOrNull;
     } catch (_) {
       // Non-fatal - just falls back to manual entry below.
     }
@@ -590,7 +592,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       isDense: true,
                     ),
                     items: drivers
-                        .map((d) => DropdownMenuItem(value: d, child: Text(d.name)))
+                        .map((d) => DropdownMenuItem(value: d, child: Text('${d.name}  (${d.loadLabel})')))
                         .toList(),
                     onChanged: (v) => setDialogState(() => selectedDriver = v),
                   ),
@@ -669,6 +671,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
+                if (data.parkingVehicleId != null) ConditionPhotosStrip(parkingVehicleId: data.parkingVehicleId!),
                 if (data.driverLat != null) ...[
                   const SizedBox(height: 14),
                   LiveTrackingCard(data: data),
@@ -729,6 +732,8 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 8),
                 Text('Ticket No: ${data.ticketNo}', style: TextStyle(color: Colors.grey.shade600)),
+                // Compare against how the car came in before handing it over.
+                if (data.parkingVehicleId != null) ConditionPhotosStrip(parkingVehicleId: data.parkingVehicleId!),
               ],
             ),
             actions: [

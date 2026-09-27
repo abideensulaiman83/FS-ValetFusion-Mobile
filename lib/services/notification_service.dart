@@ -64,7 +64,8 @@ class AppAlert {
   /// Types that should pop over whatever is showing (max-priority heads-up with sound, shown on
   /// the lock screen). Not a full-screen intent: Google Play restricts those to calling/alarm
   /// apps (Android 14+), so a store build must not rely on them.
-  bool get urgent => type == 'ETA_CHECK_IN' || type == 'DELIVERY_ASSIGNED' || type == 'ARRIVED';
+  bool get urgent =>
+      type == 'ETA_CHECK_IN' || type == 'DELIVERY_ASSIGNED' || type == 'ARRIVED' || type == 'DISPATCH_OVERDUE';
 }
 
 const String _channelId = 'valet_alerts';

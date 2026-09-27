@@ -4,6 +4,7 @@
 // against the same backend contract (backend/evaletFusion .../ParkingVehicleController.java).
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart' show MediaType;
 import 'authentication_service.dart';
 import 'secure_store.dart';
 
@@ -266,16 +267,25 @@ class DriverOption {
   final int id;
   final String name;
   final String? phone;
+  // Server orders drivers best-first and flags the top one (fewest cars in hand, longest idle).
+  final int activeDeliveries;
+  final bool suggested;
 
-  DriverOption({required this.id, required this.name, this.phone});
+  DriverOption({required this.id, required this.name, this.phone, this.activeDeliveries = 0, this.suggested = false});
 
   factory DriverOption.fromJson(Map<String, dynamic> json) {
     return DriverOption(
       id: json['id'],
       name: (json['name'] as String?)?.trim().isEmpty ?? true ? 'Driver #${json['id']}' : json['name'],
       phone: json['phone'],
+      activeDeliveries: (json['activeDeliveries'] as num?)?.toInt() ?? 0,
+      suggested: json['suggested'] == true,
     );
   }
+
+  String get loadLabel => suggested
+      ? 'Suggested · ${activeDeliveries == 0 ? 'free' : '$activeDeliveries in hand'}'
+      : (activeDeliveries == 0 ? 'free' : '$activeDeliveries in hand');
 }
 
 class DashboardDetails {
@@ -358,6 +368,21 @@ class ValetApiException implements Exception {
   String toString() => message;
 }
 
+class VehiclePhotoInfo {
+  final int id;
+  final String angle; // FRONT / BACK / LEFT / RIGHT / OTHER
+  final String takenAt;
+  final String url; // relative to apiBaseUrl
+  VehiclePhotoInfo({required this.id, required this.angle, required this.takenAt, required this.url});
+
+  factory VehiclePhotoInfo.fromJson(Map<String, dynamic> json) => VehiclePhotoInfo(
+        id: (json['id'] as num).toInt(),
+        angle: json['angle'] as String? ?? 'OTHER',
+        takenAt: json['takenAt'] as String? ?? '',
+        url: json['url'] as String,
+      );
+}
+
 class TrackingCompany {
   final String code;
   final String name;
@@ -368,7 +393,7 @@ class ValetService {
   static const String apiBaseUrl = AuthenticationService.apiBaseUrl;
   static const Duration timeout = Duration(seconds: 30);
 
-  /// The signed-in user's company code, for the guest tracking link (/track/<CODE>/<TICKET>).
+  /// The signed-in user's company code, for the guest tracking link (`/track/CODE/TICKET`).
   Future<TrackingCompany> fetchTrackingCompany() async {
     final headers = await _headers();
     final response = await http
@@ -393,6 +418,38 @@ class ValetService {
       if (token != null) 'Authorization': 'Bearer $token',
       if (companyCode != null && companyCode.isNotEmpty) 'X-Company-Code': companyCode,
     };
+  }
+
+  // ── Condition photos (taken at check-in, looked at again at handover) ──
+  Future<List<VehiclePhotoInfo>> fetchPhotos(int parkingVehicleId) async {
+    final headers = await _headers();
+    final response = await http
+        .get(Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/photos'), headers: headers)
+        .timeout(timeout);
+    if (response.statusCode != 200) throw ValetApiException(_errorMessage(response));
+    return (jsonDecode(response.body) as List).map((e) => VehiclePhotoInfo.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<VehiclePhotoInfo> uploadPhoto(int parkingVehicleId, String filePath, String angle) async {
+    final token = await SecureStore.token();
+    final request = http.MultipartRequest('POST', Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/photos'))
+      ..fields['angle'] = angle
+      ..files.add(await http.MultipartFile.fromPath('file', filePath, contentType: MediaType('image', 'jpeg')));
+    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    final streamed = await request.send().timeout(const Duration(seconds: 60));
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode != 200) throw ValetApiException(_errorMessage(response));
+    return VehiclePhotoInfo.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// Image bytes for a photo (the endpoint needs the auth header, so no plain Image.network).
+  Future<List<int>> fetchPhotoBytes(String url) async {
+    final token = await SecureStore.token();
+    final response = await http.get(Uri.parse('$apiBaseUrl$url'), headers: {
+      if (token != null) 'Authorization': 'Bearer $token',
+    }).timeout(timeout);
+    if (response.statusCode != 200) throw ValetApiException('Photo unavailable');
+    return response.bodyBytes;
   }
 
   String _errorMessage(http.Response response) {

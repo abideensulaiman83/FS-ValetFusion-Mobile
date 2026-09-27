@@ -13,6 +13,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../components/barcode_scanner_page.dart';
+import '../components/condition_photos.dart';
 import '../components/guest_tracking_qr_sheet.dart';
 import '../components/slot_picker.dart';
 import '../components/wash_requests_section.dart';
@@ -233,6 +234,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
   final _bayNoController = TextEditingController();
   final _keyHolderNoController = TextEditingController();
   final _slotPickerKey = GlobalKey<SlotPickerState>();
+  final _photosKey = GlobalKey<ConditionPhotosCardState>();
 
   bool _loading = false;
   TicketStatusResponse? _lastLookup;
@@ -379,8 +381,17 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
         _modelController.text.trim(),
         _plateNoController.text.trim(),
       ].where((s) => s.isNotEmpty).join(' · ');
+      // The plate-recognition photo doubles as the FRONT condition photo - no need to take it twice.
+      final platePhoto = _vehicleImage?.path;
       // Refresh the lookup so the flow drops into the "park it here" step below.
       await _lookup();
+      final receivedId = _lastLookup?.parkingVehicleId;
+      if (platePhoto != null && receivedId != null) {
+        ValetService()
+            .uploadPhoto(receivedId, platePhoto, 'FRONT')
+            .then((_) => _photosKey.currentState?.reload())
+            .catchError((_) => null);
+      }
       // The guest is still standing there - let them scan straight to this car's live status.
       if (mounted) await GuestTrackingQr.show(context, ticketNo: ticketNo, vehicleText: vehicleText);
     } catch (e) {
@@ -458,6 +469,10 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
           if (needsParkDetails) ...[
             const SizedBox(height: 16),
             _buildParkDetailsCard(data),
+            if (data.parkingVehicleId != null) ...[
+              const SizedBox(height: 16),
+              ConditionPhotosCard(key: _photosKey, parkingVehicleId: data.parkingVehicleId!),
+            ],
           ],
           if (alreadyParked) ...[
             const SizedBox(height: 16),
