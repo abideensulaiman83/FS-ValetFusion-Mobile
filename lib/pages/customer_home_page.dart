@@ -895,7 +895,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         ),
         if (data.status == 'ONTHEWAY') ...[
           const SizedBox(height: 14),
-          LiveTrackingCard(data: data),
+          LiveTrackingCard(data: data, onRefresh: _refreshStatus),
         ],
       ],
     );

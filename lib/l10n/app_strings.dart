@@ -184,6 +184,7 @@ const Map<String, String> _ar = {
   'Estimated arrival': 'الوصول المتوقع',
   "The live map appears as soon as your driver's location comes through.": 'ستظهر الخريطة المباشرة فور وصول موقع السائق.',
   'Live location': 'الموقع المباشر',
+  'LIVE': 'مباشر',
   'Last known position': 'آخر موقع معروف',
   'Updated {h} h {m} min ago': 'تم التحديث قبل {h} ساعة و{m} دقيقة',
   "This is taking longer than usual. If you're already at the lobby, please ask the valet desk for an update.":

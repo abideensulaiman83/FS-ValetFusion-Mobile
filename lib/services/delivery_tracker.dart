@@ -26,7 +26,8 @@ class DeliveryTracker with WidgetsBindingObserver {
   static final DeliveryTracker instance = DeliveryTracker._();
 
   static const Duration _pollEvery = Duration(seconds: 20);
-  static const Duration _uploadEvery = Duration(seconds: 15);
+  // Every 5 s while delivering - each fix is pushed straight to the guests watching live.
+  static const Duration _uploadEvery = Duration(seconds: 5);
 
   final ValetService _valetService = ValetService();
 
@@ -138,7 +139,7 @@ class DeliveryTracker with WidgetsBindingObserver {
           ? AppleSettings(
               accuracy: LocationAccuracy.high,
               activityType: ActivityType.automotiveNavigation,
-              distanceFilter: 10,
+              distanceFilter: 5,
               pauseLocationUpdatesAutomatically: false,
               allowBackgroundLocationUpdates: true,
               showBackgroundLocationIndicator: true,
@@ -146,7 +147,7 @@ class DeliveryTracker with WidgetsBindingObserver {
           : AndroidSettings(
               accuracy: LocationAccuracy.high,
               distanceFilter: 0,
-              intervalDuration: const Duration(seconds: 10),
+              intervalDuration: const Duration(seconds: 3),
               foregroundNotificationConfig: const ForegroundNotificationConfig(
                 notificationTitle: 'Delivering a car',
                 notificationText: 'Sharing your location with the guest until you hand the car over.',
