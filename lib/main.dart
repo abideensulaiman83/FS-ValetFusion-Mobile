@@ -16,6 +16,7 @@ import 'pages/admin_home_page.dart';
 import 'pages/privacy_policy_page.dart';
 import 'pages/splash_page.dart';
 import 'pages/customer_home_page.dart';
+import 'pages/supervisor_home_page.dart';
 import 'pages/parking_setup_page.dart';
 import 'services/notification_service.dart';
 import 'services/offline_queue.dart';
@@ -102,6 +103,7 @@ class MyApp extends StatelessWidget {
         '/driver/activity': (context) => const DriverActivityPage(),
         '/admin/home': (context) => const AdminHomePage(),
         '/customer/home': (context) => const CustomerHomePage(),
+        '/supervisor/home': (context) => const SupervisorHomePage(),
         '/security/parking': (context) => const ParkingSetupPage(isHome: true),
         '/privacy-policy': (context) => const PrivacyPolicyPage(),
 

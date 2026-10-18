@@ -1,4 +1,5 @@
 import 'delivery_tracker.dart';
+import 'supervisor_tracker.dart';
 import 'notification_service.dart';
 import 'dart:convert';
 import 'dart:developer' as developer;
@@ -584,6 +585,7 @@ class AuthenticationService {
   static String homeRouteFor(List<String> roles) {
     if (roles.contains('SUPER_ADMIN') || roles.contains('LOCATION_ADMIN')) return '/admin/home';
     if (roles.contains('CUSTOMER')) return '/customer/home';
+    if (roles.contains('SUPERVISOR')) return '/supervisor/home';
     const deskRoles = ['DRIVER', 'GATE_SCANNER', 'KEY_CONTROLLER', 'LOBBY', 'VALET_STAFF'];
     if (roles.contains('SECURITY') && !roles.any(deskRoles.contains)) return '/security/parking';
     if (roles.isNotEmpty) return '/dashboard';
@@ -593,6 +595,7 @@ class AuthenticationService {
   Future<void> logoutApi() async {
     // Stop delivery GPS/reminders and detach this phone from push before the token goes.
     await DeliveryTracker.instance.stop();
+    await SupervisorTracker.instance.stop();
     await NotificationService.instance.unregisterDevice();
     try {
       final token = await SecureStore.token();
@@ -647,6 +650,7 @@ class AuthenticationService {
     }
     // Server already dropped this phone's push token with the account.
     await DeliveryTracker.instance.stop();
+    await SupervisorTracker.instance.stop();
     await clearRememberedCredentials(customer: true);
     await clearStorage();
   }
