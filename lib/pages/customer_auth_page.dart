@@ -158,7 +158,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
               password: _passwordController.text,
             );
 
-      await _authService.saveLoginData(token: response.accessToken, user: response.user);
+      await _authService.saveLoginData(token: response.accessToken, user: response.user, refreshToken: response.refreshToken);
 
       if (!_isRegister) {
         if (_rememberMe) {

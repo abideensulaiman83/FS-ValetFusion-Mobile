@@ -634,12 +634,14 @@ class AuthenticationService {
 
         developer.log(' Logging out user...');
 
+        final refresh = await SecureStore.refreshToken();
         await http.post(
           url,
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
           },
+          body: jsonEncode({'refreshToken': refresh}),
         ).timeout(timeout);
 
         developer.log(' Logout API call successful');
@@ -758,12 +760,13 @@ class AuthenticationService {
     required String token,
     required UserDto user,
     LocationDto? location,
+    String? refreshToken,
   }) async {
     developer.log(' Saving login data to storage...');
 
     final prefs = await SharedPreferences.getInstance();
 
-    await SecureStore.setToken(token);
+    await SecureStore.setToken(token, refreshToken: refreshToken);
     developer.log('    Token saved');
 
     await prefs.setString(userKey, jsonEncode(user.toJson()));

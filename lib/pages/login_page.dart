@@ -202,6 +202,7 @@ class _LoginPageState extends State<LoginPage> {
         token: response.accessToken,
         user: response.user,
         location: userLocation,
+        refreshToken: response.refreshToken,
       );
 
       if (_keepLoggedIn) {
