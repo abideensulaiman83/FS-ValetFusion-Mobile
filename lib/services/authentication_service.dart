@@ -1,4 +1,5 @@
 import 'delivery_tracker.dart';
+import '../config/environment.dart';
 import 'supervisor_tracker.dart';
 import 'notification_service.dart';
 import 'dart:convert';
@@ -156,7 +157,8 @@ class LoginResponse {
 }
 
 class AuthenticationService {
-  static const String apiBaseUrl = 'https://valetfusion.focalsoft.ae/api';
+  // Production or staging host, decided at build time (lib/config/environment.dart).
+  static const String apiBaseUrl = Environment.apiBaseUrl;
 
   static const Duration timeout = Duration(seconds: 30);
 

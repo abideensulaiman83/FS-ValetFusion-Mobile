@@ -1,0 +1,3 @@
+// Production values (default). The staging flavour overrides these - see Environment-staging.xcconfig.
+VF_BUNDLE_ID = com.focalsoft.fsvalet.valetfusion
+VF_APP_NAME = Valet Fusion

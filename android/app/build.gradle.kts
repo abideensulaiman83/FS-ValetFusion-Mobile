@@ -66,6 +66,25 @@ android {
             signingConfig = if (hasUploadKey) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
     }
+
+    // Two flavours of the same app: "production" (Play Store id, talks to valetfusion.focalsoft.ae)
+    // and "staging" (own id so it installs next to production, own Firebase app, talks to
+    // stvf.focalsoft.ae). The Dart side reads VF_ENV (lib/config/environment.dart).
+    //   flutter build apk --flavor production --dart-define=VF_ENV=production
+    //   flutter build apk --flavor staging    --dart-define=VF_ENV=staging
+    flavorDimensions += "env"
+    productFlavors {
+        create("production") {
+            dimension = "env"
+            resValue("string", "app_name", "Valet Fusion")
+        }
+        create("staging") {
+            dimension = "env"
+            applicationIdSuffix = ".staging"
+            versionNameSuffix = "-staging"
+            resValue("string", "app_name", "Valet Fusion STG")
+        }
+    }
 }
 
 flutter {
@@ -79,8 +98,19 @@ dependencies {
 // Push notifications (FCM) switch on only once the Firebase project's google-services.json is
 // dropped into android/app/. Without it the app still builds and runs; FirebaseBootstrap just
 // skips push and the in-app/local reminders keep working.
-if (file("google-services.json").exists()) {
+// Each flavour needs the google-services.json of ITS OWN Firebase app:
+//   production -> android/app/google-services.json          (production project)
+//   staging    -> android/app/src/staging/google-services.json (staging project)
+// The plugins are applied only when the file for the flavour being built exists, so a staging
+// build without a staging Firebase project still compiles (push simply stays off).
+val requestedFlavor = gradle.startParameter.taskNames.joinToString(" ").let {
+    if (it.contains("Staging", ignoreCase = true)) "staging" else "production"
+}
+val googleServicesFile = if (requestedFlavor == "staging") file("src/staging/google-services.json") else file("google-services.json")
+if (googleServicesFile.exists()) {
     apply(plugin = "com.google.gms.google-services")
     // Crash reports from testers' / customers' phones (Firebase console > Crashlytics).
     apply(plugin = "com.google.firebase.crashlytics")
+} else {
+    logger.warn("Firebase: ${googleServicesFile.path} not found - building '$requestedFlavor' without push/crash reporting")
 }

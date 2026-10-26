@@ -1,0 +1,6 @@
+// Staging flavour: own bundle id (installs next to production, own Firebase iOS app) and name.
+// Used by the "Release-staging" / "Debug-staging" build configurations of the "staging" scheme
+// (see ios/README-flavors.md). Build with: flutter build ipa --flavor staging --dart-define=VF_ENV=staging
+#include "Generated.xcconfig"
+VF_BUNDLE_ID = com.focalsoft.fsvalet.valetfusion.staging
+VF_APP_NAME = Valet Fusion STG
