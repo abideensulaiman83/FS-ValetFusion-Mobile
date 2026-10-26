@@ -128,6 +128,9 @@ class LoginResponse {
   final String refreshToken;
   final String tokenType;
   final int expiresIn;
+  // true = credentials accepted but the user must set their own password first; accessToken is
+  // then a 10-minute token valid only for /auth/change-password (plan B1).
+  final bool passwordChangeRequired;
   final UserDto user;
   final List<LocationDto>? locations;
 
@@ -136,6 +139,7 @@ class LoginResponse {
     required this.refreshToken,
     required this.tokenType,
     required this.expiresIn,
+    this.passwordChangeRequired = false,
     required this.user,
     this.locations,
   });
@@ -146,6 +150,7 @@ class LoginResponse {
       refreshToken: json['refreshToken'] ?? '',
       tokenType: json['tokenType'] ?? 'Bearer',
       expiresIn: json['expiresIn'] ?? 0,
+      passwordChangeRequired: json['passwordChangeRequired'] == true,
       user: UserDto.fromJson(json['user'] ?? {}),
       locations: json['locations'] != null
           ? (json['locations'] as List)
@@ -327,8 +332,6 @@ class AuthenticationService {
         developer.log('   $key: $value');
       });
 
-      developer.log(' Body (raw):');
-      developer.log(response.body);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -438,6 +441,30 @@ class AuthenticationService {
     if (response.statusCode != 200) {
       throw Exception(_extractError(response));
     }
+  }
+
+  /// First-login password change (plan B1): [token] is the restricted token from a login that
+  /// returned passwordChangeRequired. Returns the full login response to continue with.
+  Future<LoginResponse> changePassword({
+    required String token,
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final url = Uri.parse('$apiBaseUrl/auth/change-password');
+    final response = await http
+        .post(
+          url,
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+          body: jsonEncode({'currentPassword': currentPassword, 'newPassword': newPassword}),
+        )
+        .timeout(timeout);
+    if (response.statusCode == 401) {
+      throw Exception('Your 10 minutes are up - sign in again to set your password.');
+    }
+    if (response.statusCode != 200) {
+      throw Exception(_extractError(response));
+    }
+    return LoginResponse.fromJson(jsonDecode(response.body));
   }
 
   String _extractError(http.Response response) {

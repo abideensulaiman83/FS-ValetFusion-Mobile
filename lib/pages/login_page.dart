@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'dart:developer' as developer;
 import '../services/authentication_service.dart';
 import 'forgot_password_page.dart';
+import 'change_password_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -153,11 +154,28 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
 
-      final response = await _authService.loginApi(
+      var response = await _authService.loginApi(
         username: _usernameController.text,
         password: _passwordController.text,
         locationCode: null,
       );
+
+      // Admin-set password: the user must choose their own before anything else (plan B1).
+      if (response.passwordChangeRequired) {
+        if (!mounted) return;
+        final completed = await Navigator.of(context).push<LoginResponse>(
+          MaterialPageRoute(
+            builder: (_) => ChangePasswordPage(
+              restrictedToken: response.accessToken,
+              temporaryPassword: _passwordController.text,
+            ),
+          ),
+        );
+        if (completed == null) return; // backed out - stay on the login screen
+        response = completed;
+        _passwordController.clear();
+        _keepLoggedIn = false; // the temporary password must not be remembered
+      }
 
 
       if (response.user.locationId == 0) {
