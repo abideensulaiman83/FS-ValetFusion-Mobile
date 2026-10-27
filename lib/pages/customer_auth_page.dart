@@ -9,6 +9,7 @@ import '../services/authentication_service.dart';
 import 'customer_home_page.dart';
 import 'forgot_password_page.dart';
 import '../l10n/app_strings.dart';
+import '../theme/app_theme.dart';
 
 class CustomerAuthPage extends StatefulWidget {
   const CustomerAuthPage({super.key});
@@ -133,7 +134,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: Colors.red.shade700,
+      backgroundColor: AppColors.danger,
     ));
   }
 
@@ -184,7 +185,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: AppColors.page,
       appBar: AppBar(
         title: Text(_isRegister ? tr(context, 'Guest Sign Up') : tr(context, 'Guest Sign In')),
         actions: const [LanguageToggle()],
@@ -195,7 +196,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
           child: Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.card,
               borderRadius: BorderRadius.circular(18),
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 6))],
             ),
@@ -204,7 +205,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.local_parking_rounded, size: 40, color: Colors.blue.shade600),
+                  Icon(Icons.local_parking_rounded, size: 40, color: AppColors.primary),
                   const SizedBox(height: 8),
                   Text(
                     _isRegister ? tr(context, 'Create your guest account') : tr(context, 'Welcome back'),
@@ -310,10 +311,10 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
     if (_companies.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: AppColors.warningSoft, borderRadius: BorderRadius.circular(8)),
         child: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 20),
+            Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 20),
             const SizedBox(width: 8),
             Expanded(child: Text(tr(context, 'Could not load properties.'), style: TextStyle(fontSize: 12))),
             TextButton(onPressed: _loadCompanies, child: Text(tr(context, 'Retry'))),

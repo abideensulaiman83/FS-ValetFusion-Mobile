@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import '../components/guest_tracking_qr_sheet.dart';
 import '../services/valet_service.dart';
+import '../theme/app_theme.dart';
 
 class ParkingOccupancyPage extends StatefulWidget {
   const ParkingOccupancyPage({super.key});
@@ -99,21 +100,21 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                               vertical: 14,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.indigo.shade50,
+                              color: AppColors.infoSoft,
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: Row(
                               children: [
                                 Icon(
                                   Icons.local_parking,
-                                  color: Colors.indigo.shade600,
+                                  color: AppColors.live,
                                 ),
                                 const SizedBox(width: 10),
                                 Text(
                                   '${_parked.length} received Â· ${_parked.where((p) => p.parkingLocation == null && (p.bayNo == null || p.bayNo!.isEmpty)).length} awaiting slot',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    color: Colors.indigo.shade800,
+                                    color: AppColors.live,
                                   ),
                                 ),
                               ],
@@ -135,7 +136,7 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                           ? Center(
                               child: Text(
                                 'No received vehicles found',
-                                style: TextStyle(color: Colors.grey.shade500),
+                                style: TextStyle(color: AppColors.textSecondary),
                               ),
                             )
                           : ListView.separated(
@@ -184,9 +185,9 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: AppColors.line),
         ),
         child: Row(
           children: [
@@ -195,14 +196,14 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
               height: 48,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: Colors.indigo.shade50,
+                color: AppColors.infoSoft,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 p.bayNo ?? '-',
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
-                  color: Colors.indigo.shade700,
+                  color: AppColors.live,
                   fontSize: 12,
                 ),
               ),
@@ -224,7 +225,7 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                       vehicle,
                       p.plateNo ?? '-',
                     ].where((s) => s.isNotEmpty).join(' · '),
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -233,8 +234,8 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: slot == null
-                          ? const Color(0xFF7C3AED)
-                          : const Color(0xFF64748B),
+                          ? AppColors.live
+                          : AppColors.textSecondary,
                     ),
                   ),
                 ],
@@ -252,11 +253,11 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                 ),
                 Text(
                   'ago',
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
                 ),
                 if (hasGuestTicket) ...[
                   const SizedBox(height: 4),
-                  Icon(Icons.qr_code_2, size: 18, color: Colors.grey.shade500),
+                  Icon(Icons.qr_code_2, size: 18, color: AppColors.textSecondary),
                 ],
               ],
             ),

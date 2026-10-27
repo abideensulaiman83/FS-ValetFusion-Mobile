@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/authentication_service.dart';
 import '../services/valet_service.dart';
+import '../theme/app_theme.dart';
 
 class GuestTrackingQr {
   /// Public tracking link for one ticket, e.g. https://valetfusion.focalsoft.ae/track/TYU/0028.
@@ -58,22 +59,22 @@ class GuestTrackingQr {
                 const SizedBox(height: 2),
                 Text(
                   vehicleText,
-                  style: TextStyle(color: Colors.grey.shade600),
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
               ],
               const SizedBox(height: 6),
               Text(
                 'Ask the guest to scan this to follow their car',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade700),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.card,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(color: AppColors.line),
                 ),
                 child: QrImageView(
                   data: url,
@@ -85,7 +86,7 @@ class GuestTrackingQr {
               SelectableText(
                 url,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               Row(

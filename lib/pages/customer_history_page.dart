@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import '../services/valet_service.dart';
 import '../l10n/app_strings.dart';
+import '../theme/app_theme.dart';
 
 class CustomerHistoryPage extends StatefulWidget {
   const CustomerHistoryPage({super.key});
@@ -65,7 +66,7 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: AppColors.page,
       appBar: AppBar(title: Text(tr(context, 'My Parking History'))),
       body: SafeArea(
         child: _loading
@@ -81,7 +82,7 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
                               SizedBox(
                                 height: 400,
                                 child: Center(
-                                  child: Text(tr(context, 'No parking history yet'), style: TextStyle(color: Colors.grey.shade500)),
+                                  child: Text(tr(context, 'No parking history yet'), style: TextStyle(color: AppColors.textSecondary)),
                                 ),
                               ),
                             ],
@@ -108,15 +109,15 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
   Widget _buildStatsGrid() {
     final rating = _averageRating;
     final stats = <_StatTile>[
-      _StatTile(label: tr(context, 'Total Visits'), value: '$_totalVisits', icon: Icons.directions_car_filled, color: Colors.blue),
-      _StatTile(label: tr(context, 'This Month'), value: '$_visitsThisMonth', icon: Icons.calendar_month, color: Colors.indigo),
+      _StatTile(label: tr(context, 'Total Visits'), value: '$_totalVisits', icon: Icons.directions_car_filled, color: AppColors.primary),
+      _StatTile(label: tr(context, 'This Month'), value: '$_visitsThisMonth', icon: Icons.calendar_month, color: AppColors.live),
       _StatTile(
         label: tr(context, 'Avg Rating'),
         value: rating != null ? rating.toStringAsFixed(1) : '-',
         icon: Icons.star_rounded,
-        color: Colors.amber,
+        color: AppColors.warning,
       ),
-      _StatTile(label: tr(context, 'Total Spent'), value: tr(context, 'AED {amount}', {'amount': _totalSpent.toStringAsFixed(0)}), icon: Icons.payments_outlined, color: Colors.green),
+      _StatTile(label: tr(context, 'Total Spent'), value: tr(context, 'AED {amount}', {'amount': _totalSpent.toStringAsFixed(0)}), icon: Icons.payments_outlined, color: AppColors.success),
     ];
     return GridView.count(
       crossAxisCount: 2,
@@ -133,9 +134,9 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColors.line),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 3))],
       ),
       child: Row(
@@ -144,7 +145,7 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(color: stat.color.withValues(alpha: 0.12), shape: BoxShape.circle),
-            child: Icon(stat.icon, color: stat.color.shade700, size: 19),
+            child: Icon(stat.icon, color: stat.color, size: 19),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -153,7 +154,7 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(stat.value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
-                Text(stat.label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                Text(stat.label, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -165,14 +166,14 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
   Widget _buildRow(CustomerHistoryEntry entry) {
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.line)),
       child: Row(
         children: [
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
-            child: Icon(Icons.directions_car, color: Colors.blue.shade400, size: 22),
+            decoration: BoxDecoration(color: AppColors.accentSoft, shape: BoxShape.circle),
+            child: Icon(Icons.directions_car, color: AppColors.primary, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -182,10 +183,10 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
                 Text(tr(context, 'Ticket {no}', {'no': entry.ticketNo}), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                 Text(
                   '${entry.vehicleColor ?? ''} ${entry.vehicleMake ?? ''} · ${entry.plateNo ?? '-'}'.trim(),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
                 if (entry.deliveredTime != null)
-                  Text(entry.deliveredTime!.split('T').first, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                  Text(entry.deliveredTime!.split('T').first, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -194,7 +195,7 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
               children: List.generate(5, (i) => Icon(
                     i < entry.rating! ? Icons.star : Icons.star_border,
                     size: 13,
-                    color: Colors.amber.shade600,
+                    color: AppColors.warning,
                   )),
             )
           else
@@ -213,6 +214,6 @@ class _StatTile {
   final String label;
   final String value;
   final IconData icon;
-  final MaterialColor color;
+  final Color color;
   const _StatTile({required this.label, required this.value, required this.icon, required this.color});
 }

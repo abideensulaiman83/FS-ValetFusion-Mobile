@@ -5,6 +5,7 @@
 // number they used, matching how the complaint itself was filed anonymously.
 import 'package:flutter/material.dart';
 import '../services/complaint_service.dart';
+import '../theme/app_theme.dart';
 
 class ComplaintStatusPage extends StatefulWidget {
   final String? initialCompanyCode;
@@ -66,13 +67,13 @@ class _ComplaintStatusPageState extends State<ComplaintStatusPage> {
   Color _statusColor(String status) {
     switch (status) {
       case 'OPEN':
-        return Colors.red;
+        return AppColors.danger;
       case 'ACKNOWLEDGED':
-        return Colors.orange;
+        return AppColors.warning;
       case 'CLOSED':
-        return Colors.green;
+        return AppColors.success;
       default:
-        return Colors.grey;
+        return AppColors.textSecondary;
     }
   }
 
@@ -103,7 +104,7 @@ class _ComplaintStatusPageState extends State<ComplaintStatusPage> {
               children: [
                 Text(
                   'Enter your reference number and the mobile number you reported with.',
-                  style: TextStyle(color: Colors.grey.shade600),
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -142,8 +143,8 @@ class _ComplaintStatusPageState extends State<ComplaintStatusPage> {
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(10)),
-                    child: Text(_error!, style: TextStyle(color: Colors.red.shade800)),
+                    decoration: BoxDecoration(color: AppColors.dangerSoft, borderRadius: BorderRadius.circular(10)),
+                    child: Text(_error!, style: TextStyle(color: AppColors.danger)),
                   ),
                 ],
                 if (_result != null) ...[
@@ -151,7 +152,7 @@ class _ComplaintStatusPageState extends State<ComplaintStatusPage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.card,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: _statusColor(_result!.status).withValues(alpha: 0.4)),
                     ),
@@ -165,19 +166,19 @@ class _ComplaintStatusPageState extends State<ComplaintStatusPage> {
                               backgroundColor: _statusColor(_result!.status),
                             ),
                             const Spacer(),
-                            Text('#${_result!.id}', style: TextStyle(color: Colors.grey.shade500)),
+                            Text('#${_result!.id}', style: TextStyle(color: AppColors.textSecondary)),
                           ],
                         ),
                         const SizedBox(height: 12),
                         Text(_statusMessage(_result!.status), style: const TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 10),
-                        Text('Your report: "${_result!.message}"', style: TextStyle(color: Colors.grey.shade700)),
+                        Text('Your report: "${_result!.message}"', style: TextStyle(color: AppColors.textSecondary)),
                         if (_result!.resolutionNotes != null && _result!.resolutionNotes!.isNotEmpty) ...[
                           const SizedBox(height: 10),
                           Container(
                             padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)),
-                            child: Text('Resolution: ${_result!.resolutionNotes}', style: TextStyle(color: Colors.green.shade800)),
+                            decoration: BoxDecoration(color: AppColors.successSoft, borderRadius: BorderRadius.circular(8)),
+                            child: Text('Resolution: ${_result!.resolutionNotes}', style: TextStyle(color: AppColors.success)),
                           ),
                         ],
                       ],

@@ -24,6 +24,7 @@ import '../services/authentication_service.dart';
 import '../services/valet_service.dart';
 import 'driver_receive_page.dart';
 import 'parking_occupancy_page.dart';
+import '../theme/app_theme.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -133,7 +134,7 @@ class _DashboardPageState extends State<DashboardPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700,
+      backgroundColor: error ? AppColors.danger : AppColors.success,
     ));
   }
 
@@ -322,7 +323,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 const Text('Where is this car parked?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text('Ticket ${data.ticketNo} · ${data.plateNo ?? '-'}${car.isEmpty ? '' : ' · $car'}',
-                    style: TextStyle(color: Colors.grey.shade600)),
+                    style: TextStyle(color: AppColors.textSecondary)),
                 const SizedBox(height: 16),
                 SlotPicker(key: pickerKey, bayController: bayController, onChanged: (s) => slot = s),
                 const SizedBox(height: 10),
@@ -438,13 +439,13 @@ class _DashboardPageState extends State<DashboardPage> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
+                        color: AppColors.successSoft,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green.shade200),
+                        border: Border.all(color: AppColors.successSoft),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.check_circle, color: Colors.green.shade700, size: 18),
+                          Icon(Icons.check_circle, color: AppColors.success, size: 18),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -483,7 +484,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     TextSpan(
                       children: [
                         const TextSpan(text: 'Payment Method  ', style: TextStyle(fontWeight: FontWeight.w600)),
-                        if (parkingCharge > 0) const TextSpan(text: '*', style: TextStyle(color: Colors.red)),
+                        if (parkingCharge > 0) const TextSpan(text: '*', style: TextStyle(color: AppColors.danger)),
                       ],
                     ),
                   ),
@@ -657,7 +658,7 @@ class _DashboardPageState extends State<DashboardPage> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.local_shipping, color: Colors.indigo.shade400, size: 40),
+                Icon(Icons.local_shipping, color: AppColors.live, size: 40),
                 const SizedBox(height: 12),
                 const Text(
                   'Has this vehicle physically arrived at the lobby?',
@@ -669,7 +670,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   'Ticket No: ${data.ticketNo} - confirming here just marks it as waiting for '
                   'the guest; you\'ll still confirm the actual handover next.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
                 if (data.parkingVehicleId != null) ConditionPhotosStrip(parkingVehicleId: data.parkingVehicleId!),
                 if (data.driverLat != null) ...[
@@ -723,7 +724,7 @@ class _DashboardPageState extends State<DashboardPage> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.directions_car, color: Colors.green.shade600, size: 40),
+                Icon(Icons.directions_car, color: AppColors.success, size: 40),
                 const SizedBox(height: 12),
                 const Text(
                   'Are you sure you want to mark this vehicle as delivered?',
@@ -731,7 +732,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
-                Text('Ticket No: ${data.ticketNo}', style: TextStyle(color: Colors.grey.shade600)),
+                Text('Ticket No: ${data.ticketNo}', style: TextStyle(color: AppColors.textSecondary)),
                 // Compare against how the car came in before handing it over.
                 if (data.parkingVehicleId != null) ConditionPhotosStrip(parkingVehicleId: data.parkingVehicleId!),
               ],
@@ -757,7 +758,7 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+          Text(label, style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
         ],
       ),
@@ -815,14 +816,14 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildStatStrip() {
     final d = _dashboard;
     final chips = <Widget>[
-      _statChip('Received', d?.receivedCount.toString() ?? '-', Colors.cyan),
-      _statChip('Delivered', d?.deliveredCount.toString() ?? '-', Colors.indigo),
-      _statChip('In Inventory', d?.currentInventory.toString() ?? '-', Colors.blue),
-      _statChip('Complimentary', d?.complimentaryCount.toString() ?? '-', Colors.green),
-      _statChip('Paid', d?.paidCount.toString() ?? '-', Colors.amber),
+      _statChip('Received', d?.receivedCount.toString() ?? '-', AppColors.live),
+      _statChip('Delivered', d?.deliveredCount.toString() ?? '-', AppColors.live),
+      _statChip('In Inventory', d?.currentInventory.toString() ?? '-', AppColors.primary),
+      _statChip('Complimentary', d?.complimentaryCount.toString() ?? '-', AppColors.success),
+      _statChip('Paid', d?.paidCount.toString() ?? '-', AppColors.warning),
       if (d != null && d.ticketsTotal > 0)
         _statChip('Tickets Free', '${d.ticketsRemaining}/${d.ticketsTotal}',
-            d.ticketsRemaining / d.ticketsTotal <= 0.15 ? Colors.red : Colors.grey),
+            d.ticketsRemaining / d.ticketsTotal <= 0.15 ? AppColors.danger : AppColors.textSecondary),
     ];
 
     return SizedBox(
@@ -836,21 +837,21 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _statChip(String label, String value, MaterialColor color) {
+  Widget _statChip(String label, String value, Color color) {
     return Container(
       width: 108,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.shade50,
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.shade100),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color.shade700)),
-          Text(label, style: TextStyle(fontSize: 11, color: color.shade700), overflow: TextOverflow.ellipsis),
+          Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color)),
+          Text(label, style: TextStyle(fontSize: 11, color: color), overflow: TextOverflow.ellipsis),
         ],
       ),
     );
@@ -860,9 +861,9 @@ class _DashboardPageState extends State<DashboardPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -907,9 +908,9 @@ class _DashboardPageState extends State<DashboardPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: AppColors.accentSoft,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade100),
+        border: Border.all(color: AppColors.accentSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1010,9 +1011,9 @@ class _DashboardPageState extends State<DashboardPage> {
         child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w700)),
       );
 
-  static const Color _requestedColor = Color(0xFF2563EB);
-  static const Color _awaitingSlotColor = Color(0xFF7C3AED);
-  static const Color _parkedColor = Color(0xFF64748B);
+  static const Color _requestedColor = AppColors.primary;
+  static const Color _awaitingSlotColor = AppColors.live;
+  static const Color _parkedColor = AppColors.textSecondary;
 
   List<Widget> _receivedTiles() {
     String? slotOf(TicketStatusResponse p) =>
@@ -1045,9 +1046,9 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildVehicleList(String title, List<Map<String, dynamic>> items, {required bool isOnTheWay}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1077,7 +1078,7 @@ class _DashboardPageState extends State<DashboardPage> {
             Padding(
               padding: const EdgeInsets.only(bottom: 16, left: 14),
               child: Text(isOnTheWay ? 'No ${title.toLowerCase()} vehicles' : 'No requested or received vehicles',
-                  style: TextStyle(color: Colors.grey.shade500)),
+                  style: TextStyle(color: AppColors.textSecondary)),
             )
           else ...[
             ...items.map((v) {
@@ -1093,7 +1094,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 trailing: isOnTheWay && status == 'ARRIVED'
                     ? Chip(
                         label: const Text('Arrived', style: TextStyle(fontSize: 11)),
-                        backgroundColor: Colors.green.shade50,
+                        backgroundColor: AppColors.successSoft,
                         padding: EdgeInsets.zero,
                         visualDensity: VisualDensity.compact,
                       )

@@ -6,6 +6,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/valet_service.dart';
+import '../theme/app_theme.dart';
 
 class WashRequestsSection extends StatefulWidget {
   const WashRequestsSection({super.key});
@@ -56,7 +57,7 @@ class _WashRequestsSectionState extends State<WashRequestsSection> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: AppColors.danger,
         ));
       }
     } finally {
@@ -76,9 +77,9 @@ class _WashRequestsSectionState extends State<WashRequestsSection> {
       children: [
         Row(
           children: [
-            Icon(Icons.local_car_wash, color: Colors.teal.shade600, size: 18),
+            Icon(Icons.local_car_wash, color: AppColors.success, size: 18),
             const SizedBox(width: 6),
-            Text('Wash Requests (${_requests.length})', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.grey.shade800)),
+            Text('Wash Requests (${_requests.length})', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
           ],
         ),
         const SizedBox(height: 10),
@@ -97,9 +98,9 @@ class _WashRequestsSectionState extends State<WashRequestsSection> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.teal.shade50,
+        color: AppColors.successSoft,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.teal.shade100),
+        border: Border.all(color: AppColors.successSoft),
       ),
       child: Row(
         children: [
@@ -109,7 +110,7 @@ class _WashRequestsSectionState extends State<WashRequestsSection> {
               children: [
                 Text('Ticket ${r.ticketNo} · Bay ${r.bayNo ?? '-'}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                 Text('${r.vehicleColor ?? ''} ${r.vehicleMake ?? ''} · ${r.plateNo ?? ''}'.trim(),
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -123,7 +124,7 @@ class _WashRequestsSectionState extends State<WashRequestsSection> {
           else
             ElevatedButton(
               onPressed: () => _updateStatus(r, 'DONE'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade600),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
               child: const Text('Done'),
             ),
         ],

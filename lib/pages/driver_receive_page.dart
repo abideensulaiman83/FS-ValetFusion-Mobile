@@ -22,6 +22,7 @@ import '../components/wash_requests_section.dart';
 import '../services/delivery_tracker.dart';
 import '../services/ocr_service.dart';
 import '../services/valet_service.dart';
+import '../theme/app_theme.dart';
 
 class DriverReceiveFlow extends StatefulWidget {
   const DriverReceiveFlow({super.key});
@@ -69,7 +70,7 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700,
+      backgroundColor: error ? AppColors.danger : AppColors.success,
     ));
   }
 
@@ -92,7 +93,7 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text('My Deliveries',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.grey.shade800)),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                 const SizedBox(height: 10),
                 for (final d in deliveries) ...[
                   _buildDeliveryCard(d),
@@ -115,19 +116,19 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.indigo.shade50, Colors.white],
+          colors: [AppColors.infoSoft, Colors.white],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: d.checkInDue ? Colors.orange.shade400 : Colors.indigo.shade100),
+        border: Border.all(color: d.checkInDue ? AppColors.warning : AppColors.infoSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.directions_car_filled, color: Colors.indigo.shade400),
+              Icon(Icons.directions_car_filled, color: AppColors.live),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(car.isEmpty ? 'Vehicle' : car,
@@ -136,7 +137,7 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
               Chip(
                 label: Text(isArrived ? 'Arrived' : 'On the way',
                     style: const TextStyle(color: Colors.white, fontSize: 11)),
-                backgroundColor: isArrived ? Colors.green.shade600 : Colors.orange.shade700,
+                backgroundColor: isArrived ? AppColors.success : AppColors.warning,
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
               ),
@@ -155,11 +156,11 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.local_parking, size: 16, color: Colors.grey.shade600),
+              Icon(Icons.local_parking, size: 16, color: AppColors.textSecondary),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(d.parkingLocation ?? (d.bayNo != null ? 'Bay ${d.bayNo}' : 'Parking spot not recorded'),
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade800, fontWeight: FontWeight.w600)),
+                    style: TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
               ),
             ],
           ),
@@ -167,11 +168,11 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
             const SizedBox(height: 6),
             Row(
               children: [
-                Icon(Icons.schedule, size: 16, color: Colors.orange.shade700),
+                Icon(Icons.schedule, size: 16, color: AppColors.warning),
                 const SizedBox(width: 4),
                 Text(
                   d.etaMinutes! <= 0 ? 'Guest expects the car now' : 'Guest expects the car in ${d.etaMinutes} min',
-                  style: TextStyle(fontSize: 13, color: Colors.orange.shade800, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 13, color: AppColors.warning, fontWeight: FontWeight.w600),
                 ),
                 const Spacer(),
                 TextButton(
@@ -202,7 +203,7 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
                           width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.check_circle_outline, size: 18),
                   label: Text(isActing ? 'Saving...' : 'Hand Over'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo.shade600),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.live),
                 ),
               ),
             ],
@@ -216,7 +217,7 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+        Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
         Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
       ],
     );
@@ -264,7 +265,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700,
+      backgroundColor: error ? AppColors.danger : AppColors.success,
     ));
   }
 
@@ -494,7 +495,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             const SizedBox(height: 16),
             _infoCard(
               icon: Icons.check_circle,
-              color: Colors.green,
+              color: AppColors.success,
               title: 'Already parked',
               message: 'Ticket ${data.ticketNo} is parked at ${data.parkingLocation ?? 'bay ${data.bayNo}'}'
                   '${data.keyHolderNo != null && data.keyHolderNo!.isNotEmpty ? ' (key: ${data.keyHolderNo})' : ''}.',
@@ -504,7 +505,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             const SizedBox(height: 16),
             _infoCard(
               icon: Icons.info_outline,
-              color: Colors.grey,
+              color: AppColors.textSecondary,
               title: 'Ticket status: ${data.status ?? data.ticketStatus}',
               message: 'This ticket has already moved past the parking step.',
             ),
@@ -518,9 +519,9 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -529,7 +530,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
           const SizedBox(height: 4),
           Text(
             'Scan when taking the car from the guest - you will then be shown where to park it.',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -573,9 +574,9 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -584,7 +585,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
           const SizedBox(height: 4),
           Text(
             'Plate, color, brand and model are filled in from the photo.',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
           if (_vehicleImage != null)
@@ -596,9 +597,9 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             const SizedBox(height: 10),
             Row(
               children: [
-                Icon(Icons.error_outline, size: 18, color: Colors.orange.shade800),
+                Icon(Icons.error_outline, size: 18, color: AppColors.warning),
                 const SizedBox(width: 6),
-                Expanded(child: Text(_ocrProblem!, style: TextStyle(fontSize: 13, color: Colors.orange.shade900))),
+                Expanded(child: Text(_ocrProblem!, style: TextStyle(fontSize: 13, color: AppColors.warning))),
               ],
             ),
           ],
@@ -627,9 +628,9 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -639,7 +640,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
               const Text('Vehicle Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               const Spacer(),
               if (_ocrFilled)
-                Text('From photo - check', style: TextStyle(fontSize: 12, color: Colors.green.shade700)),
+                Text('From photo - check', style: TextStyle(fontSize: 12, color: AppColors.success)),
             ],
           ),
           const SizedBox(height: 12),
@@ -695,9 +696,9 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -705,7 +706,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
           const Text('Park the Car', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
           Text('Ticket ${data.ticketNo} · ${data.plateNo ?? 'plate unknown'}${car.isEmpty ? '' : ' · $car'}',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
           const SizedBox(height: 14),
           SlotPicker(
             key: _slotPickerKey,
@@ -737,26 +738,26 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     );
   }
 
-  Widget _infoCard({required IconData icon, required MaterialColor color, required String title, required String message}) {
+  Widget _infoCard({required IconData icon, required Color color, required String title, required String message}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.shade50,
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.shade200),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color.shade700),
+          Icon(icon, color: color),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color.shade800)),
+                Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
                 const SizedBox(height: 4),
-                Text(message, style: TextStyle(fontSize: 13, color: color.shade700)),
+                Text(message, style: TextStyle(fontSize: 13, color: color)),
               ],
             ),
           ),

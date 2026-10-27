@@ -4,6 +4,7 @@
 // immediate, hard-to-undo action (logging out and losing the current screen's state, deleting
 // something, etc.) without the user meaning to.
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 Future<bool> showConfirmDialog(
   BuildContext context, {
@@ -25,7 +26,7 @@ Future<bool> showConfirmDialog(
         ),
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          style: destructive ? TextButton.styleFrom(foregroundColor: Colors.red.shade700) : null,
+          style: destructive ? TextButton.styleFrom(foregroundColor: AppColors.danger) : null,
           child: Text(confirmLabel),
         ),
       ],

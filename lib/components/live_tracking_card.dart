@@ -13,6 +13,7 @@ import 'package:latlong2/latlong.dart' as ll;
 import '../services/live_track_stream.dart';
 import '../services/valet_service.dart';
 import '../l10n/app_strings.dart';
+import '../theme/app_theme.dart';
 
 class LiveTrackingCard extends StatefulWidget {
   final TicketStatusResponse data;
@@ -201,9 +202,9 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> with SingleTickerPr
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.indigo.shade100),
+        border: Border.all(color: AppColors.infoSoft),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -215,16 +216,16 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> with SingleTickerPr
               margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.amber.shade50,
+                color: AppColors.warningSoft,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.amber.shade200),
+                border: Border.all(color: AppColors.warningSoft),
               ),
               child: Text(
                 tr(context, 'Your driver added {n} min to the arrival time', {'n': extendedMin}) +
                     (data.etaExtendedAgoMinutes == null
                         ? ''
                         : ' · ${data.etaExtendedAgoMinutes! < 1 ? tr(context, 'just now') : tr(context, '{n} min ago', {'n': data.etaExtendedAgoMinutes})}'),
-                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Colors.amber.shade900),
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.warning),
               ),
             ),
           Padding(
@@ -233,25 +234,25 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> with SingleTickerPr
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: Colors.indigo.shade50, shape: BoxShape.circle),
-                  child: Icon(Icons.timer_outlined, color: Colors.indigo.shade600),
+                  decoration: BoxDecoration(color: AppColors.infoSoft, shape: BoxShape.circle),
+                  child: Icon(Icons.timer_outlined, color: AppColors.live),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(tr(context, 'Estimated arrival'), style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      Text(tr(context, 'Estimated arrival'), style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                       Text(
                         _etaHeadline(),
                         style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w800,
-                          color: Colors.indigo.shade800,
+                          color: AppColors.live,
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
-                      Text(_etaSubline(), style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      Text(_etaSubline(), style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
@@ -275,14 +276,14 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> with SingleTickerPr
                   ),
                   if (_trail.length > 1)
                     PolylineLayer(polylines: [
-                      Polyline(points: List.of(_trail), strokeWidth: 4, color: Colors.indigo.withValues(alpha: 0.55)),
+                      Polyline(points: List.of(_trail), strokeWidth: 4, color: AppColors.live.withValues(alpha: 0.55)),
                     ]),
                   MarkerLayer(markers: [
                     Marker(
                       point: point,
                       width: 44,
                       height: 44,
-                      child: Icon(Icons.directions_car, color: isLive ? Colors.indigo : Colors.blueGrey, size: 34),
+                      child: Icon(Icons.directions_car, color: isLive ? AppColors.live : AppColors.textSecondary, size: 34),
                     ),
                   ]),
                 ],
@@ -291,10 +292,10 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> with SingleTickerPr
           else
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              color: Colors.blue.shade50,
+              color: AppColors.accentSoft,
               child: Row(
                 children: [
-                  Icon(Icons.location_searching, size: 18, color: Colors.blue.shade400),
+                  Icon(Icons.location_searching, size: 18, color: AppColors.primary),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(tr(context, 'The live map appears as soon as your driver\'s location comes through.'),
@@ -308,7 +309,7 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> with SingleTickerPr
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Row(
                 children: [
-                  Icon(Icons.circle, size: 8, color: isLive ? Colors.green.shade600 : Colors.amber.shade700),
+                  Icon(Icons.circle, size: 8, color: isLive ? AppColors.success : AppColors.warning),
                   const SizedBox(width: 6),
                   Text(tr(context, isLive ? 'Live location' : 'Last known position'),
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
@@ -316,14 +317,14 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> with SingleTickerPr
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(4)),
+                      decoration: BoxDecoration(color: AppColors.successSoft, borderRadius: BorderRadius.circular(4)),
                       child: Text(tr(context, 'LIVE'),
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.green.shade700, letterSpacing: 0.6)),
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.success, letterSpacing: 0.6)),
                     ),
                   ],
                   const Spacer(),
                   Text(_freshnessLabel(age),
-                      style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontFeatures: const [FontFeature.tabularFigures()])),
+                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary, fontFeatures: const [FontFeature.tabularFigures()])),
                 ],
               ),
             ),
@@ -334,7 +335,7 @@ class _LiveTrackingCardState extends State<LiveTrackingCard> with SingleTickerPr
                 (age ?? 0) > _overdueAgeSeconds
                     ? tr(context, "This is taking longer than usual. If you're already at the lobby, please ask the valet desk for an update.")
                     : tr(context, 'Your driver may be in an underground car park or a low-signal area. The position updates as soon as their phone reconnects - your car is on its way.'),
-                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600, height: 1.35),
+                style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary, height: 1.35),
               ),
             ),
         ],

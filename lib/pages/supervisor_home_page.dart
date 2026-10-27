@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../services/authentication_service.dart';
 import '../services/supervisor_service.dart';
 import '../services/supervisor_tracker.dart';
+import '../theme/app_theme.dart';
 
 const List<String> kSupervisorChecklist = [
   'Valet team present and in uniform',
@@ -57,7 +58,7 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> {
   void _snack(String msg, {bool error = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700,
+      backgroundColor: error ? AppColors.danger : AppColors.success,
     ));
   }
 
@@ -160,7 +161,7 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> {
 
   Widget _dutyCard(SupervisorVisit v) {
     final away = v.lastOnSite == false;
-    final color = away ? Colors.orange : Colors.green;
+    final color = away ? AppColors.warning : AppColors.success;
     return Card(
       color: color.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: color)),
@@ -181,7 +182,7 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> {
                   style: TextStyle(color: color, fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
             const Text('Your location is shared with head office until you check out. Keep the app running.',
-                style: TextStyle(fontSize: 12, color: Colors.grey)),
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,

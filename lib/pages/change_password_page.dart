@@ -3,6 +3,7 @@
 // and hands the full login response back to the caller, which finishes the sign-in as usual.
 import 'package:flutter/material.dart';
 import '../services/authentication_service.dart';
+import '../theme/app_theme.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   final String restrictedToken;
@@ -103,9 +104,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(children: [
-                    Icon(Icons.check, size: 18, color: ok ? Colors.green : theme.disabledColor),
+                    Icon(Icons.check, size: 18, color: ok ? AppColors.success : theme.disabledColor),
                     const SizedBox(width: 8),
-                    Text(r.key, style: TextStyle(color: ok ? Colors.green.shade800 : theme.textTheme.bodySmall?.color)),
+                    Text(r.key, style: TextStyle(color: ok ? AppColors.success : theme.textTheme.bodySmall?.color)),
                   ]),
                 );
               }),

@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/offline_queue.dart';
 import '../services/valet_service.dart';
+import '../theme/app_theme.dart';
 
 const List<String> _angles = ['FRONT', 'BACK', 'LEFT', 'RIGHT'];
 String _angleLabel(String a) => a[0] + a.substring(1).toLowerCase();
@@ -34,10 +35,10 @@ class _PhotoThumb extends StatelessWidget {
         return Container(
           width: size,
           height: size,
-          color: Colors.grey.shade200,
+          color: AppColors.line,
           alignment: Alignment.center,
           child: snap.hasError
-              ? Icon(Icons.broken_image_outlined, color: Colors.grey.shade500)
+              ? Icon(Icons.broken_image_outlined, color: AppColors.textSecondary)
               : const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
         );
       },
@@ -144,9 +145,9 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,12 +155,12 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
           Row(
             children: [
               const Expanded(child: Text('Condition photos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
-              Text('$done of 4', style: TextStyle(fontSize: 12, color: done == 4 ? Colors.green.shade700 : Colors.grey.shade600)),
+              Text('$done of 4', style: TextStyle(fontSize: 12, color: done == 4 ? AppColors.success : AppColors.textSecondary)),
             ],
           ),
           const SizedBox(height: 4),
           Text('Photograph each side now - shown again at handover if the guest asks about damage.',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
           const SizedBox(height: 12),
           Row(
             children: _angles.map((angle) {
@@ -183,7 +184,7 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
                           child: AspectRatio(
                             aspectRatio: 1,
                             child: busy
-                                ? Container(color: Colors.grey.shade100, alignment: Alignment.center,
+                                ? Container(color: AppColors.card2, alignment: Alignment.center,
                                     child: const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
                                 : photo != null
                                     ? LayoutBuilder(builder: (_, c) => _PhotoThumb(url: photo.url, size: c.maxWidth))
@@ -202,12 +203,12 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
                                           ])
                                         : Container(
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.shade50,
-                                          border: Border.all(color: Colors.grey.shade300),
+                                          color: AppColors.card2,
+                                          border: Border.all(color: AppColors.line),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         alignment: Alignment.center,
-                                        child: Icon(Icons.add_a_photo_outlined, color: Colors.grey.shade500),
+                                        child: Icon(Icons.add_a_photo_outlined, color: AppColors.textSecondary),
                                       ),
                           ),
                         ),
@@ -222,11 +223,11 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
           ),
           if (_photos.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text('Tap a photo to view it, long-press to retake.', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+            Text('Tap a photo to view it, long-press to retake.', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
           ],
           if (_error != null) ...[
             const SizedBox(height: 8),
-            Text(_error!, style: TextStyle(fontSize: 12, color: Colors.red.shade700)),
+            Text(_error!, style: TextStyle(fontSize: 12, color: AppColors.danger)),
           ],
         ],
       ),
@@ -257,7 +258,7 @@ class _ConditionPhotosStripState extends State<ConditionPhotosStrip> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 10),
-            Text('Condition at check-in', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.grey.shade700)),
+            Text('Condition at check-in', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
             const SizedBox(height: 6),
             SizedBox(
               height: 64,

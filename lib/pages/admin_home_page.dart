@@ -4,20 +4,17 @@
 // bare ticket-scan desk as line staff, which buried everything an admin actually needs behind no
 // navigation at all. This is a real console: live Insights (today's operational snapshot),
 // Operations (the modules an admin acts on day to day), and Reports - not a flat "Master" list.
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../components/confirm_dialog.dart';
 import '../services/authentication_service.dart';
 import '../services/valet_service.dart';
 import 'dashboard_page.dart';
 import 'admin_complaints_page.dart';
-import 'create_user_page.dart';
-import 'create_company_page.dart';
 import 'driver_activity_page.dart';
 import 'privacy_policy_page.dart';
 import 'parking_occupancy_page.dart';
 import 'parking_setup_page.dart';
+import '../theme/app_theme.dart';
 
 class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
@@ -31,21 +28,11 @@ class _AdminHomePageState extends State<AdminHomePage> {
   final _authService = AuthenticationService();
   DashboardDetails? _details;
   bool _loading = true;
-  bool _isSuperAdmin = false;
 
   @override
   void initState() {
     super.initState();
-    _loadRole();
     _load();
-  }
-
-  Future<void> _loadRole() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userStr = prefs.getString(AuthenticationService.userKey);
-    if (userStr == null) return;
-    final roles = List<String>.from(jsonDecode(userStr)['roles'] ?? []);
-    if (mounted) setState(() => _isSuperAdmin = roles.contains('SUPER_ADMIN'));
   }
 
   Future<void> _load() async {
@@ -82,7 +69,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
         await _logout();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF4F6FB),
+        backgroundColor: AppColors.page,
         appBar: AppBar(
           title: const Text('Admin Console'),
           actions: [
@@ -110,7 +97,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   const SizedBox(height: 10),
                   _moduleTile(
                     icon: Icons.bar_chart_rounded,
-                    color: Colors.indigo,
+                    color: AppColors.live,
                     title: 'Operational Report',
                     subtitle: 'Today\'s throughput, inventory & payment mix',
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DriverActivityPage())),
@@ -120,7 +107,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   const SizedBox(height: 10),
                   _moduleTile(
                     icon: Icons.privacy_tip_outlined,
-                    color: Colors.grey,
+                    color: AppColors.textSecondary,
                     title: 'Privacy & Policy',
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyPolicyPage())),
                   ),
@@ -134,7 +121,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
   }
 
   Widget _sectionLabel(String text) {
-    return Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: Colors.grey));
+    return Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: AppColors.textSecondary));
   }
 
   Widget _buildInsights() {
@@ -143,12 +130,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
     }
     final d = _details;
     final stats = [
-      ('Received', d?.receivedCount ?? 0, Icons.local_parking, Colors.blue),
-      ('Delivered', d?.deliveredCount ?? 0, Icons.check_circle_outline, Colors.green),
-      ('In Inventory', d?.currentInventory ?? 0, Icons.inventory_2_outlined, Colors.orange),
-      ('Complimentary', d?.complimentaryCount ?? 0, Icons.card_giftcard_outlined, Colors.purple),
-      ('Paid', d?.paidCount ?? 0, Icons.attach_money, Colors.teal),
-      ('Tickets Left', d?.ticketsRemaining ?? 0, Icons.confirmation_number_outlined, Colors.red),
+      ('Received', d?.receivedCount ?? 0, Icons.local_parking, AppColors.primary),
+      ('Delivered', d?.deliveredCount ?? 0, Icons.check_circle_outline, AppColors.success),
+      ('In Inventory', d?.currentInventory ?? 0, Icons.inventory_2_outlined, AppColors.warning),
+      ('Complimentary', d?.complimentaryCount ?? 0, Icons.card_giftcard_outlined, AppColors.live),
+      ('Paid', d?.paidCount ?? 0, Icons.attach_money, AppColors.success),
+      ('Tickets Left', d?.ticketsRemaining ?? 0, Icons.confirmation_number_outlined, AppColors.danger),
     ];
     return GridView.count(
       shrinkWrap: true,
@@ -161,21 +148,21 @@ class _AdminHomePageState extends State<AdminHomePage> {
     );
   }
 
-  Widget _statCard(String label, int value, IconData icon, MaterialColor color) {
+  Widget _statCard(String label, int value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.shade50,
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.shade100),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color.shade600, size: 20),
+          Icon(icon, color: color, size: 20),
           const Spacer(),
-          Text('$value', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color.shade800)),
-          Text(label, style: TextStyle(fontSize: 10.5, color: color.shade700), maxLines: 2, overflow: TextOverflow.ellipsis),
+          Text('$value', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color)),
+          Text(label, style: TextStyle(fontSize: 10.5, color: color), maxLines: 2, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
@@ -185,41 +172,29 @@ class _AdminHomePageState extends State<AdminHomePage> {
     final modules = <Map<String, dynamic>>[
       {
         'icon': Icons.directions_car_filled_outlined,
-        'color': Colors.indigo,
+        'color': AppColors.live,
         'title': 'Valet Desk',
         'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DashboardPage())),
       },
       {
         'icon': Icons.local_parking_outlined,
-        'color': Colors.teal,
+        'color': AppColors.success,
         'title': 'Parking Occupancy',
         'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ParkingOccupancyPage())),
       },
       {
         'icon': Icons.grid_view_outlined,
-        'color': Colors.green,
+        'color': AppColors.success,
         'title': 'Parking Setup',
         'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ParkingSetupPage())),
       },
       {
         'icon': Icons.forum_outlined,
-        'color': Colors.red,
+        'color': AppColors.danger,
         'title': 'Complaints',
         'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminComplaintsPage())),
       },
-      {
-        'icon': Icons.person_add_alt_outlined,
-        'color': Colors.blue,
-        'title': 'Users',
-        'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CreateUserPage())),
-      },
-      if (_isSuperAdmin)
-        {
-          'icon': Icons.business_outlined,
-          'color': Colors.purple,
-          'title': 'Companies',
-          'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CreateCompanyPage())),
-        },
+      // Users and companies are set up in the admin portal; the app only runs the operation.
     ];
 
     return GridView.count(
@@ -233,22 +208,22 @@ class _AdminHomePageState extends State<AdminHomePage> {
     );
   }
 
-  Widget _quickTile(IconData icon, MaterialColor color, String title, VoidCallback onTap) {
+  Widget _quickTile(IconData icon, Color color, String title, VoidCallback onTap) {
     return Material(
-      color: Colors.white,
+      color: AppColors.card,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.line)),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: color.shade50, borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon, color: color.shade600, size: 18),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon, color: color, size: 18),
               ),
               const SizedBox(width: 10),
               Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5), overflow: TextOverflow.ellipsis)),
@@ -259,22 +234,22 @@ class _AdminHomePageState extends State<AdminHomePage> {
     );
   }
 
-  Widget _moduleTile({required IconData icon, required MaterialColor color, required String title, String? subtitle, required VoidCallback onTap}) {
+  Widget _moduleTile({required IconData icon, required Color color, required String title, String? subtitle, required VoidCallback onTap}) {
     return Material(
-      color: Colors.white,
+      color: AppColors.card,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.line)),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: color.shade50, borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon, color: color.shade600),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon, color: color),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -282,11 +257,11 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                    if (subtitle != null) Text(subtitle, style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600)),
+                    if (subtitle != null) Text(subtitle, style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade400),
+              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textSecondary),
             ],
           ),
         ),

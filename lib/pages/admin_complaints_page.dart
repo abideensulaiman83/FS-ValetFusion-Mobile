@@ -4,6 +4,7 @@
 // close with optional resolution notes. Reached from the AppLayout drawer.
 import 'package:flutter/material.dart';
 import '../services/complaint_service.dart';
+import '../theme/app_theme.dart';
 
 class AdminComplaintsPage extends StatefulWidget {
   const AdminComplaintsPage({super.key});
@@ -40,7 +41,7 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700,
+      backgroundColor: error ? AppColors.danger : AppColors.success,
     ));
   }
 
@@ -88,11 +89,11 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
   Color _statusColor(String status) {
     switch (status) {
       case 'OPEN':
-        return Colors.red;
+        return AppColors.danger;
       case 'ACKNOWLEDGED':
-        return Colors.orange;
+        return AppColors.warning;
       default:
-        return Colors.green;
+        return AppColors.success;
     }
   }
 
@@ -128,7 +129,7 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
                           padding: const EdgeInsets.only(top: 80),
                           child: Center(
                             child: Text('No complaints${_filterStatus != null ? ' with status $_filterStatus' : ''}',
-                                style: TextStyle(color: Colors.grey.shade600)),
+                                style: TextStyle(color: AppColors.textSecondary)),
                           ),
                         ),
                       ],
@@ -142,9 +143,9 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
                         return Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.card,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300),
+                            border: Border.all(color: AppColors.line),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,13 +165,13 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
                               ),
                               const SizedBox(height: 4),
                               Text('${c.mobile}${c.place != null && c.place!.isNotEmpty ? ' - ${c.place}' : ''}',
-                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                               const SizedBox(height: 8),
                               Text(c.message),
                               if (c.resolutionNotes != null && c.resolutionNotes!.isNotEmpty) ...[
                                 const SizedBox(height: 8),
                                 Text('Resolution: ${c.resolutionNotes}',
-                                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic)),
+                                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
                               ],
                               if (c.status != 'CLOSED') ...[
                                 const SizedBox(height: 10),

@@ -4,6 +4,7 @@
 // dispatch-to-delivered turnaround, and recent deliveries with the guest's rating where given.
 import 'package:flutter/material.dart';
 import '../services/valet_service.dart';
+import '../theme/app_theme.dart';
 
 class DriverActivityPage extends StatefulWidget {
   const DriverActivityPage({super.key});
@@ -58,9 +59,9 @@ class _DriverActivityPageState extends State<DriverActivityPage> {
                         children: [
                           Row(
                             children: [
-                              Expanded(child: _statCard('Today', '${_activity?.deliveredToday ?? 0}', Icons.today, Colors.blue)),
+                              Expanded(child: _statCard('Today', '${_activity?.deliveredToday ?? 0}', Icons.today, AppColors.primary)),
                               const SizedBox(width: 12),
-                              Expanded(child: _statCard('All Time', '${_activity?.deliveredTotal ?? 0}', Icons.emoji_events_outlined, Colors.green)),
+                              Expanded(child: _statCard('All Time', '${_activity?.deliveredTotal ?? 0}', Icons.emoji_events_outlined, AppColors.success)),
                             ],
                           ),
                           const SizedBox(height: 12),
@@ -70,15 +71,15 @@ class _DriverActivityPageState extends State<DriverActivityPage> {
                                 ? '${_activity!.averageTurnaroundMinutes!.round()} min'
                                 : '-',
                             Icons.timer_outlined,
-                            Colors.orange,
+                            AppColors.warning,
                           ),
                           const SizedBox(height: 20),
-                          Text('Recent Deliveries', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.grey.shade800)),
+                          Text('Recent Deliveries', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                           const SizedBox(height: 10),
                           if ((_activity?.recentDeliveries ?? []).isEmpty)
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: 24),
-                              child: Text('No deliveries yet', style: TextStyle(color: Colors.grey.shade500)),
+                              child: Text('No deliveries yet', style: TextStyle(color: AppColors.textSecondary)),
                             )
                           else
                             for (final d in _activity!.recentDeliveries) _deliveryRow(d),
@@ -90,21 +91,21 @@ class _DriverActivityPageState extends State<DriverActivityPage> {
     );
   }
 
-  Widget _statCard(String label, String value, IconData icon, MaterialColor color) {
+  Widget _statCard(String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.shade50,
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.shade100),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color.shade600),
+          Icon(icon, color: color),
           const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color.shade800)),
-          Text(label, style: TextStyle(fontSize: 12, color: color.shade700)),
+          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
+          Text(label, style: TextStyle(fontSize: 12, color: color)),
         ],
       ),
     );
@@ -114,7 +115,7 @@ class _DriverActivityPageState extends State<DriverActivityPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade200)),
+      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.line)),
       child: Row(
         children: [
           Expanded(
@@ -122,19 +123,19 @@ class _DriverActivityPageState extends State<DriverActivityPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Ticket ${d.ticketNo}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                if (d.plateNo != null) Text(d.plateNo!, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                if (d.plateNo != null) Text(d.plateNo!, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ],
             ),
           ),
           if (d.turnaroundMinutes != null)
-            Text('${d.turnaroundMinutes} min', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            Text('${d.turnaroundMinutes} min', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
           if (d.rating != null) ...[
             const SizedBox(width: 10),
             Row(
               children: List.generate(5, (i) => Icon(
                     i < d.rating! ? Icons.star : Icons.star_border,
                     size: 14,
-                    color: Colors.amber.shade600,
+                    color: AppColors.warning,
                   )),
             ),
           ],

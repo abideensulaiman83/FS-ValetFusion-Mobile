@@ -20,6 +20,7 @@ import '../components/eta_check_in_dialog.dart';
 import 'notification_service.dart';
 import 'offline_queue.dart';
 import 'valet_service.dart';
+import '../theme/app_theme.dart';
 
 class DeliveryTracker with WidgetsBindingObserver {
   DeliveryTracker._();
@@ -276,7 +277,7 @@ class DeliveryTracker with WidgetsBindingObserver {
     if (context == null) return;
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700,
+      backgroundColor: error ? AppColors.danger : AppColors.success,
     ));
   }
 }

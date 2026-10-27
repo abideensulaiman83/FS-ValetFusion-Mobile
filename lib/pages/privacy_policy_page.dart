@@ -4,6 +4,7 @@
 // ValetFusion's own data handling (ticket/vehicle records, guest mobile numbers, live GPS while
 // a driver is bringing a car back), not copied from a generic template.
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
@@ -20,7 +21,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             children: [
               const Text('Valet Fusion - Privacy Policy', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
-              Text('Last updated: September 2026', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              Text('Last updated: September 2026', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               const SizedBox(height: 20),
               _section(
                 'What we collect',
@@ -70,7 +71,7 @@ class PrivacyPolicyPage extends StatelessWidget {
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: AppColors.accentSoft, borderRadius: BorderRadius.circular(10)),
                 child: const Text(
                   'This app is provided by Integrated Parking Solution '
                   '(www.integeratedparkingsolution.com/ae) to its client properties. Each property '

@@ -6,6 +6,7 @@
 // layout configured (or the suggested spot is physically blocked).
 import 'package:flutter/material.dart';
 import '../services/valet_service.dart';
+import '../theme/app_theme.dart';
 
 class SlotPicker extends StatefulWidget {
   /// Called with the chosen slot, or null when the user switched to typing the bay by hand.
@@ -91,8 +92,8 @@ class SlotPickerState extends State<SlotPicker> {
                   final selected = s.slotId == _selected?.slotId;
                   return ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: selected ? Colors.green.shade600 : Colors.grey.shade200,
-                      foregroundColor: selected ? Colors.white : Colors.grey.shade800,
+                      backgroundColor: selected ? AppColors.success : AppColors.line,
+                      foregroundColor: selected ? Colors.white : AppColors.textPrimary,
                       child: const Icon(Icons.local_parking, size: 20),
                     ),
                     title: Text('Slot ${s.slotNumber}', style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -137,7 +138,7 @@ class SlotPickerState extends State<SlotPicker> {
                 _error != null
                     ? 'Could not load free slots ($_error) - type the bay instead.'
                     : 'No free slot in the parking layout - type where you parked.',
-                style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                style: TextStyle(fontSize: 12, color: AppColors.warning),
               ),
             ),
           TextField(
@@ -177,9 +178,9 @@ class SlotPickerState extends State<SlotPicker> {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.green.shade50,
+            color: AppColors.successSoft,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.shade300, width: 1.5),
+            border: Border.all(color: AppColors.successSoft, width: 1.5),
           ),
           child: Row(
             children: [
@@ -187,7 +188,7 @@ class SlotPickerState extends State<SlotPicker> {
                 width: 56,
                 height: 56,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(color: Colors.green.shade600, borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: AppColors.success, borderRadius: BorderRadius.circular(10)),
                 child: FittedBox(
                   child: Padding(
                     padding: const EdgeInsets.all(6),
@@ -202,11 +203,11 @@ class SlotPickerState extends State<SlotPicker> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(isNearest ? 'Park here - nearest free slot' : 'Park here',
-                        style: TextStyle(fontSize: 12, color: Colors.green.shade800, fontWeight: FontWeight.w600)),
+                        style: TextStyle(fontSize: 12, color: AppColors.success, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
                     Text('Slot ${s.slotNumber}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
                     if (s.where.isNotEmpty)
-                      Text(s.where, style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
+                      Text(s.where, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                   ],
                 ),
               ),

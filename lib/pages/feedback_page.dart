@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import '../services/complaint_service.dart';
 import 'complaint_status_page.dart';
+import '../theme/app_theme.dart';
 
 class FeedbackPage extends StatefulWidget {
   const FeedbackPage({super.key});
@@ -64,7 +65,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700,
+      backgroundColor: error ? AppColors.danger : AppColors.success,
     ));
   }
 
@@ -132,32 +133,32 @@ class _FeedbackPageState extends State<FeedbackPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle, color: Colors.green.shade600, size: 72),
+            Icon(Icons.check_circle, color: AppColors.success, size: 72),
             const SizedBox(height: 16),
             const Text('Thank you', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             Text(
               "We've received your report and the team will follow up.",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
             if (complaint != null) ...[
               const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: AppColors.successSoft,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green.shade200),
+                  border: Border.all(color: AppColors.successSoft),
                 ),
                 child: Column(
                   children: [
-                    Text('Your reference number', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    Text('Your reference number', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     const SizedBox(height: 4),
                     Text('#${complaint.id}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 4),
                     Text('Save this to check your report\'s status later',
-                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                   ],
                 ),
               ),
@@ -202,7 +203,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
           children: [
             Text(
               'Tell us what went wrong. Your report goes straight to the property team.',
-              style: TextStyle(color: Colors.grey.shade600),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -247,7 +248,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: AppColors.card2,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(

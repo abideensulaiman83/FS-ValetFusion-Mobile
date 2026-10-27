@@ -4,6 +4,7 @@
 // answers it: on time, +5/+10/+15/+20 minutes (the guest's ETA moves by that much), or arrived.
 import 'package:flutter/material.dart';
 import '../services/valet_service.dart';
+import '../theme/app_theme.dart';
 
 class EtaCheckInChoice {
   final int extendMinutes;
@@ -38,7 +39,7 @@ class _EtaCheckInDialog extends StatelessWidget {
     return PopScope(
       canPop: false,
       child: AlertDialog(
-        icon: Icon(Icons.timer_outlined, size: 36, color: Colors.orange.shade700),
+        icon: Icon(Icons.timer_outlined, size: 36, color: AppColors.warning),
         title: const Text('Still on the way?'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -50,7 +51,7 @@ class _EtaCheckInDialog extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             if (car.isNotEmpty)
-              Text(car, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600)),
+              Text(car, textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary)),
             const SizedBox(height: 10),
             Text(
               eta == null
@@ -62,7 +63,7 @@ class _EtaCheckInDialog extends StatelessWidget {
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 18),
-            Text('Need more time?', style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+            Text('Need more time?', style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -72,8 +73,8 @@ class _EtaCheckInDialog extends StatelessWidget {
                       onPressed: () => Navigator.of(context).pop(EtaCheckInChoice.extend(m)),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        foregroundColor: Colors.orange.shade800,
-                        side: BorderSide(color: Colors.orange.shade300),
+                        foregroundColor: AppColors.warning,
+                        side: BorderSide(color: AppColors.warning),
                       ),
                       child: Text('+$m', style: const TextStyle(fontWeight: FontWeight.w700)),
                     ),
@@ -83,7 +84,7 @@ class _EtaCheckInDialog extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Text('minutes', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+            Text('minutes', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
             const SizedBox(height: 14),
             ElevatedButton.icon(
               onPressed: () => Navigator.of(context).pop(const EtaCheckInChoice.extend(0)),

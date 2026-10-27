@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../components/confirm_dialog.dart';
 import '../services/authentication_service.dart';
 import '../services/parking_layout_service.dart';
+import '../theme/app_theme.dart';
 
 class ParkingSetupPage extends StatefulWidget {
   /// True when this is the user's home screen (Security) - shows logout instead of back.
@@ -50,7 +51,7 @@ class _ParkingSetupPageState extends State<ParkingSetupPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700,
+      backgroundColor: error ? AppColors.danger : AppColors.success,
     ));
   }
 
@@ -143,25 +144,25 @@ class _ParkingSetupPageState extends State<ParkingSetupPage> {
             ),
             if (slot.status != 'FREE')
               ListTile(
-                leading: Icon(Icons.check_circle_outline, color: Colors.green.shade700),
+                leading: Icon(Icons.check_circle_outline, color: AppColors.success),
                 title: const Text('Available for valet'),
                 onTap: () => Navigator.of(ctx).pop('FREE'),
               ),
             if (slot.status != 'RESERVED')
               ListTile(
-                leading: Icon(Icons.bookmark_outline, color: Colors.blue.shade700),
+                leading: Icon(Icons.bookmark_outline, color: AppColors.primary),
                 title: const Text('Reserve (keep empty for now)'),
                 onTap: () => Navigator.of(ctx).pop('RESERVED'),
               ),
             if (slot.status != 'OUT_OF_SERVICE')
               ListTile(
-                leading: Icon(Icons.block, color: Colors.grey.shade700),
+                leading: Icon(Icons.block, color: AppColors.textSecondary),
                 title: const Text('Switch off (blocked / not usable)'),
                 onTap: () => Navigator.of(ctx).pop('OUT_OF_SERVICE'),
               ),
             ListTile(
-              leading: Icon(Icons.delete_outline, color: Colors.red.shade700),
-              title: Text('Remove slot', style: TextStyle(color: Colors.red.shade700)),
+              leading: Icon(Icons.delete_outline, color: AppColors.danger),
+              title: Text('Remove slot', style: TextStyle(color: AppColors.danger)),
               onTap: () => Navigator.of(ctx).pop('DELETE'),
             ),
           ],
@@ -233,7 +234,7 @@ class _ParkingSetupPageState extends State<ParkingSetupPage> {
           ],
           if (layout.areasWithoutFloor.isNotEmpty) ...[
             Text('Areas not on a floor',
-                style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey.shade700)),
+                style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
             const SizedBox(height: 8),
             for (final area in layout.areasWithoutFloor) _areaBlock(area),
           ],
@@ -250,21 +251,21 @@ class _ParkingSetupPageState extends State<ParkingSetupPage> {
             Text('$value',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color,
                     fontFeatures: const [FontFeature.tabularFigures()])),
-            Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+            Text(label, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
           ]),
         );
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppColors.line),
       ),
       child: Row(children: [
-        stat('Slots', l.totalSlots, Colors.grey.shade900),
-        stat('Free', l.freeSlots, Colors.green.shade700),
-        stat('Occupied', l.occupiedSlots, Colors.orange.shade800),
-        stat('Off', l.outOfServiceSlots, Colors.grey.shade600),
+        stat('Slots', l.totalSlots, AppColors.textPrimary),
+        stat('Free', l.freeSlots, AppColors.success),
+        stat('Occupied', l.occupiedSlots, AppColors.warning),
+        stat('Off', l.outOfServiceSlots, AppColors.textSecondary),
       ]),
     );
   }
@@ -272,11 +273,11 @@ class _ParkingSetupPageState extends State<ParkingSetupPage> {
   Widget _note(String text) => Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.blue.shade50,
+          color: AppColors.accentSoft,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.blue.shade100),
+          border: Border.all(color: AppColors.accentSoft),
         ),
-        child: Text(text, style: TextStyle(color: Colors.blue.shade900, fontSize: 13)),
+        child: Text(text, style: TextStyle(color: AppColors.primary, fontSize: 13)),
       );
 
   Widget _floorCard(LayoutFloor floor) {
@@ -310,9 +311,9 @@ class _ParkingSetupPageState extends State<ParkingSetupPage> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppColors.card2,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,12 +327,12 @@ class _ParkingSetupPageState extends State<ParkingSetupPage> {
                 const Chip(label: Text('Self-park'), visualDensity: VisualDensity.compact)
               else
                 Text('${area.freeSlots}/${area.totalSlots} free',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
             ],
           ),
           const SizedBox(height: 8),
           if (area.slots.isEmpty)
-            Text('No slots yet.', style: TextStyle(fontSize: 13, color: Colors.grey.shade600))
+            Text('No slots yet.', style: TextStyle(fontSize: 13, color: AppColors.textSecondary))
           else
             Wrap(
               spacing: 6,
@@ -349,18 +350,18 @@ class _ParkingSetupPageState extends State<ParkingSetupPage> {
     );
   }
 
-  static const Map<String, MaterialColor> _statusColors = {
-    'FREE': Colors.green,
-    'OCCUPIED': Colors.orange,
-    'RESERVED': Colors.blue,
-    'OUT_OF_SERVICE': Colors.grey,
+  static const Map<String, Color> _statusColors = {
+    'FREE': AppColors.success,
+    'OCCUPIED': AppColors.warning,
+    'RESERVED': AppColors.primary,
+    'OUT_OF_SERVICE': AppColors.textSecondary,
   };
 
   Widget _slotChip(LayoutSlot s) {
-    final color = _statusColors[s.status] ?? Colors.grey;
+    final color = _statusColors[s.status] ?? AppColors.textSecondary;
     final off = s.status == 'OUT_OF_SERVICE';
     return Material(
-      color: color.shade50,
+      color: color.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
@@ -370,7 +371,7 @@ class _ParkingSetupPageState extends State<ParkingSetupPage> {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: color.shade300),
+            border: Border.all(color: color.withValues(alpha: 0.35)),
           ),
           child: Text(
             s.slotNumber,
@@ -378,7 +379,7 @@ class _ParkingSetupPageState extends State<ParkingSetupPage> {
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 13,
-              color: color.shade900,
+              color: color,
               decoration: off ? TextDecoration.lineThrough : null,
             ),
           ),
@@ -388,16 +389,16 @@ class _ParkingSetupPageState extends State<ParkingSetupPage> {
   }
 
   Widget _legend() {
-    Widget item(String label, MaterialColor c) => Row(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 12, height: 12, decoration: BoxDecoration(color: c.shade300, borderRadius: BorderRadius.circular(3))),
+    Widget item(String label, Color c) => Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 12, height: 12, decoration: BoxDecoration(color: c.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(3))),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+          Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
         ]);
     return Wrap(spacing: 14, runSpacing: 6, children: [
-      item('Free', Colors.green),
-      item('Car parked', Colors.orange),
-      item('Reserved', Colors.blue),
-      item('Switched off', Colors.grey),
+      item('Free', AppColors.success),
+      item('Car parked', AppColors.warning),
+      item('Reserved', AppColors.primary),
+      item('Switched off', AppColors.textSecondary),
     ]);
   }
 }
@@ -513,7 +514,7 @@ class _AddSlotsDialogState extends State<_AddSlotsDialog> {
                 ),
               ]),
               const SizedBox(height: 8),
-              Text(_preview, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+              Text(_preview, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
             ] else
               TextField(
                 controller: _list,
@@ -528,11 +529,11 @@ class _AddSlotsDialogState extends State<_AddSlotsDialog> {
               ),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(_error!, style: TextStyle(color: Colors.red.shade700, fontSize: 12)),
+              Text(_error!, style: TextStyle(color: AppColors.danger, fontSize: 12)),
             ],
             const SizedBox(height: 8),
             Text('Drivers are offered slots in this order - lowest number first.',
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
           ],
         ),
       ),

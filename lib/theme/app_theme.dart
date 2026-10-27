@@ -41,6 +41,12 @@ class AppColors {
   static const Color dangerOnDark = Color(0xFFEF6B66);
   static const Color live = Color(0xFF1C8DA8);
   static const Color liveOnDark = Color(0xFF4CC3DD);
+  // soft backgrounds for chips, banners and tinted cards (light surfaces)
+  static const Color successSoft = Color(0xFFDDF3E9);
+  static const Color warningSoft = Color(0xFFFBEBD0);
+  static const Color dangerSoft = Color(0xFFF9DEDC);
+  static const Color infoSoft = Color(0xFFD9EEF4);
+  static const Color accentSoft = Color(0xFFF3E9D2);
   // plates
   static const Color plateBg = Color(0xFFFFFFFF);
   static const Color plateFg = Color(0xFF111111);

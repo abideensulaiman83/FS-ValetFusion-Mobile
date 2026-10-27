@@ -22,9 +22,6 @@ import 'services/notification_service.dart';
 import 'services/offline_queue.dart';
 import 'theme/app_theme.dart';
 
-// Import all pages directly from pages folder
-import 'pages/create_company_page.dart';
-import 'pages/create_user_page.dart';
 // import 'pages/vehicle_make_page.dart';
 // import 'pages/vehicle_colours_page.dart';
 // import 'pages/parking_list_page.dart';
@@ -87,11 +84,14 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       navigatorKey: NotificationService.navigatorKey,
       title: 'ValetFusion',
-      // Control-room theme (plan §2.8 / C5): follows the phone's light/dark setting; the venue's
-      // accent colour replaces brass after login (plan B2).
+      // Control-room theme (plan §2.8 / C5); the venue's accent colour replaces brass after
+      // login (plan B2). Light for now: the staff and guest screens still paint the light
+      // surface tokens directly, so following the phone's dark setting would mix the two.
+      // Switch to ThemeMode.system once those screens read colours from the ColorScheme.
+      // Operations screens that are always dark use AppTheme.ops explicitly.
       theme: AppTheme.light(accent: accent),
       darkTheme: AppTheme.dark(accent: accent),
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
       locale: locale ?? const Locale('en'),
       supportedLocales: const [Locale('en'), Locale('ar')],
       localizationsDelegates: const [
@@ -113,9 +113,7 @@ class MyApp extends StatelessWidget {
         '/security/parking': (context) => const ParkingSetupPage(isHome: true),
         '/privacy-policy': (context) => const PrivacyPolicyPage(),
 
-        // All pages directly in routes
-        '/master/create-company': (context) => const CreateCompanyPage(),
-        '/master/create-user': (context) => const CreateUserPage(),
+        // Users and companies are managed in the admin portal (plan §7.5); no app screens for them.
         // '/master/vehicle-make': (context) => const VehicleMakePage(),
         // '/master/vehicle-colours': (context) => const VehicleColoursPage(),
         // '/master/parking-list': (context) => const ParkingListPage(),
