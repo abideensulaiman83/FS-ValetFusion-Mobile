@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'secure_store.dart';
+import '../theme/app_theme.dart';
 
 class PublicCompanyOption {
   final String code;
@@ -39,6 +40,9 @@ class UserDto {
   final String locationName;
   final int tenantId;
   final String tenantCode;
+  // Venue branding (plan B2): accent colour and logo URL (relative to the API base).
+  final String? accentColor;
+  final String? logoUrl;
 
   UserDto({
     required this.id,
@@ -52,6 +56,8 @@ class UserDto {
     required this.locationName,
     required this.tenantId,
     required this.tenantCode,
+    this.accentColor,
+    this.logoUrl,
   });
 
   factory UserDto.fromJson(Map<String, dynamic> json) {
@@ -67,6 +73,8 @@ class UserDto {
       locationName: json['locationName'] ?? '',
       tenantId: json['tenantId'] ?? 0,
       tenantCode: json['tenantCode'] ?? '',
+      accentColor: json['accentColor'] as String?,
+      logoUrl: json['logoUrl'] as String?,
     );
   }
 
@@ -83,6 +91,8 @@ class UserDto {
       'locationName': locationName,
       'tenantId': tenantId,
       'tenantCode': tenantCode,
+      'accentColor': accentColor,
+      'logoUrl': logoUrl,
     };
   }
 }
@@ -687,6 +697,7 @@ class AuthenticationService {
   }
 
   Future<void> clearStorage() async {
+    BrandController.clear();
     final prefs = await SharedPreferences.getInstance();
     await SecureStore.clearToken();
     await prefs.remove(userKey);
@@ -771,6 +782,12 @@ class AuthenticationService {
 
     await prefs.setString(userKey, jsonEncode(user.toJson()));
     developer.log('    User saved: ${user.username}');
+    // Super admins keep the ValetFusion look; everyone else sees their venue's colour (plan §2.7).
+    if (user.roles.contains('SUPER_ADMIN')) {
+      BrandController.clear();
+    } else {
+      BrandController.apply(accentHex: user.accentColor, logo: user.logoUrl == null ? null : '$apiBaseUrl${user.logoUrl}');
+    }
 
     if (location != null) {
       await prefs.setString(locationKey, jsonEncode(location.toJson()));

@@ -1,901 +1,271 @@
+// lib/components/layout/app_layout.dart
 //
-// // lib/components/layout/app_layout.dart
-//
-// import 'package:flutter/material.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
-// import 'dart:convert';
-//
-// class MenuItem {
-//   final String text;
-//   final IconData icon;
-//   final String path;
-//
-//   MenuItem({
-//     required this.text,
-//     required this.icon,
-//     required this.path,
-//   });
-// }
-//
-// class AppLayout extends StatefulWidget {
-//   final Widget child;
-//
-//   const AppLayout({
-//     Key? key,
-//     required this.child,
-//   }) : super(key: key);
-//
-//   @override
-//   State<AppLayout> createState() => _AppLayoutState();
-// }
-//
-// class _AppLayoutState extends State<AppLayout> {
-//   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-//   String currentLocation = '';
-//   bool isSuperAdmin = false;
-//   bool isLocationAdmin = false;
-//   String currentPath = '/dashboard';
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     _loadUserData();
-//   }
-//
-//   Future<void> _loadUserData() async {
-//     final prefs = await SharedPreferences.getInstance();
-//     final userStr = prefs.getString('vf_user');
-//
-//     if (userStr != null) {
-//       final user = jsonDecode(userStr);
-//       final roles = List<String>.from(user['roles'] ?? []);
-//
-//       setState(() {
-//         currentLocation = user['locationName'] ?? '';
-//         isSuperAdmin = roles.contains('SUPER_ADMIN');
-//         isLocationAdmin = roles.contains('LOCATION_ADMIN');
-//       });
-//     }
-//   }
-//
-//   Future<void> _handleLogout() async {
-//     final prefs = await SharedPreferences.getInstance();
-//     await prefs.remove('vf_token');
-//     await prefs.remove('vf_user');
-//     await prefs.remove('vf_location');
-//     await prefs.remove('vf_pending_locations');
-//     await prefs.remove('vf_pending_user');
-//
-//     if (mounted) {
-//       Navigator.of(context).pushNamedAndRemoveUntil(
-//         '/login',
-//             (route) => false,
-//       );
-//     }
-//   }
-//
-//   List<MenuItem> get menuItems => [
-//     MenuItem(
-//       text: 'Dashboard',
-//       icon: Icons.dashboard_rounded,
-//       path: '/dashboard',
-//     ),
-//   ];
-//
-//   List<MenuItem> get superAdminMasterMenuItems => [
-//     MenuItem(
-//       text: 'Create Company',
-//       icon: Icons.business_rounded,
-//       path: '/master/create-company',
-//     ),
-//     MenuItem(
-//       text: 'Users',
-//       icon: Icons.people_rounded,
-//       path: '/master/create-user',
-//     ),
-//     MenuItem(
-//       text: 'Vehicle Make',
-//       icon: Icons.directions_car_rounded,
-//       path: '/master/vehicle-make',
-//     ),
-//     MenuItem(
-//       text: 'Vehicle Colours',
-//       icon: Icons.palette_rounded,
-//       path: '/master/vehicle-colours',
-//     ),
-//     MenuItem(
-//       text: 'Parking List',
-//       icon: Icons.list_alt_rounded,
-//       path: '/master/parking-list',
-//     ),
-//     MenuItem(
-//       text: 'Parking Charges',
-//       icon: Icons.attach_money_rounded,
-//       path: '/master/parking-charges',
-//     ),
-//     MenuItem(
-//       text: 'Shops',
-//       icon: Icons.store_rounded,
-//       path: '/master/shops',
-//     ),
-//     MenuItem(
-//       text: 'Switch Location',
-//       icon: Icons.swap_horiz_rounded,
-//       path: '/master/switch-location',
-//     ),
-//   ];
-//
-//   List<MenuItem> get locationAdminMenuItems => [
-//     MenuItem(
-//       text: 'Company Details',
-//       icon: Icons.info_rounded,
-//       path: '/master/company-details',
-//     ),
-//     MenuItem(
-//       text: 'Ticket Details',
-//       icon: Icons.confirmation_number_rounded,
-//       path: '/master/ticket-details',
-//     ),
-//     MenuItem(
-//       text: 'Parking Charges',
-//       icon: Icons.attach_money_rounded,
-//       path: '/master/parking-charges',
-//     ),
-//     MenuItem(
-//       text: 'Shops',
-//       icon: Icons.store_rounded,
-//       path: '/master/shops',
-//     ),
-//   ];
-//
-//   List<MenuItem> getMasterMenuItems() {
-//     final items = <MenuItem>[];
-//
-//     if (isSuperAdmin) {
-//       items.addAll(superAdminMasterMenuItems);
-//     }
-//
-//     if (isLocationAdmin) {
-//       for (final locationItem in locationAdminMenuItems) {
-//         final exists = items.any((item) => item.path == locationItem.path);
-//         if (!exists) {
-//           items.add(locationItem);
-//         }
-//       }
-//     }
-//
-//     return items;
-//   }
-//
-//   String getRoleBadgeText() {
-//     if (isSuperAdmin && isLocationAdmin) {
-//       return 'Super Admin + Location Admin';
-//     } else if (isSuperAdmin) {
-//       return 'Super Admin';
-//     } else if (isLocationAdmin) {
-//       return 'Location Admin';
-//     }
-//     return 'Staff';
-//   }
-//
-//   Color getRoleBadgeColor() {
-//     if (isSuperAdmin) {
-//       return const Color(0xFF6366F1);
-//     } else if (isLocationAdmin) {
-//       return const Color(0xFF14B8A6);
-//     }
-//     return const Color(0xFF64748B);
-//   }
-//
-//   void _navigateTo(String path) {
-//     setState(() {
-//       currentPath = path;
-//     });
-//     Navigator.of(context).pop(); // Close drawer
-//     Navigator.of(context).pushNamed(path);
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final currentRoute = ModalRoute.of(context)?.settings.name;
-//     final showAppBar = currentRoute != '/login';
-//     final masterMenuItems = getMasterMenuItems();
-//     final showMasterMenu = isSuperAdmin || isLocationAdmin;
-//
-//     return Scaffold(
-//       key: _scaffoldKey,
-//       backgroundColor: const Color(0xFFF7F9FC),
-//       appBar: showAppBar
-//           ? AppBar(
-//         elevation: 0,
-//         backgroundColor: Colors.transparent,
-//         flexibleSpace: Container(
-//           decoration: BoxDecoration(
-//             gradient: const LinearGradient(
-//               colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-//               begin: Alignment.centerLeft,
-//               end: Alignment.centerRight,
-//             ),
-//             boxShadow: [
-//               BoxShadow(
-//                 color: const Color(0xFF6366F1).withOpacity(0.3),
-//                 blurRadius: 20,
-//                 offset: const Offset(0, 4),
-//               ),
-//             ],
-//           ),
-//         ),
-//         leading: IconButton(
-//           icon: const Icon(Icons.menu_rounded, color: Colors.white),
-//           onPressed: () {
-//             _scaffoldKey.currentState?.openDrawer();
-//           },
-//         ),
-//         title: const Text(
-//           'Valet Fusion',
-//           style: TextStyle(
-//             color: Colors.white,
-//             fontSize: 20,
-//             fontWeight: FontWeight.w700,
-//             letterSpacing: -0.5,
-//           ),
-//         ),
-//         actions: [
-//           IconButton(
-//             icon: const Icon(Icons.logout_rounded, color: Colors.white),
-//             onPressed: _handleLogout,
-//             tooltip: 'Logout',
-//           ),
-//         ],
-//       )
-//           : null,
-//       drawer: showAppBar
-//           ? Drawer(
-//         child: Container(
-//           color: Colors.white,
-//           child: Column(
-//             children: [
-//               // Drawer Header
-//               Container(
-//                 width: double.infinity,
-//                 padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
-//                 decoration: const BoxDecoration(
-//                   gradient: LinearGradient(
-//                     colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-//                     begin: Alignment.topLeft,
-//                     end: Alignment.bottomRight,
-//                   ),
-//                 ),
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     Container(
-//                       width: 64,
-//                       height: 64,
-//                       decoration: BoxDecoration(
-//                         color: Colors.white,
-//                         shape: BoxShape.circle,
-//                         boxShadow: [
-//                           BoxShadow(
-//                             color: Colors.black.withOpacity(0.2),
-//                             blurRadius: 12,
-//                             offset: const Offset(0, 4),
-//                           ),
-//                         ],
-//                       ),
-//                       child: const Center(
-//                         child: Text(
-//                           'VF',
-//                           style: TextStyle(
-//                             color: Color(0xFF6366F1),
-//                             fontWeight: FontWeight.bold,
-//                             fontSize: 26,
-//                           ),
-//                         ),
-//                       ),
-//                     ),
-//                     const SizedBox(height: 16),
-//                     const Text(
-//                       'Valet Fusion',
-//                       style: TextStyle(
-//                         color: Colors.white,
-//                         fontSize: 24,
-//                         fontWeight: FontWeight.bold,
-//                       ),
-//                     ),
-//                     if (currentLocation.isNotEmpty) ...[
-//                       const SizedBox(height: 8),
-//                       Row(
-//                         children: [
-//                           const Icon(
-//                             Icons.location_on_rounded,
-//                             color: Colors.white,
-//                             size: 18,
-//                           ),
-//                           const SizedBox(width: 6),
-//                           Expanded(
-//                             child: Text(
-//                               currentLocation,
-//                               style: TextStyle(
-//                                 color: Colors.white.withOpacity(0.95),
-//                                 fontSize: 15,
-//                                 fontWeight: FontWeight.w500,
-//                               ),
-//                               overflow: TextOverflow.ellipsis,
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                     ],
-//                   ],
-//                 ),
-//               ),
-//
-//               // Menu Items
-//               Expanded(
-//                 child: ListView(
-//                   padding: EdgeInsets.zero,
-//                   children: [
-//                     const SizedBox(height: 8),
-//
-//                     // Main Menu Items
-//                     ...menuItems.map((item) {
-//                       final isActive = currentPath == item.path ||
-//                           (item.path == '/dashboard' &&
-//                               currentPath == '/');
-//                       return _buildDrawerItem(item, isActive);
-//                     }),
-//
-//                     // Master Menu Section
-//                     if (showMasterMenu &&
-//                         masterMenuItems.isNotEmpty) ...[
-//                       const Divider(height: 32),
-//                       Padding(
-//                         padding: const EdgeInsets.symmetric(
-//                           horizontal: 20,
-//                           vertical: 8,
-//                         ),
-//                         child: Text(
-//                           isSuperAdmin ? 'MASTER' : 'MANAGEMENT',
-//                           style: TextStyle(
-//                             fontSize: 12,
-//                             fontWeight: FontWeight.w700,
-//                             color: Colors.grey.shade600,
-//                             letterSpacing: 1.2,
-//                           ),
-//                         ),
-//                       ),
-//                       ...masterMenuItems.map((item) {
-//                         final isActive = currentPath == item.path;
-//                         return _buildDrawerItem(item, isActive);
-//                       }),
-//                     ],
-//                   ],
-//                 ),
-//               ),
-//
-//               // Role Badge at bottom
-//               Container(
-//                 width: double.infinity,
-//                 margin: const EdgeInsets.all(16),
-//                 padding: const EdgeInsets.symmetric(
-//                   horizontal: 16,
-//                   vertical: 12,
-//                 ),
-//                 decoration: BoxDecoration(
-//                   color: getRoleBadgeColor().withOpacity(0.1),
-//                   borderRadius: BorderRadius.circular(12),
-//                   border: Border.all(
-//                     color: getRoleBadgeColor().withOpacity(0.3),
-//                     width: 1,
-//                   ),
-//                 ),
-//                 child: Row(
-//                   children: [
-//                     Container(
-//                       width: 10,
-//                       height: 10,
-//                       decoration: BoxDecoration(
-//                         color: getRoleBadgeColor(),
-//                         shape: BoxShape.circle,
-//                       ),
-//                     ),
-//                     const SizedBox(width: 12),
-//                     Expanded(
-//                       child: Text(
-//                         getRoleBadgeText(),
-//                         style: TextStyle(
-//                           fontSize: 13,
-//                           fontWeight: FontWeight.w600,
-//                           color: getRoleBadgeColor(),
-//                         ),
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ),
-//       )
-//           : null,
-//       body: widget.child,
-//     );
-//   }
-//
-//   Widget _buildDrawerItem(MenuItem item, bool isActive) {
-//     return Container(
-//       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-//       decoration: BoxDecoration(
-//         color: isActive ? const Color(0xFF6366F1).withOpacity(0.1) : null,
-//         borderRadius: BorderRadius.circular(12),
-//       ),
-//       child: ListTile(
-//         leading: Icon(
-//           item.icon,
-//           color: isActive ? const Color(0xFF6366F1) : Colors.grey.shade700,
-//           size: 24,
-//         ),
-//         title: Text(
-//           item.text,
-//           style: TextStyle(
-//             fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-//             fontSize: 15,
-//             color: isActive ? const Color(0xFF6366F1) : Colors.grey.shade800,
-//           ),
-//         ),
-//         onTap: () => _navigateTo(item.path),
-//         shape: RoundedRectangleBorder(
-//           borderRadius: BorderRadius.circular(12),
-//         ),
-//         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-//       ),
-//     );
-//   }
-// }
-
-
-
-
-
-
-
-
-
-
+// The signed-in shell for staff screens (plan §2.8 / C5): a flat app bar with the venue name,
+// and an ink drawer with the venue logo (or the ValetFusion mark), who is signed in, the menu
+// for their role, and sign-out. Only routes that exist in main.dart are listed.
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../confirm_dialog.dart';
 import '../../services/authentication_service.dart';
+import '../../theme/app_theme.dart';
 
 class AppLayout extends StatefulWidget {
   final Widget child;
   final String? title;
   final List<Widget>? actions;
 
-  const AppLayout({
-    Key? key,
-    required this.child,
-    this.title,
-    this.actions,
-  }) : super(key: key);
+  const AppLayout({super.key, required this.child, this.title, this.actions});
 
   @override
   State<AppLayout> createState() => _AppLayoutState();
 }
 
+class _MenuEntry {
+  final String title;
+  final IconData icon;
+  final String route;
+  const _MenuEntry(this.title, this.icon, this.route);
+}
+
 class _AppLayoutState extends State<AppLayout> {
   String currentLocation = '';
   String userName = '';
-  String userRole = 'Staff';
-  Color roleColor = Colors.grey;
+  List<String> roles = const [];
+  String version = '';
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _load();
   }
 
-  Future<void> _loadUserData() async {
+  Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    final userStr = prefs.getString('vf_user');
-
-    if (userStr != null) {
-      final user = jsonDecode(userStr);
-      final roles = List<String>.from(user['roles'] ?? []);
-
-      setState(() {
-        currentLocation = user['locationName'] ?? '';
-        userName = user['name'] ?? 'User';
-
-        // Determine role and color
-        if (roles.contains('SUPER_ADMIN')) {
-          userRole = 'Super Admin';
-          roleColor = const Color(0xFF6366F1);
-        } else if (roles.contains('LOCATION_ADMIN')) {
-          userRole = 'Location Admin';
-          roleColor = const Color(0xFF14B8A6);
-        } else if (roles.contains('DRIVER') || roles.contains('GATE_SCANNER')) {
-          userRole = 'Driver';
-          roleColor = const Color(0xFF059669);
-        } else {
-          userRole = 'Staff';
-          roleColor = Colors.grey;
-        }
-      });
-    }
+    final userStr = prefs.getString(AuthenticationService.userKey);
+    String v = '';
+    try {
+      final info = await PackageInfo.fromPlatform();
+      v = 'v${info.version} (${info.buildNumber})';
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {
+      version = v;
+      if (userStr != null) {
+        final user = jsonDecode(userStr) as Map<String, dynamic>;
+        roles = List<String>.from(user['roles'] ?? const []);
+        currentLocation = (user['locationName'] ?? '') as String;
+        final first = (user['firstName'] ?? '') as String, last = (user['lastName'] ?? '') as String;
+        userName = [first, last].where((s) => s.isNotEmpty).join(' ');
+        if (userName.isEmpty) userName = (user['username'] ?? 'User') as String;
+      }
+    });
   }
 
-  Future<void> _handleLogout() async {
+  String get roleLabel {
+    const names = {
+      'SUPER_ADMIN': 'Super admin', 'LOCATION_ADMIN': 'Company admin', 'KEY_CONTROLLER': 'Location manager', 'LOBBY': 'Cashier',
+      'VALET_STAFF': 'Valet desk', 'DRIVER': 'Valet', 'GATE_SCANNER': 'Gate scanner', 'SUPERVISOR': 'Supervisor',
+      'OPERATIONS_HEAD': 'Division head', 'SECURITY': 'Security', 'REPORT_VIEWER': 'Reports', 'CUSTOMER': 'Guest',
+    };
+    final known = roles.where(names.containsKey).map((r) => names[r]!).toList();
+    return known.isEmpty ? 'Staff' : known.join(' · ');
+  }
+
+  bool has(String r) => roles.contains(r);
+
+  List<_MenuEntry> get mainMenu {
+    final items = <_MenuEntry>[];
+    if (has('SUPER_ADMIN') || has('LOCATION_ADMIN')) items.add(const _MenuEntry('Admin home', Icons.space_dashboard_rounded, '/admin/home'));
+    if (has('DRIVER') || has('GATE_SCANNER') || has('KEY_CONTROLLER') || has('LOBBY') || has('VALET_STAFF') || has('LOCATION_ADMIN') || has('SUPER_ADMIN')) {
+      items.add(_MenuEntry(has('DRIVER') ? 'Driver desk' : 'Valet desk', Icons.directions_car_rounded, '/dashboard'));
+    }
+    if (has('SUPERVISOR')) items.add(const _MenuEntry('My sites', Icons.fact_check_rounded, '/supervisor/home'));
+    if (has('SECURITY')) items.add(const _MenuEntry('Parking setup', Icons.local_parking_rounded, '/security/parking'));
+    if (has('DRIVER')) items.add(const _MenuEntry('My activity', Icons.bar_chart_rounded, '/driver/activity'));
+    return items;
+  }
+
+  List<_MenuEntry> get managementMenu {
+    final items = <_MenuEntry>[];
+    if (has('SUPER_ADMIN') || has('LOCATION_ADMIN')) items.add(const _MenuEntry('Complaints', Icons.forum_rounded, '/master/complaints'));
+    return items;
+  }
+
+  Future<void> _logout() async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Log out?',
-      message: "You'll need to sign in again to continue.",
-      confirmLabel: 'Log out',
+      title: 'Sign out?',
+      message: "You'll need your password to sign in again.",
+      confirmLabel: 'Sign out',
       destructive: true,
     );
-
     if (!confirmed) return;
-
-    final authService = AuthenticationService();
-    await authService.logoutApi();
-
-    if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/',
-            (route) => false,
-      );
-    }
-  }
-
-  List<Map<String, dynamic>> getMainMenuItems() {
-    return [
-      {
-        'title': 'Valet Desk',
-        'icon': Icons.directions_car,
-        'route': '/dashboard',
-      },
-    ];
-  }
-
-  List<Map<String, dynamic>> getMasterMenuItems() {
-    final items = <Map<String, dynamic>>[];
-
-    if (userRole == 'Super Admin') {
-      items.addAll([
-        {
-          'title': 'Create Company',
-          'icon': Icons.business,
-          'route': '/master/create-company',
-        },
-        {
-          'title': 'Users',
-          'icon': Icons.people,
-          'route': '/master/create-user',
-        },
-        {
-          'title': 'Vehicle Make',
-          'icon': Icons.directions_car,
-          'route': '/master/vehicle-make',
-        },
-        {
-          'title': 'Vehicle Colours',
-          'icon': Icons.palette,
-          'route': '/master/vehicle-colours',
-        },
-        {
-          'title': 'Parking List',
-          'icon': Icons.list_alt,
-          'route': '/master/parking-list',
-        },
-        {
-          'title': 'Parking Charges',
-          'icon': Icons.attach_money,
-          'route': '/master/parking-charges',
-        },
-        {
-          'title': 'Shops',
-          'icon': Icons.store,
-          'route': '/master/shops',
-        },
-        {
-          'title': 'Switch Location',
-          'icon': Icons.swap_horiz,
-          'route': '/master/switch-location',
-        },
-        {
-          'title': 'Complaints',
-          'icon': Icons.feedback_outlined,
-          'route': '/master/complaints',
-        },
-      ]);
-    }
-
-    if (userRole == 'Location Admin') {
-      items.addAll([
-        {
-          'title': 'Company Details',
-          'icon': Icons.info,
-          'route': '/master/company-details',
-        },
-        {
-          'title': 'Ticket Details',
-          'icon': Icons.confirmation_number,
-          'route': '/master/ticket-details',
-        },
-        {
-          'title': 'Parking Charges',
-          'icon': Icons.attach_money,
-          'route': '/master/parking-charges',
-        },
-        {
-          'title': 'Shops',
-          'icon': Icons.store,
-          'route': '/master/shops',
-        },
-        {
-          'title': 'Complaints',
-          'icon': Icons.feedback_outlined,
-          'route': '/master/complaints',
-        },
-      ]);
-    }
-
-    if (userRole == 'Driver') {
-      items.addAll([
-        {
-          'title': 'My Activity',
-          'icon': Icons.bar_chart_outlined,
-          'route': '/driver/activity',
-        },
-        {
-          'title': 'Privacy & Policy',
-          'icon': Icons.privacy_tip_outlined,
-          'route': '/privacy-policy',
-        },
-      ]);
-    }
-
-    // Remove duplicates
-    final uniqueItems = <Map<String, dynamic>>[];
-    for (var item in items) {
-      if (!uniqueItems.any((element) => element['route'] == item['route'])) {
-        uniqueItems.add(item);
-      }
-    }
-
-    return uniqueItems;
+    await AuthenticationService().logoutApi();
+    if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 
   @override
-
   Widget build(BuildContext context) {
-    final mainMenuItems = getMainMenuItems();
-    final masterMenuItems = getMasterMenuItems();
-    final hasMasterMenu = masterMenuItems.isNotEmpty;
-
+    final currentRoute = ModalRoute.of(context)?.settings.name;
     return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) async {
-      if (didPop) return;
-      await _handleLogout();
-    },
-    child: Scaffold(
-    appBar: AppBar(
-    title: Text(widget.title ?? 'Valet Fusion'),
-    actions: [
-    if (widget.actions != null) ...widget.actions!,
-    IconButton(
-    icon: const Icon(Icons.logout),
-    onPressed: _handleLogout,
-    tooltip: 'Logout',
-    ),
-    ],
-    ),
-    drawer: Drawer(
-        child: SafeArea(
-          child: Column(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _logout();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // User Profile Section
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      roleColor.withOpacity(0.8),
-                      roleColor,
+              Text(widget.title ?? 'ValetFusion'),
+              if (currentLocation.isNotEmpty)
+                Text(currentLocation, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11.5)),
+            ],
+          ),
+          actions: [if (widget.actions != null) ...widget.actions!],
+        ),
+        drawer: Drawer(
+          backgroundColor: AppColors.inkPage,
+          child: SafeArea(
+            child: Column(
+              children: [
+                _DrawerHeader(userName: userName, roleLabel: roleLabel, location: currentLocation),
+                const Divider(color: AppColors.inkLine),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    children: [
+                      ...mainMenu.map((m) => _item(m, currentRoute)),
+                      if (managementMenu.isNotEmpty) ...[
+                        _sectionLabel('Management'),
+                        ...managementMenu.map((m) => _item(m, currentRoute)),
+                      ],
+                      _sectionLabel('Help'),
+                      _item(const _MenuEntry('Privacy & policy', Icons.privacy_tip_outlined, '/privacy-policy'), currentRoute),
                     ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
                   ),
                 ),
+                const Divider(color: AppColors.inkLine),
+                ListTile(
+                  leading: const Icon(Icons.logout_rounded, color: AppColors.inkTextSecondary),
+                  title: const Text('Sign out', style: TextStyle(color: AppColors.inkText, fontWeight: FontWeight.w600)),
+                  onTap: _logout,
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Row(
+                    children: [
+                      Text('ValetFusion $version', style: const TextStyle(color: AppColors.inkTextSecondary, fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        body: widget.child,
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 14, 16, 4),
+        child: Text(text.toUpperCase(),
+            style: const TextStyle(color: AppColors.inkTextSecondary, fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.4)),
+      );
+
+  Widget _item(_MenuEntry m, String? currentRoute) {
+    final active = currentRoute == m.route;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+      child: ListTile(
+        dense: true,
+        selected: active,
+        selectedTileColor: AppColors.inkCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: active ? const BorderSide(color: AppColors.inkLine) : BorderSide.none,
+        ),
+        leading: Icon(m.icon, size: 20, color: active ? AppColors.brassOnDark : AppColors.inkTextSecondary),
+        title: Text(m.title,
+            style: TextStyle(color: active ? AppColors.inkText : AppColors.inkTextBody, fontWeight: active ? FontWeight.w700 : FontWeight.w500, fontSize: 14)),
+        onTap: () {
+          Navigator.pop(context);
+          if (!active) Navigator.pushNamed(context, m.route);
+        },
+      ),
+    );
+  }
+}
+
+class _DrawerHeader extends StatelessWidget {
+  final String userName;
+  final String roleLabel;
+  final String location;
+  const _DrawerHeader({required this.userName, required this.roleLabel, required this.location});
+
+  @override
+  Widget build(BuildContext context) {
+    final initials = userName.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).map((p) => p[0].toUpperCase()).take(2).join();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ValueListenableBuilder<String?>(
+            valueListenable: BrandController.logoUrl,
+            builder: (context, logo, _) => logo != null
+                ? Container(
+                    height: 40,
+                    alignment: Alignment.centerLeft,
+                    child: Image.network(logo, height: 40, fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Image.asset('assets/icon/app_icon.png', width: 36, height: 36)),
+                  )
+                : Row(children: [
+                    ClipRRect(borderRadius: BorderRadius.circular(9), child: Image.asset('assets/icon/app_icon.png', width: 34, height: 34)),
+                    const SizedBox(width: 10),
+                    const Text.rich(TextSpan(children: [
+                      TextSpan(text: 'Valet', style: TextStyle(color: AppColors.inkText)),
+                      TextSpan(text: 'Fusion', style: TextStyle(color: AppColors.brassOnDark)),
+                    ]), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.4)),
+                  ]),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.brassOnDark,
+                child: Text(initials.isEmpty ? 'V' : initials, style: const TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800, fontSize: 14)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Avatar
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundColor: Colors.white,
-                      child: Text(
-                        userName.isNotEmpty ? userName[0].toUpperCase() : 'V',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: roleColor,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // User Info
-                    Text(
-                      userName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    // Role Badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        userRole,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-
-                    if (currentLocation.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              currentLocation,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              // Menu Items
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 8),
-
-                      // Main Menu
-                      if (mainMenuItems.isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          child: Text(
-                            'MAIN MENU',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade600,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ),
-                        ...mainMenuItems.map((item) => _buildDrawerItem(item)),
-                      ],
-
-                      // Master Menu
-                      if (hasMasterMenu) ...[
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          child: Text(
-                            userRole == 'Super Admin' ? 'MASTER' : 'MANAGEMENT',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade600,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ),
-                        ...masterMenuItems.map((item) => _buildDrawerItem(item)),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-
-              // App Info
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: Colors.grey.shade300),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Valet Fusion v1.0.0',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '© 2024 All rights reserved',
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontSize: 10,
-                      ),
-                    ),
+                    Text(userName, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: AppColors.inkText, fontSize: 15, fontWeight: FontWeight.w700)),
+                    Text(roleLabel, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: AppColors.inkTextSecondary, fontSize: 12)),
                   ],
                 ),
               ),
             ],
           ),
-        ),
+          if (location.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(children: [
+              const Icon(Icons.location_on_rounded, size: 15, color: AppColors.brassOnDark),
+              const SizedBox(width: 6),
+              Expanded(child: Text(location, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.inkTextBody, fontSize: 13))),
+            ]),
+          ],
+        ],
       ),
-      body: widget.child,
-    ),
-    );
-  }
-
-  Widget _buildDrawerItem(Map<String, dynamic> item) {
-    return ListTile(
-      leading: Icon(
-        item['icon'] as IconData,
-        color: Colors.grey.shade700,
-      ),
-      title: Text(
-        item['title'] as String,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: Colors.grey.shade800,
-        ),
-      ),
-      onTap: () {
-        Navigator.pop(context); // Close drawer
-        Navigator.pushNamed(context, item['route'] as String);
-      },
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
     );
   }
 }

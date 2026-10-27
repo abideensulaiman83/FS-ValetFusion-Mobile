@@ -14,6 +14,7 @@ import 'privacy_policy_page.dart';
 import 'package:flutter/services.dart';
 import '../components/confirm_dialog.dart';
 import '../l10n/app_strings.dart';
+import '../theme/app_theme.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
@@ -50,17 +51,11 @@ class LandingPage extends StatelessWidget {
     await _handleExit(context);
     },
     child: Scaffold(
-    backgroundColor: const Color(0xFF0B1220),
+    backgroundColor: AppColors.ink,
     body: Container(
     width: double.infinity,
     height: double.infinity,
-    decoration: const BoxDecoration(
-    gradient: LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0xFF0B1220), Color(0xFF141F38)],
-    ),
-    ),
+    color: AppColors.ink,
     child: SafeArea(
     child: SingleChildScrollView(
     padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
@@ -69,21 +64,16 @@ class LandingPage extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [Color(0xFF2563EB), Color(0xFF059669)]),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(Icons.local_parking_rounded, color: Colors.white, size: 26),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset('assets/icon/app_icon.png', width: 44, height: 44, fit: BoxFit.cover),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 12),
                       const Expanded(
-                        child: Text(
-                          'VALET FUSION',
-                          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: 1.2),
-                        ),
+                        child: Text.rich(TextSpan(children: [
+                          TextSpan(text: 'Valet', style: TextStyle(color: AppColors.inkText)),
+                          TextSpan(text: 'Fusion', style: TextStyle(color: AppColors.brassOnDark)),
+                        ]), style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
                       ),
                       const LanguageToggle(color: Colors.white),
                     ],
@@ -104,7 +94,7 @@ class LandingPage extends StatelessWidget {
                           title: tr(context, 'Valet Team'),
                           subtitle: tr(context, 'Drivers, key control & lobby desk'),
                           icon: Icons.directions_car_filled_rounded,
-                          color: const Color(0xFF059669),
+                          color: AppColors.brassOnDark,
                           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginPage())),
                         ),
                       ),
@@ -114,7 +104,7 @@ class LandingPage extends StatelessWidget {
                           title: tr(context, 'Customer'),
                           subtitle: tr(context, 'Track & request my car'),
                           icon: Icons.person_rounded,
-                          color: const Color(0xFF2563EB),
+                          color: AppColors.liveOnDark,
                           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CustomerAuthPage())),
                         ),
                       ),
@@ -134,7 +124,7 @@ class LandingPage extends StatelessWidget {
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFF7C3AED).withValues(alpha: 0.4)),
+                          border: Border.all(color: AppColors.inkLineStrong),
                         ),
                         child: Row(
                           children: [
@@ -142,10 +132,10 @@ class LandingPage extends StatelessWidget {
                               width: 52,
                               height: 52,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF7C3AED).withValues(alpha: 0.18),
-                                borderRadius: BorderRadius.circular(14),
+                                color: AppColors.inkCard2,
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF7C3AED), size: 28),
+                              child: const Icon(Icons.admin_panel_settings_rounded, color: AppColors.inkText, size: 28),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -218,25 +208,21 @@ class _RoleTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [color.withValues(alpha: 0.22), color.withValues(alpha: 0.06)],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withValues(alpha: 0.4)),
+            color: AppColors.inkCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.inkLine),
           ),
           child: Column(
             children: [
               Container(
                 width: 60,
                 height: 60,
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.2), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(14)),
                 child: Icon(icon, size: 30, color: color),
               ),
               const SizedBox(height: 16),

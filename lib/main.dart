@@ -81,11 +81,17 @@ class MyApp extends StatelessWidget {
     // mirror them with English text.
     return ValueListenableBuilder<Locale?>(
       valueListenable: LocaleController.locale,
-      builder: (context, locale, _) => MaterialApp(
+      builder: (context, locale, _) => ValueListenableBuilder<Color?>(
+        valueListenable: BrandController.accent,
+        builder: (context, accent, _) => MaterialApp(
       debugShowCheckedModeBanner: false,
       navigatorKey: NotificationService.navigatorKey,
-      title: 'Valet Fusion',
-      theme: AppTheme.light,
+      title: 'ValetFusion',
+      // Control-room theme (plan §2.8 / C5): follows the phone's light/dark setting; the venue's
+      // accent colour replaces brass after login (plan B2).
+      theme: AppTheme.light(accent: accent),
+      darkTheme: AppTheme.dark(accent: accent),
+      themeMode: ThemeMode.system,
       locale: locale ?? const Locale('en'),
       supportedLocales: const [Locale('en'), Locale('ar')],
       localizationsDelegates: const [
@@ -119,6 +125,7 @@ class MyApp extends StatelessWidget {
         // '/master/company-details': (context) => const CompanyDetailsPage(),
         // '/master/ticket-details': (context) => const TicketDetailsPage(),
       },
+      ),
       ),
     );
   }

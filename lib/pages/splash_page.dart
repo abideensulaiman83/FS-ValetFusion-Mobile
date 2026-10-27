@@ -13,6 +13,7 @@ import '../services/app_update_service.dart';
 import '../services/notification_service.dart';
 import '../services/authentication_service.dart';
 import '../services/secure_store.dart';
+import '../theme/app_theme.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -68,14 +69,21 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
     final token = await SecureStore.token();
     final userStr = prefs.getString(AuthenticationService.userKey);
     if (token == null || userStr == null) return '/';
-    if (_isJwtExpired(token)) {
+    // Access tokens last 30 minutes (plan B5): SecureStore.token() already renewed it if it could.
+    // Only give up when it is expired AND there is no refresh token left to renew with.
+    if (_isJwtExpired(token) && (await SecureStore.refreshToken()) == null) {
       await SecureStore.clearToken();
       await prefs.remove(AuthenticationService.userKey);
       return '/';
     }
 
     try {
-      final roles = List<String>.from(jsonDecode(userStr)['roles'] ?? []);
+      final userJson = jsonDecode(userStr) as Map<String, dynamic>;
+      final roles = List<String>.from(userJson['roles'] ?? []);
+      if (!roles.contains('SUPER_ADMIN')) {
+        BrandController.apply(accentHex: userJson['accentColor'] as String?,
+            logo: userJson['logoUrl'] == null ? null : '${AuthenticationService.apiBaseUrl}${userJson['logoUrl']}');
+      }
       // Push alerts go to whoever is signed in on this phone - refresh the token on every start.
       NotificationService.instance.registerDevice();
       // Driver/Key Controller/Lobby/Valet Staff share the desk; Security goes to Parking Setup.
@@ -114,7 +122,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B1220),
+      backgroundColor: AppColors.ink,
       body: Center(
         child: AnimatedBuilder(
           animation: _controller,
@@ -126,17 +134,9 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                   opacity: _logoOpacity.value,
                   child: Transform.scale(
                     scale: _logoScale.value,
-                    child: Container(
-                      width: 96,
-                      height: 96,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [Color(0xFF2563EB), Color(0xFF059669)]),
-                        borderRadius: BorderRadius.circular(28),
-                        boxShadow: [
-                          BoxShadow(color: const Color(0xFF2563EB).withValues(alpha: 0.35), blurRadius: 30, spreadRadius: 4),
-                        ],
-                      ),
-                      child: const Icon(Icons.local_parking_rounded, color: Colors.white, size: 52),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset('assets/icon/app_icon.png', width: 96, height: 96, fit: BoxFit.cover),
                     ),
                   ),
                 ),
@@ -147,14 +147,14 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                     opacity: _textOpacity.value,
                     child: const Column(
                       children: [
-                        Text(
-                          'VALET FUSION',
-                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 1.5),
-                        ),
+                        Text.rich(TextSpan(children: [
+                          TextSpan(text: 'Valet', style: TextStyle(color: AppColors.inkText)),
+                          TextSpan(text: 'Fusion', style: TextStyle(color: AppColors.brassOnDark)),
+                        ]), style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
                         SizedBox(height: 6),
                         Text(
-                          'Smarter valet, from arrival to delivery',
-                          style: TextStyle(color: Colors.white54, fontSize: 12.5),
+                          'Valet operations, under control',
+                          style: TextStyle(color: AppColors.inkTextSecondary, fontSize: 12.5),
                         ),
                       ],
                     ),
