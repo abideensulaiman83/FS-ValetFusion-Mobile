@@ -887,6 +887,25 @@ class ValetService {
     }
   }
 
+  /// Desk mistake recovery: moves the ticket one step back (Requested -> Parked, On the way ->
+  /// Requested, At lobby -> On the way, Delivered -> At lobby). Returns the server's message.
+  Future<String> undoLastStep(int parkingVehicleId, String reason) async {
+    final headers = await _headers();
+    final response = await http
+        .post(
+          Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/undo'),
+          headers: headers,
+          body: jsonEncode({'reason': reason}),
+        )
+        .timeout(timeout);
+
+    if (response.statusCode != 200) {
+      throw ValetApiException(_errorMessage(response));
+    }
+    final body = jsonDecode(response.body);
+    return (body is Map && body['message'] is String) ? body['message'] as String : 'Step undone';
+  }
+
   Future<List<Shop>> fetchShops() async {
     final headers = await _headers();
     final response =

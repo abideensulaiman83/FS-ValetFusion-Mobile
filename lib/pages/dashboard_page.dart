@@ -19,6 +19,7 @@ import '../components/guest_tracking_qr_sheet.dart';
 import '../components/layout/app_layout.dart';
 import '../components/live_tracking_card.dart';
 import '../components/slot_picker.dart';
+import '../components/undo_step_dialog.dart';
 import '../components/wash_requests_section.dart';
 import '../services/authentication_service.dart';
 import '../services/valet_service.dart';
@@ -136,6 +137,18 @@ class _DashboardPageState extends State<DashboardPage> {
       content: Text(message),
       backgroundColor: error ? AppColors.danger : AppColors.success,
     ));
+  }
+
+  // Undo last step (mistaken request / dispatch / arrival / handover) - see undo_step_dialog.dart.
+  Future<void> _undoStep(TicketStatusResponse data, String status) async {
+    if (data.parkingVehicleId == null) return;
+    final message = await showUndoStepDialog(context,
+        parkingVehicleId: data.parkingVehicleId!, ticketNo: data.ticketNo, plateNo: data.plateNo, status: status);
+    if (message == null) return;
+    _showSnack(message);
+    _ticketNoController.clear();
+    _fetchDashboard();
+    _ticketNoFocusNode.requestFocus();
   }
 
   void _resetEntryForm() {
@@ -614,6 +627,12 @@ class _DashboardPageState extends State<DashboardPage> {
               ],
             ),
             actions: [
+              TextButton.icon(
+                onPressed: dialogLoading ? null : () { Navigator.of(dialogContext).pop(); _undoStep(data, 'REQUESTED'); },
+                icon: const Icon(Icons.undo, size: 18),
+                label: const Text('Undo request'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+              ),
               TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
               ElevatedButton(
                 onPressed: dialogLoading ? null : onDispatch,
@@ -680,6 +699,12 @@ class _DashboardPageState extends State<DashboardPage> {
               ],
             ),
             actions: [
+              TextButton.icon(
+                onPressed: dialogLoading ? null : () { Navigator.of(dialogContext).pop(); _undoStep(data, 'ONTHEWAY'); },
+                icon: const Icon(Icons.undo, size: 18),
+                label: const Text('Undo dispatch'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+              ),
               TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
               ElevatedButton(
                 onPressed: dialogLoading ? null : onArrived,
@@ -708,7 +733,19 @@ class _DashboardPageState extends State<DashboardPage> {
             try {
               await _valetService.deliverVehicle(data.parkingVehicleId!);
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-              _showSnack('Vehicle delivered successfully!');
+              if (mounted) {
+                // this.context: the page - the dialog's own context is gone after the pop above.
+                ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(
+                  content: Text('Ticket ${data.ticketNo} delivered'),
+                  backgroundColor: AppColors.success,
+                  duration: const Duration(seconds: 12),
+                  action: SnackBarAction(
+                    label: 'UNDO',
+                    textColor: AppColors.ink,
+                    onPressed: () => _undoStep(data, 'DELIVERED'),
+                  ),
+                ));
+              }
               _ticketNoController.clear();
               _fetchDashboard();
               _ticketNoFocusNode.requestFocus();
@@ -738,6 +775,12 @@ class _DashboardPageState extends State<DashboardPage> {
               ],
             ),
             actions: [
+              TextButton.icon(
+                onPressed: dialogLoading ? null : () { Navigator.of(dialogContext).pop(); _undoStep(data, 'ARRIVED'); },
+                icon: const Icon(Icons.undo, size: 18),
+                label: const Text('Undo arrival'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+              ),
               TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
               ElevatedButton(
                 onPressed: dialogLoading ? null : onDelivered,
