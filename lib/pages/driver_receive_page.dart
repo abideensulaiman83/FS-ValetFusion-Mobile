@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../components/barcode_scanner_page.dart';
 import '../components/condition_photos.dart';
+import '../components/damage/damage_marking_card.dart';
 import '../components/pending_sync_banner.dart';
 import '../services/offline_queue.dart';
 import '../components/guest_tracking_qr_sheet.dart';
@@ -489,6 +490,8 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             if (data.parkingVehicleId != null) ...[
               const SizedBox(height: 16),
               ConditionPhotosCard(key: _photosKey, parkingVehicleId: data.parkingVehicleId!),
+              const SizedBox(height: 16),
+              DamageMarkingCard(parkingVehicleId: data.parkingVehicleId!),
             ],
           ],
           if (alreadyParked) ...[

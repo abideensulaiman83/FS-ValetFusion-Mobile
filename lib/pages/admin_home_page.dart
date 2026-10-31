@@ -5,8 +5,12 @@
 // navigation at all. This is a real console: live Insights (today's operational snapshot),
 // Operations (the modules an admin acts on day to day), and Reports - not a flat "Master" list.
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../components/confirm_dialog.dart';
+import '../components/notification_bell.dart';
+import '../components/premium.dart';
 import '../services/authentication_service.dart';
+import '../services/plan_service.dart';
 import '../services/valet_service.dart';
 import 'dashboard_page.dart';
 import 'admin_complaints_page.dart';
@@ -73,6 +77,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
         appBar: AppBar(
           title: const Text('Admin Console'),
           actions: [
+            const NotificationBell(),
             IconButton(onPressed: _logout, icon: const Icon(Icons.logout), tooltip: 'Logout'),
           ],
         ),
@@ -101,6 +106,17 @@ class _AdminHomePageState extends State<AdminHomePage> {
                     title: 'Operational Report',
                     subtitle: 'Today\'s throughput, inventory & payment mix',
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DriverActivityPage())),
+                  ),
+                  const SizedBox(height: 10),
+                  // Premium: the Report Builder and exports live in the web console.
+                  _moduleTile(
+                    icon: Icons.insights_rounded,
+                    color: AppColors.brass,
+                    title: 'Advanced reports',
+                    premiumFeature: PremiumFeature.advancedReports,
+                    subtitle: 'Report Builder, Excel/PDF exports - opens the web console',
+                    onTap: () => guardPremium(context, PremiumFeature.advancedReports,
+                        () => launchUrl(Uri.parse(kWebConsoleUrl), mode: LaunchMode.externalApplication)),
                   ),
                   const SizedBox(height: 24),
                   _sectionLabel('More'),
@@ -234,7 +250,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
     );
   }
 
-  Widget _moduleTile({required IconData icon, required Color color, required String title, String? subtitle, required VoidCallback onTap}) {
+  Widget _moduleTile({required IconData icon, required Color color, required String title, String? subtitle, String? premiumFeature, required VoidCallback onTap}) {
     return Material(
       color: AppColors.card,
       borderRadius: BorderRadius.circular(14),
@@ -256,7 +272,13 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    Row(children: [
+                      Flexible(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))),
+                      if (premiumFeature != null) ...[
+                        const SizedBox(width: 6),
+                        PremiumStar(featureKey: premiumFeature, size: 15),
+                      ],
+                    ]),
                     if (subtitle != null) Text(subtitle, style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
                   ],
                 ),

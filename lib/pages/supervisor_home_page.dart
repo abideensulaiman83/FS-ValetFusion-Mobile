@@ -5,6 +5,7 @@
 // on site / left site - and "Check out", which asks for a short checklist and notes. Recent visits
 // underneath. SupervisorTracker keeps reporting the position in the background meanwhile.
 import 'package:flutter/material.dart';
+import '../components/notification_bell.dart';
 import '../services/authentication_service.dart';
 import '../services/supervisor_service.dart';
 import '../services/supervisor_tracker.dart';
@@ -117,6 +118,7 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> {
       appBar: AppBar(
         title: const Text('Supervisor'),
         actions: [
+          const NotificationBell(),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _busy ? null : _load),
           IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
         ],

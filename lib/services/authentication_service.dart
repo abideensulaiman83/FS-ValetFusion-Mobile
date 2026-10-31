@@ -7,6 +7,8 @@ import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'inbox_service.dart';
+import 'plan_service.dart';
 import 'secure_store.dart';
 import '../theme/app_theme.dart';
 
@@ -698,6 +700,8 @@ class AuthenticationService {
 
   Future<void> clearStorage() async {
     BrandController.clear();
+    PlanController.instance.clear();
+    InboxController.instance.clear();
     final prefs = await SharedPreferences.getInstance();
     await SecureStore.clearToken();
     await prefs.remove(userKey);
@@ -788,6 +792,8 @@ class AuthenticationService {
     } else {
       BrandController.apply(accentHex: user.accentColor, logo: user.logoUrl == null ? null : '$apiBaseUrl${user.logoUrl}');
     }
+    // The company's plan drives the Premium stars and the drawer's plan line (staff only).
+    if (!user.roles.contains('CUSTOMER')) PlanController.instance.load(force: true);
 
     if (location != null) {
       await prefs.setString(locationKey, jsonEncode(location.toJson()));

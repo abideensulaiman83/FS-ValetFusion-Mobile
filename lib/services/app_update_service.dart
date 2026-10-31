@@ -2,8 +2,12 @@
 //
 // Start-up version check against /api/public/app-config. Below the server's minimum version the
 // app is blocked with "Update required" (after a breaking API change old builds would just fail);
-// below the latest it offers the update once per version. Any failure - offline, server down,
-// slow network - lets the app carry on: a version check must never lock people out.
+// below the latest it offers the update once per version (dialog at start-up) and keeps a soft
+// "Update available" banner on the staff screens (AppUpdateBanner) until dismissed. The check runs
+// again when the app comes back to the front (at most every 30 min), so a long-running session is
+// also blocked once the minimum is raised. Without a store link, Android falls back to the
+// APK download (/downloads/ValetFusion-latest.apk). Any failure - offline, server down, slow
+// network - lets the app carry on: a version check must never lock people out.
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
@@ -11,7 +15,10 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../config/environment.dart';
+import '../theme/app_theme.dart';
 import 'authentication_service.dart';
+import 'notification_service.dart';
 
 enum UpdateStatus { upToDate, optional, required }
 
@@ -26,7 +33,40 @@ class UpdateInfo {
 class AppUpdateService {
   static const String _dismissedKey = 'vf_update_dismissed_code';
 
+  /// Android builds are also handed out as an APK until the store listing is live.
+  static const String apkDownloadUrl = '${Environment.baseUrl}/downloads/ValetFusion-latest.apk';
+
+  /// Result of the last successful check - drives the "Update available" banner.
+  static final ValueNotifier<UpdateInfo?> latest = ValueNotifier<UpdateInfo?>(null);
+
+  /// The banner was closed for this run of the app.
+  static final ValueNotifier<bool> bannerDismissed = ValueNotifier<bool>(false);
+
+  static DateTime? _lastCheck;
+  static bool _blocking = false;
+
   static Future<UpdateInfo> check() async {
+    final info = await _check();
+    // A failed check reads as "up to date" - never let it hide an update already found (the
+    // installed build cannot change while the app runs).
+    if (info.status != UpdateStatus.upToDate || latest.value == null) latest.value = info;
+    _lastCheck = DateTime.now();
+    return info;
+  }
+
+  /// On resume: re-check (throttled) and block the app if this build has fallen below the minimum.
+  static Future<void> recheck() async {
+    if (_blocking) return;
+    if (_lastCheck != null && DateTime.now().difference(_lastCheck!) < const Duration(minutes: 30)) return;
+    final info = await check();
+    if (info.status != UpdateStatus.required) return;
+    final nav = NotificationService.navigatorKey.currentState;
+    if (nav == null) return;
+    _blocking = true;
+    nav.pushAndRemoveUntil(MaterialPageRoute(builder: (_) => UpdateRequiredPage(update: info)), (_) => false);
+  }
+
+  static Future<UpdateInfo> _check() async {
     try {
       final info = await PackageInfo.fromPlatform();
       final installed = int.tryParse(info.buildNumber) ?? 0;
@@ -37,7 +77,8 @@ class AppUpdateService {
       final cfg = jsonDecode(res.body) as Map<String, dynamic>;
       final min = (cfg['minVersionCode'] as num?)?.toInt() ?? 0;
       final latest = (cfg['latestVersionCode'] as num?)?.toInt() ?? 0;
-      final url = (Platform.isIOS ? cfg['iosStoreUrl'] : cfg['androidStoreUrl']) as String? ?? '';
+      var url = (Platform.isIOS ? cfg['iosStoreUrl'] : cfg['androidStoreUrl']) as String? ?? '';
+      if (url.trim().isEmpty && Platform.isAndroid) url = apkDownloadUrl;
       final name = cfg['latestVersionName'] as String? ?? '';
       if (installed < min) return UpdateInfo(UpdateStatus.required, name, latest, url);
       if (installed < latest) return UpdateInfo(UpdateStatus.optional, name, latest, url);
@@ -84,7 +125,7 @@ class UpdateRequiredPage extends StatelessWidget {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0B1220),
+        backgroundColor: AppColors.ink,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(28),
@@ -92,30 +133,86 @@ class UpdateRequiredPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.system_update, color: Colors.white, size: 64),
+                const Icon(Icons.system_update, color: AppColors.brassOnDark, size: 64),
                 const SizedBox(height: 20),
                 const Text('Update required',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                    style: TextStyle(color: AppColors.inkText, fontSize: 22, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 10),
                 Text(
                   'This version of Valet Fusion is no longer supported. Please install the latest version'
                   '${update.latestVersionName.isEmpty ? '' : ' (${update.latestVersionName})'} to continue.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white70, fontSize: 14.5, height: 1.4),
+                  style: const TextStyle(color: AppColors.inkTextSecondary, fontSize: 14.5, height: 1.4),
                 ),
                 const SizedBox(height: 28),
                 if (update.storeUrl.isNotEmpty)
                   FilledButton.icon(
                     onPressed: () => AppUpdateService.openStore(update.storeUrl),
                     icon: const Icon(Icons.download),
-                    label: const Text('Update now'),
-                    style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
-                  ),
+                    label: Text(update.storeUrl.endsWith('.apk') ? 'Download update' : 'Update now'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.brassOnDark,
+                      foregroundColor: AppColors.ink,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  )
+                else
+                  const Text('Ask your manager for the latest ValetFusion app.',
+                      textAlign: TextAlign.center, style: TextStyle(color: AppColors.inkTextSecondary)),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Soft "Update available" strip for the staff screens (AppLayout): shown while a newer build
+/// than this one is published, until closed for this run of the app.
+class AppUpdateBanner extends StatelessWidget {
+  const AppUpdateBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: AppUpdateService.bannerDismissed,
+      builder: (context, dismissed, _) => ValueListenableBuilder<UpdateInfo?>(
+        valueListenable: AppUpdateService.latest,
+        builder: (context, update, _) {
+          if (dismissed || update == null || update.status != UpdateStatus.optional || update.storeUrl.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          final theme = Theme.of(context);
+          return Material(
+            color: AppColors.infoSoft,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 6, 4, 6),
+              child: Row(children: [
+                const Icon(Icons.system_update_rounded, size: 20, color: AppColors.live),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Update available${update.latestVersionName.isEmpty ? '' : ' - ${update.latestVersionName}'}',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => AppUpdateService.openStore(update.storeUrl),
+                  style: TextButton.styleFrom(foregroundColor: AppColors.live),
+                  child: Text(update.storeUrl.endsWith('.apk') ? 'Download' : 'Update'),
+                ),
+                IconButton(
+                  tooltip: 'Later',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => AppUpdateService.bannerDismissed.value = true,
+                  icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.textSecondary),
+                ),
+              ]),
+            ),
+          );
+        },
       ),
     );
   }

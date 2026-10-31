@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'authentication_service.dart';
 import 'secure_store.dart';
-import 'valet_service.dart' show ValetApiException;
+import 'plan_service.dart' show apiErrorFrom;
 
 class SupervisorSite {
   final int id;
@@ -123,24 +123,15 @@ class SupervisorService {
     };
   }
 
-  String _error(http.Response r) {
-    try {
-      final d = jsonDecode(r.body);
-      return d['message'] ?? d['error'] ?? 'Request failed (${r.statusCode})';
-    } catch (_) {
-      return 'Request failed (${r.statusCode})';
-    }
-  }
-
   Future<dynamic> _get(String path) async {
     final r = await http.get(Uri.parse('$_base$path'), headers: await _headers()).timeout(_timeout);
-    if (r.statusCode != 200) throw ValetApiException(_error(r));
+    if (r.statusCode != 200) throw apiErrorFrom(r);
     return jsonDecode(r.body);
   }
 
   Future<dynamic> _post(String path, Map<String, dynamic> body) async {
     final r = await http.post(Uri.parse('$_base$path'), headers: await _headers(), body: jsonEncode(body)).timeout(_timeout);
-    if (r.statusCode != 200) throw ValetApiException(_error(r));
+    if (r.statusCode != 200) throw apiErrorFrom(r);
     return jsonDecode(r.body);
   }
 

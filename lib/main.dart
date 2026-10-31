@@ -18,7 +18,11 @@ import 'pages/splash_page.dart';
 import 'pages/customer_home_page.dart';
 import 'pages/supervisor_home_page.dart';
 import 'pages/parking_setup_page.dart';
+import 'pages/notifications_inbox_page.dart';
+import 'components/premium.dart';
+import 'services/app_update_service.dart';
 import 'services/notification_service.dart';
+import 'services/plan_service.dart';
 import 'services/offline_queue.dart';
 import 'theme/app_theme.dart';
 
@@ -65,7 +69,22 @@ Future<void> main() async {
     SystemUiOverlay.bottom,
   ]);
 
+  // Any call refused with PLAN_REQUIRED shows the "Part of Premium" sheet, wherever it came from.
+  PlanController.onBlocked = presentPlanRequired;
+  WidgetsBinding.instance.addObserver(_ResumeChecks());
+
   runApp(const MyApp());
+}
+
+/// When the app comes back to the front: refresh the plan (a trial may have ended) and re-check
+/// the app version (a long-running session is blocked too once the minimum is raised).
+class _ResumeChecks with WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (PlanController.instance.plan.value != null) PlanController.instance.load();
+    AppUpdateService.recheck();
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -112,6 +131,7 @@ class MyApp extends StatelessWidget {
         '/supervisor/home': (context) => const SupervisorHomePage(),
         '/security/parking': (context) => const ParkingSetupPage(isHome: true),
         '/privacy-policy': (context) => const PrivacyPolicyPage(),
+        '/notifications': (context) => const NotificationsInboxPage(),
 
         // Users and companies are managed in the admin portal (plan §7.5); no app screens for them.
         // '/master/vehicle-make': (context) => const VehicleMakePage(),
