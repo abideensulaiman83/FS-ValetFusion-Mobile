@@ -7,6 +7,7 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' show MediaType;
 import 'authentication_service.dart';
+import 'plan_service.dart' show apiErrorFrom;
 import 'secure_store.dart';
 
 final Random _keyRandom = Random.secure();
@@ -535,7 +536,7 @@ class ValetService {
         .get(Uri.parse('$apiBaseUrl/master-locations/mine/tracking-code'), headers: headers)
         .timeout(timeout);
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     return TrackingCompany(data['code'] as String, data['name'] as String? ?? '');
@@ -591,7 +592,7 @@ class ValetService {
     final response = await http
         .get(Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/photos'), headers: headers)
         .timeout(timeout);
-    if (response.statusCode != 200) throw ValetApiException(_errorMessage(response));
+    if (response.statusCode != 200) throw apiErrorFrom(response);
     return (jsonDecode(response.body) as List).map((e) => VehiclePhotoInfo.fromJson(e as Map<String, dynamic>)).toList();
   }
 
@@ -603,7 +604,7 @@ class ValetService {
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
     final streamed = await request.send().timeout(const Duration(seconds: 60));
     final response = await http.Response.fromStream(streamed);
-    if (response.statusCode != 200) throw ValetApiException(_errorMessage(response));
+    if (response.statusCode != 200) throw apiErrorFrom(response);
     return VehiclePhotoInfo.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
@@ -615,15 +616,6 @@ class ValetService {
     }).timeout(timeout);
     if (response.statusCode != 200) throw ValetApiException('Photo unavailable');
     return response.bodyBytes;
-  }
-
-  String _errorMessage(http.Response response) {
-    try {
-      final data = jsonDecode(response.body);
-      return data['message'] ?? data['error'] ?? 'Request failed (${response.statusCode})';
-    } catch (_) {
-      return 'Request failed (${response.statusCode})';
-    }
   }
 
   Future<TicketStatusResponse> checkTicketStatus(String ticketNo, {String? companyCode}) async {
@@ -639,7 +631,7 @@ class ValetService {
     if (response.statusCode == 200) {
       return TicketStatusResponse.fromJson(jsonDecode(response.body));
     }
-    throw ValetApiException(_errorMessage(response));
+    throw apiErrorFrom(response);
   }
 
   /// Receive a new vehicle (RECEIVED). Mirrors ParkingVehicleRequestDTO.
@@ -676,7 +668,7 @@ class ValetService {
         .timeout(timeout);
 
     if (response.statusCode != 200 && response.statusCode != 201) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
   }
 
@@ -693,7 +685,7 @@ class ValetService {
         .timeout(timeout);
 
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
   }
 
@@ -722,7 +714,7 @@ class ValetService {
         .timeout(timeout);
 
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
     return _messageOr(response, 'Parked');
   }
@@ -743,7 +735,7 @@ class ValetService {
         .get(Uri.parse('$apiBaseUrl/v1/parking-layout/available-slots?limit=$limit'), headers: headers)
         .timeout(timeout);
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
     final list = jsonDecode(response.body) as List;
     return list.map((e) => AvailableSlot.fromJson(e as Map<String, dynamic>)).toList();
@@ -761,7 +753,7 @@ class ValetService {
         )
         .timeout(timeout);
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
     return _messageOr(response, 'Updated');
   }
@@ -781,7 +773,7 @@ class ValetService {
       final data = jsonDecode(response.body);
       return (data['calculatedCharge'] as num?)?.toDouble() ?? 0.0;
     }
-    throw ValetApiException(_errorMessage(response));
+    throw apiErrorFrom(response);
   }
 
   /// Mirrors VehicleRequestDTO.
@@ -811,7 +803,7 @@ class ValetService {
         .timeout(timeout);
 
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
   }
 
@@ -831,7 +823,7 @@ class ValetService {
         .timeout(timeout);
 
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
   }
 
@@ -843,7 +835,7 @@ class ValetService {
         .timeout(timeout);
 
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
     final list = jsonDecode(response.body) as List;
     return list.map((e) => DriverOption.fromJson(e as Map<String, dynamic>)).toList();
@@ -857,7 +849,7 @@ class ValetService {
         .timeout(timeout);
 
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
     final list = jsonDecode(response.body) as List;
     return list.map((e) => _fromDeliveryJson(e as Map<String, dynamic>)).toList();
@@ -905,7 +897,7 @@ class ValetService {
         .get(Uri.parse('$apiBaseUrl/v1/parking-vehicles/status/$status'), headers: headers)
         .timeout(timeout);
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
     final list = jsonDecode(response.body) as List;
     return list.map((e) => _fromDeliveryJson(e as Map<String, dynamic>)).toList();
@@ -924,7 +916,7 @@ class ValetService {
         .timeout(timeout);
 
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
   }
 
@@ -935,7 +927,7 @@ class ValetService {
         .post(Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/wash-request'), headers: headers)
         .timeout(timeout);
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
   }
 
@@ -946,7 +938,7 @@ class ValetService {
         .get(Uri.parse('$apiBaseUrl/v1/parking-vehicles/wash-requests'), headers: headers)
         .timeout(timeout);
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
     final list = jsonDecode(response.body) as List;
     return list.map((e) => _fromDeliveryJson(e as Map<String, dynamic>)).toList();
@@ -962,7 +954,7 @@ class ValetService {
         )
         .timeout(timeout);
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
   }
 
@@ -977,7 +969,7 @@ class ValetService {
         )
         .timeout(timeout);
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
   }
 
@@ -988,7 +980,7 @@ class ValetService {
         .get(Uri.parse('$apiBaseUrl/v1/parking-vehicles/my-history'), headers: headers)
         .timeout(timeout);
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
     final list = jsonDecode(response.body) as List;
     return list.map((e) => CustomerHistoryEntry.fromJson(e as Map<String, dynamic>)).toList();
@@ -1001,7 +993,7 @@ class ValetService {
         .get(Uri.parse('$apiBaseUrl/v1/parking-vehicles/my-activity'), headers: headers)
         .timeout(timeout);
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
     return DriverActivity.fromJson(jsonDecode(response.body));
   }
@@ -1016,7 +1008,7 @@ class ValetService {
 
     if (response.statusCode == 404) return null;
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
     return TicketStatusResponse.fromJson(jsonDecode(response.body));
   }
@@ -1029,7 +1021,7 @@ class ValetService {
         .timeout(timeout);
 
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
   }
 
@@ -1041,7 +1033,7 @@ class ValetService {
         .timeout(timeout);
 
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
   }
 
@@ -1058,7 +1050,7 @@ class ValetService {
         .timeout(timeout);
 
     if (response.statusCode != 200) {
-      throw ValetApiException(_errorMessage(response));
+      throw apiErrorFrom(response);
     }
     final body = jsonDecode(response.body);
     return (body is Map && body['message'] is String) ? body['message'] as String : 'Step undone';
@@ -1073,7 +1065,7 @@ class ValetService {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((e) => Shop.fromJson(e)).toList();
     }
-    throw ValetApiException(_errorMessage(response));
+    throw apiErrorFrom(response);
   }
 
   Future<List<ServiceType>> fetchServiceTypes() async {
@@ -1086,7 +1078,7 @@ class ValetService {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((e) => ServiceType.fromJson(e)).toList();
     }
-    throw ValetApiException(_errorMessage(response));
+    throw apiErrorFrom(response);
   }
 
   Future<DashboardDetails> fetchDashboardDetails() async {
@@ -1098,6 +1090,6 @@ class ValetService {
     if (response.statusCode == 200) {
       return DashboardDetails.fromJson(jsonDecode(response.body));
     }
-    throw ValetApiException(_errorMessage(response));
+    throw apiErrorFrom(response);
   }
 }

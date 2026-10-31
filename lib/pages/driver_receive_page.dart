@@ -16,6 +16,7 @@ import '../components/barcode_scanner_page.dart';
 import '../components/condition_photos.dart';
 import '../components/driver_shift_card.dart';
 import '../components/key_tag.dart';
+import '../components/damage/damage_marking_card.dart';
 import '../components/pending_sync_banner.dart';
 import 'find_my_car_page.dart';
 import '../services/offline_queue.dart';
@@ -562,6 +563,8 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             if (data.parkingVehicleId != null) ...[
               const SizedBox(height: 16),
               ConditionPhotosCard(key: _photosKey, parkingVehicleId: data.parkingVehicleId!),
+              const SizedBox(height: 16),
+              DamageMarkingCard(parkingVehicleId: data.parkingVehicleId!),
             ],
           ],
           if (alreadyParked) ...[

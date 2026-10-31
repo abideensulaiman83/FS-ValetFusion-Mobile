@@ -7,6 +7,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'authentication_service.dart';
+import 'plan_service.dart' show apiErrorFrom;
 import 'valet_service.dart' show ValetApiException;
 import 'secure_store.dart';
 
@@ -146,6 +147,7 @@ class ParkingLayoutService {
   }
 
   Never _fail(http.Response r) {
+    if (r.statusCode == 402) throw apiErrorFrom(r); // PLAN_REQUIRED -> Premium sheet
     String message = 'Request failed (${r.statusCode})';
     try {
       final data = jsonDecode(r.body);

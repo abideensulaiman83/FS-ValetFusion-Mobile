@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/app_update_service.dart';
 import '../services/notification_service.dart';
 import '../services/authentication_service.dart';
+import '../services/plan_service.dart';
 import '../services/secure_store.dart';
 import '../theme/app_theme.dart';
 
@@ -86,6 +87,8 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
       }
       // Push alerts go to whoever is signed in on this phone - refresh the token on every start.
       NotificationService.instance.registerDevice();
+      // Premium stars and the drawer's plan line (staff only; guests have no plan to show).
+      if (!roles.contains('CUSTOMER')) PlanController.instance.load(force: true);
       // Driver/Key Controller/Lobby/Valet Staff share the desk; Security goes to Parking Setup.
       return AuthenticationService.homeRouteFor(roles);
     } catch (_) {

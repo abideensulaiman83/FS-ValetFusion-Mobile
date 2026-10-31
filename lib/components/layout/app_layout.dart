@@ -1,14 +1,20 @@
 // lib/components/layout/app_layout.dart
 //
-// The signed-in shell for staff screens (plan §2.8 / C5): a flat app bar with the venue name,
-// and an ink drawer with the venue logo (or the ValetFusion mark), who is signed in, the menu
-// for their role, and sign-out. Only routes that exist in main.dart are listed.
+// The signed-in shell for staff screens (plan §2.8 / C5): a flat app bar with the venue name and
+// the notifications bell, the "Update available" banner when a newer build is out, and an ink
+// drawer with the venue logo (or the ValetFusion mark), who is signed in, the company's plan
+// (Free / Premium / Premium until ...), the menu for their role - Premium entries starred - and
+// sign-out. Only routes that exist in main.dart are listed.
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../confirm_dialog.dart';
+import '../notification_bell.dart';
+import '../premium.dart';
+import '../../services/app_update_service.dart';
 import '../../services/authentication_service.dart';
+import '../../services/plan_service.dart';
 import '../../theme/app_theme.dart';
 
 class AppLayout extends StatefulWidget {
@@ -26,7 +32,8 @@ class _MenuEntry {
   final String title;
   final IconData icon;
   final String route;
-  const _MenuEntry(this.title, this.icon, this.route);
+  final String? premiumFeature; // starred; opens the Premium sheet when the plan lacks it
+  const _MenuEntry(this.title, this.icon, this.route, {this.premiumFeature});
 }
 
 class _AppLayoutState extends State<AppLayout> {
@@ -39,6 +46,7 @@ class _AppLayoutState extends State<AppLayout> {
   void initState() {
     super.initState();
     _load();
+    PlanController.instance.load(); // no-op when loaded in the last few minutes
   }
 
   Future<void> _load() async {
@@ -81,7 +89,9 @@ class _AppLayoutState extends State<AppLayout> {
     if (has('DRIVER') || has('GATE_SCANNER') || has('KEY_CONTROLLER') || has('LOBBY') || has('VALET_STAFF') || has('LOCATION_ADMIN') || has('SUPER_ADMIN')) {
       items.add(_MenuEntry(has('DRIVER') ? 'Driver desk' : 'Valet desk', Icons.directions_car_rounded, '/dashboard'));
     }
-    if (has('SUPERVISOR')) items.add(const _MenuEntry('My sites', Icons.fact_check_rounded, '/supervisor/home'));
+    if (has('SUPERVISOR')) {
+      items.add(const _MenuEntry('My sites', Icons.fact_check_rounded, '/supervisor/home', premiumFeature: PremiumFeature.supervisors));
+    }
     if (has('SECURITY')) items.add(const _MenuEntry('Parking setup', Icons.local_parking_rounded, '/security/parking'));
     if (has('DRIVER')) items.add(const _MenuEntry('My activity', Icons.bar_chart_rounded, '/driver/activity'));
     return items;
@@ -126,7 +136,7 @@ class _AppLayoutState extends State<AppLayout> {
                 Text(currentLocation, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11.5)),
             ],
           ),
-          actions: [if (widget.actions != null) ...widget.actions!],
+          actions: [if (widget.actions != null) ...widget.actions!, const NotificationBell()],
         ),
         drawer: Drawer(
           backgroundColor: AppColors.inkPage,
@@ -167,7 +177,12 @@ class _AppLayoutState extends State<AppLayout> {
             ),
           ),
         ),
-        body: widget.child,
+        body: Column(
+          children: [
+            const AppUpdateBanner(),
+            Expanded(child: widget.child),
+          ],
+        ),
       ),
     );
   }
@@ -191,10 +206,21 @@ class _AppLayoutState extends State<AppLayout> {
           side: active ? const BorderSide(color: AppColors.inkLine) : BorderSide.none,
         ),
         leading: Icon(m.icon, size: 20, color: active ? AppColors.brassOnDark : AppColors.inkTextSecondary),
-        title: Text(m.title,
-            style: TextStyle(color: active ? AppColors.inkText : AppColors.inkTextBody, fontWeight: active ? FontWeight.w700 : FontWeight.w500, fontSize: 14)),
+        title: Row(children: [
+          Flexible(
+            child: Text(m.title,
+                style: TextStyle(color: active ? AppColors.inkText : AppColors.inkTextBody, fontWeight: active ? FontWeight.w700 : FontWeight.w500, fontSize: 14)),
+          ),
+          if (m.premiumFeature != null) ...[
+            const SizedBox(width: 6),
+            PremiumStar(featureKey: m.premiumFeature!, size: 14, onDark: true),
+          ],
+        ]),
         onTap: () {
           Navigator.pop(context);
+          // The star is informational here: the supervisor's own screens are checked against the
+          // operator group's plan on the server (SupervisorController), not this company's, so
+          // the app does not block them - a PLAN_REQUIRED from the server still opens the sheet.
           if (!active) Navigator.pushNamed(context, m.route);
         },
       ),
@@ -264,8 +290,42 @@ class _DrawerHeader extends StatelessWidget {
               Expanded(child: Text(location, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.inkTextBody, fontSize: 13))),
             ]),
           ],
+          const _PlanLine(),
         ],
       ),
+    );
+  }
+}
+
+/// "Free plan" / "Premium" / "Premium until 14 Nov 2026" under the venue in the drawer header.
+class _PlanLine extends StatelessWidget {
+  const _PlanLine();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<PlanInfo?>(
+      valueListenable: PlanController.instance.plan,
+      builder: (context, plan, _) {
+        if (plan == null) return const SizedBox.shrink();
+        final premium = !plan.isFree || plan.trialActive;
+        return Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: premium ? null : () => showPremiumSheet(context, featureLabel: 'Premium features'),
+            child: Row(children: [
+              Icon(premium ? Icons.star_rounded : Icons.star_outline_rounded, size: 15, color: AppColors.brassOnDark),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(plan.headerLabel,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: premium ? AppColors.brassOnDark : AppColors.inkTextBody, fontSize: 13, fontWeight: FontWeight.w600)),
+              ),
+            ]),
+          ),
+        );
+      },
     );
   }
 }

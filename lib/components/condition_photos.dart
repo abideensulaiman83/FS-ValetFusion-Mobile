@@ -9,8 +9,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/offline_queue.dart';
+import '../services/plan_service.dart';
 import '../services/valet_service.dart';
 import '../theme/app_theme.dart';
+import 'premium.dart';
 
 const List<String> _angles = ['FRONT', 'BACK', 'LEFT', 'RIGHT'];
 String _angleLabel(String a) => a[0] + a.substring(1).toLowerCase();
@@ -125,7 +127,8 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
       if (isNetworkError(e)) {
         await OfflineQueue.instance.queuePhoto(parkingVehicleId: widget.parkingVehicleId, filePath: filePath, angle: angle);
         _queuedBefore = OfflineQueue.instance.pendingPhotosFor(widget.parkingVehicleId).length;
-      } else if (mounted) {
+      } else if (mounted && e is! PlanRequiredException) {
+        // (PLAN_REQUIRED already opened the Premium sheet.)
         setState(() => _error = e.toString().replaceAll('Exception: ', ''));
       }
     } finally {
@@ -134,6 +137,11 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
   }
 
   Future<void> _take(String angle) async {
+    // Condition photos are Premium (DAMAGE_MARKING) - say so before opening the camera.
+    if (!PlanController.instance.has(PremiumFeature.damageMarking)) {
+      showPremiumSheet(context, featureKey: PremiumFeature.damageMarking);
+      return;
+    }
     final picked = await _picker.pickImage(source: ImageSource.camera, maxWidth: 1600, maxHeight: 1600, imageQuality: 70);
     if (picked == null) return;
     await upload(picked.path, angle);
@@ -154,7 +162,10 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
         children: [
           Row(
             children: [
-              const Expanded(child: Text('Condition photos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+              const Text('Condition photos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(width: 6),
+              const PremiumStar(featureKey: PremiumFeature.damageMarking),
+              const Spacer(),
               Text('$done of 4', style: TextStyle(fontSize: 12, color: done == 4 ? AppColors.success : AppColors.textSecondary)),
             ],
           ),
@@ -340,3 +351,16 @@ class _ConditionPhotosStripState extends State<ConditionPhotosStrip> {
     );
   }
 }
+
+/// Public access to the cached, authenticated thumbnail (used by the check-in / check-out compare).
+class ConditionPhotoThumb extends StatelessWidget {
+  final String url;
+  final double size;
+  const ConditionPhotoThumb({super.key, required this.url, this.size = 72});
+
+  @override
+  Widget build(BuildContext context) => _PhotoThumb(url: url, size: size);
+}
+
+/// Full-screen, zoomable view of one condition photo.
+void openConditionPhoto(BuildContext context, VehiclePhotoInfo photo) => _openFull(context, photo);

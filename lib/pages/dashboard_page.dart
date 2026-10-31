@@ -26,7 +26,9 @@ import '../components/undo_step_dialog.dart';
 import '../components/wash_requests_section.dart';
 import '../services/authentication_service.dart';
 import '../services/offline_queue.dart';
+import '../services/desk_links.dart';
 import '../services/valet_service.dart';
+import 'condition_compare_page.dart';
 import 'driver_receive_page.dart';
 import 'parking_occupancy_page.dart';
 import '../theme/app_theme.dart';
@@ -75,11 +77,23 @@ class _DashboardPageState extends State<DashboardPage> {
     _fetchLookups();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _ticketNoFocusNode.requestFocus();
+      _openLinkedTicket();
+    });
+    DeskLinks.pendingTicket.addListener(_openLinkedTicket);
+  }
+
+  // A notification asked for a ticket (see notifications_inbox_page.dart) - look it up.
+  void _openLinkedTicket() {
+    if (!mounted || !_rolesLoaded || _isDriver || DeskLinks.pendingTicket.value == null) return;
+    _ticketNoController.text = DeskLinks.take()!;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _lookupTicket();
     });
   }
 
   @override
   void dispose() {
+    DeskLinks.pendingTicket.removeListener(_openLinkedTicket);
     _ticketNoController.dispose();
     _ticketNoFocusNode.dispose();
     _vpaInController.dispose();
@@ -102,6 +116,7 @@ class _DashboardPageState extends State<DashboardPage> {
       _isDriver = roles.contains('DRIVER') || roles.contains('GATE_SCANNER');
       _rolesLoaded = true;
     });
+    _openLinkedTicket();
   }
 
   Future<void> _fetchDashboard() async {
@@ -870,6 +885,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 // Compare against how the car came in before handing it over.
                 if (data.parkingVehicleId != null) ConditionPhotosStrip(parkingVehicleId: data.parkingVehicleId!),
+                ConditionCompareButton(data: data),
               ],
             ),
             actions: [
