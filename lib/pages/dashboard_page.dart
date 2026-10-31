@@ -540,7 +540,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     )
                   else
                     DropdownButtonFormField<int?>(
-                      value: selectedShopId,
+                      initialValue: selectedShopId,
                       decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
                       items: [
                         const DropdownMenuItem<int?>(value: null, child: Text('-- Select Outlet --')),
@@ -571,7 +571,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
-                    value: paymentMethod,
+                    initialValue: paymentMethod,
                     decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
                     items: [
                       const DropdownMenuItem(value: null, child: Text('-- Select Payment Method --')),
@@ -666,7 +666,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   const Center(child: CircularProgressIndicator())
                 else if (!manualEntry) ...[
                   DropdownButtonFormField<DriverOption>(
-                    value: selectedDriver,
+                    initialValue: selectedDriver,
                     decoration: const InputDecoration(
                       labelText: 'Assign Driver',
                       border: OutlineInputBorder(),
@@ -1118,7 +1118,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<int>(
-            value: _selectedServiceTypeId,
+            initialValue: _selectedServiceTypeId,
             decoration: const InputDecoration(labelText: 'Service Type *', border: OutlineInputBorder(), isDense: true),
             items: _serviceTypesList
                 .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))

@@ -38,8 +38,9 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
       final parked = await _valetService.fetchByStatus('RECEIVED');
       if (mounted) setState(() => _parked = parked);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

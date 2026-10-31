@@ -323,7 +323,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
       );
     }
     return DropdownButtonFormField<PublicCompanyOption>(
-      value: _selectedCompany,
+      initialValue: _selectedCompany,
       isExpanded: true,
       decoration: InputDecoration(labelText: tr(context, 'Property *'), border: OutlineInputBorder()),
       items: _companies

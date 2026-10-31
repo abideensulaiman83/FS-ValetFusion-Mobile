@@ -1,14 +1,8 @@
-// lib/theme/app_theme.dart
-//
-// ValetFusion design tokens for the app, v3 "control room" (plan §2.8 / C5) - the same values
-// as the portal's theme/tokens.ts so web and phone read as one product: Barlow for text, Barlow
-// Condensed for numbers read at a glance, IBM Plex Mono for plates and tickets; ink surfaces;
-// a brass accent by default and the venue's own colour after login (plan B2); status colours
-// that never change. Light and dark themes; driver and desk screens use the always-dark one.
+
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as flutter;
 import 'package:google_fonts/google_fonts.dart';
 
-/// Neutral surfaces and the fixed palette. Pages use these names, never raw hex values.
 class AppColors {
   // light surfaces
   static const Color page = Color(0xFFEEF0F3);
@@ -89,24 +83,77 @@ class AppTheme {
   static Color contrastOn(Color c) => c.computeLuminance() > 0.45 ? AppColors.ink : Colors.white;
 
   static TextTheme _text(Color primary, Color secondary) {
-    final base = GoogleFonts.barlowTextTheme();
+    final flutter.TextTheme base = flutter.ThemeData.light().textTheme;
+
     return base.copyWith(
-      displayLarge: GoogleFonts.barlowCondensed(fontWeight: FontWeight.w700, fontSize: 44, color: primary, height: 1.0),
-      displayMedium: GoogleFonts.barlowCondensed(fontWeight: FontWeight.w700, fontSize: 34, color: primary, height: 1.0),
-      displaySmall: GoogleFonts.barlowCondensed(fontWeight: FontWeight.w700, fontSize: 28, color: primary, height: 1.05),
-      headlineMedium: GoogleFonts.barlowCondensed(fontWeight: FontWeight.w600, fontSize: 24, color: primary, height: 1.1),
-      titleLarge: GoogleFonts.barlow(fontWeight: FontWeight.w700, fontSize: 20, color: primary),
-      titleMedium: GoogleFonts.barlow(fontWeight: FontWeight.w600, fontSize: 16, color: primary),
-      titleSmall: GoogleFonts.barlow(fontWeight: FontWeight.w600, fontSize: 14, color: primary),
-      bodyLarge: GoogleFonts.barlow(fontSize: 15, color: primary),
-      bodyMedium: GoogleFonts.barlow(fontSize: 13.5, color: secondary),
-      bodySmall: GoogleFonts.barlow(fontSize: 12, color: secondary),
-      labelLarge: GoogleFonts.barlow(fontWeight: FontWeight.w700, fontSize: 14),
-      labelMedium: GoogleFonts.barlow(fontWeight: FontWeight.w600, fontSize: 12, letterSpacing: 0.6),
-      labelSmall: GoogleFonts.barlow(fontWeight: FontWeight.w700, fontSize: 10.5, letterSpacing: 1.2, color: secondary),
+      displayLarge: GoogleFonts.barlowCondensed(
+        fontWeight: FontWeight.w700,
+        fontSize: 44,
+        color: primary,
+        height: 1.0,
+      ),
+      displayMedium: GoogleFonts.barlowCondensed(
+        fontWeight: FontWeight.w700,
+        fontSize: 34,
+        color: primary,
+        height: 1.0,
+      ),
+      displaySmall: GoogleFonts.barlowCondensed(
+        fontWeight: FontWeight.w700,
+        fontSize: 28,
+        color: primary,
+        height: 1.05,
+      ),
+      headlineMedium: GoogleFonts.barlowCondensed(
+        fontWeight: FontWeight.w600,
+        fontSize: 24,
+        color: primary,
+        height: 1.1,
+      ),
+      titleLarge: GoogleFonts.barlow(
+        fontWeight: FontWeight.w700,
+        fontSize: 20,
+        color: primary,
+      ),
+      titleMedium: GoogleFonts.barlow(
+        fontWeight: FontWeight.w600,
+        fontSize: 16,
+        color: primary,
+      ),
+      titleSmall: GoogleFonts.barlow(
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
+        color: primary,
+      ),
+      bodyLarge: GoogleFonts.barlow(
+        fontSize: 15,
+        color: primary,
+      ),
+      bodyMedium: GoogleFonts.barlow(
+        fontSize: 13.5,
+        color: secondary,
+      ),
+      bodySmall: GoogleFonts.barlow(
+        fontSize: 12,
+        color: secondary,
+      ),
+      labelLarge: GoogleFonts.barlow(
+        fontWeight: FontWeight.w700,
+        fontSize: 14,
+      ),
+      labelMedium: GoogleFonts.barlow(
+        fontWeight: FontWeight.w600,
+        fontSize: 12,
+        letterSpacing: 0.6,
+      ),
+      labelSmall: GoogleFonts.barlow(
+        fontWeight: FontWeight.w700,
+        fontSize: 10.5,
+        letterSpacing: 1.2,
+        color: secondary,
+      ),
     );
   }
-
   /// Monospace for plates, ticket numbers, money and times.
   static TextStyle mono({double size = 13, FontWeight weight = FontWeight.w600, Color? color}) =>
       GoogleFonts.ibmPlexMono(fontSize: size, fontWeight: weight, color: color, fontFeatures: const [FontFeature.tabularFigures()]);
