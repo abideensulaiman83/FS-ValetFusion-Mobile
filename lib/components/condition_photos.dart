@@ -235,6 +235,68 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
   }
 }
 
+/// Read-only 2-column grid of the check-in photos - the driver's "Find my car" card, big enough
+/// to recognise the car across a car park. Tap to view full screen.
+class ConditionPhotosGrid extends StatefulWidget {
+  final int parkingVehicleId;
+  const ConditionPhotosGrid({super.key, required this.parkingVehicleId});
+
+  @override
+  State<ConditionPhotosGrid> createState() => _ConditionPhotosGridState();
+}
+
+class _ConditionPhotosGridState extends State<ConditionPhotosGrid> {
+  late final Future<List<VehiclePhotoInfo>> _photos = ValetService().fetchPhotos(widget.parkingVehicleId);
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<VehiclePhotoInfo>>(
+      future: _photos,
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))),
+          );
+        }
+        final photos = snap.data ?? const [];
+        if (photos.isEmpty) {
+          return Text(snap.hasError ? 'Photos could not be loaded.' : 'No photos were taken at check-in.',
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary));
+        }
+        return GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          children: photos
+              .map((p) => InkWell(
+                    onTap: () => _openFull(context, p),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Stack(fit: StackFit.expand, children: [
+                        LayoutBuilder(builder: (_, c) => _PhotoThumb(url: p.url, size: c.maxWidth)),
+                        Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Container(
+                            margin: const EdgeInsets.all(6),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: AppColors.ink.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(4)),
+                            child: Text(_angleLabel(p.angle),
+                                style: const TextStyle(color: AppColors.inkText, fontSize: 11, fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ))
+              .toList(),
+        );
+      },
+    );
+  }
+}
+
 /// Read-only row for the lobby at handover. Renders nothing if the car has no photos.
 class ConditionPhotosStrip extends StatefulWidget {
   final int parkingVehicleId;

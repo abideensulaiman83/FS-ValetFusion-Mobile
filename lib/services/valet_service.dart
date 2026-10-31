@@ -3,10 +3,24 @@
 // Mirrors the web app's Valet Desk API surface (frontend/FS-ValetFusion/src/pages/DashboardPage.tsx)
 // against the same backend contract (backend/evaletFusion .../ParkingVehicleController.java).
 import 'dart:convert';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' show MediaType;
 import 'authentication_service.dart';
 import 'secure_store.dart';
+
+final Random _keyRandom = Random.secure();
+
+/// A random (v4) UUID, sent as the Idempotency-Key header on lifecycle calls (plan E13): when a
+/// call times out after the server did the work, the offline queue replays it with the same key
+/// and gets the original answer back instead of "already delivered".
+String newIdempotencyKey() {
+  final b = List<int>.generate(16, (_) => _keyRandom.nextInt(256));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  final h = b.map((x) => x.toRadixString(16).padLeft(2, '0')).join();
+  return '${h.substring(0, 8)}-${h.substring(8, 12)}-${h.substring(12, 16)}-${h.substring(16, 20)}-${h.substring(20)}';
+}
 
 class Shop {
   final int id;
@@ -279,8 +293,11 @@ class DriverOption {
   // Server orders drivers best-first and flags the top one (fewest cars in hand, longest idle).
   final int activeDeliveries;
   final bool suggested;
+  // ON_DUTY / BREAK / OFF from the driver's shift buttons; null if they've never used shifts.
+  // The server already sorts on-duty drivers first.
+  final String? shiftState;
 
-  DriverOption({required this.id, required this.name, this.phone, this.activeDeliveries = 0, this.suggested = false});
+  DriverOption({required this.id, required this.name, this.phone, this.activeDeliveries = 0, this.suggested = false, this.shiftState});
 
   factory DriverOption.fromJson(Map<String, dynamic> json) {
     return DriverOption(
@@ -289,12 +306,118 @@ class DriverOption {
       phone: json['phone'],
       activeDeliveries: (json['activeDeliveries'] as num?)?.toInt() ?? 0,
       suggested: json['suggested'] == true,
+      shiftState: json['shiftState'] as String?,
     );
   }
 
-  String get loadLabel => suggested
-      ? 'Suggested · ${activeDeliveries == 0 ? 'free' : '$activeDeliveries in hand'}'
-      : (activeDeliveries == 0 ? 'free' : '$activeDeliveries in hand');
+  bool get onBreak => shiftState == 'BREAK';
+  bool get offDuty => shiftState == 'OFF';
+
+  String get loadLabel {
+    final load = activeDeliveries == 0 ? 'free' : '$activeDeliveries in hand';
+    if (onBreak) return 'On break · $load';
+    if (offDuty) return 'Off duty';
+    return suggested ? 'Suggested · $load' : load;
+  }
+}
+
+/// GET/POST /v1/driver-shift/me - the driver's availability and this shift's numbers.
+class DriverShift {
+  final String state; // ON_DUTY / BREAK / OFF
+  final String? since;
+  final String? shiftStart;
+  final String? shiftEnd;
+  final int shiftMinutes;
+  final int breakMinutes;
+  final int receivedThisShift;
+  final int deliveredThisShift;
+  final int inHand;
+  final String? message;
+
+  DriverShift({
+    required this.state,
+    this.since,
+    this.shiftStart,
+    this.shiftEnd,
+    this.shiftMinutes = 0,
+    this.breakMinutes = 0,
+    this.receivedThisShift = 0,
+    this.deliveredThisShift = 0,
+    this.inHand = 0,
+    this.message,
+  });
+
+  factory DriverShift.fromJson(Map<String, dynamic> json) => DriverShift(
+        state: json['state'] as String? ?? 'OFF',
+        since: json['since'] as String?,
+        shiftStart: json['shiftStart'] as String?,
+        shiftEnd: json['shiftEnd'] as String?,
+        shiftMinutes: (json['shiftMinutes'] as num?)?.toInt() ?? 0,
+        breakMinutes: (json['breakMinutes'] as num?)?.toInt() ?? 0,
+        receivedThisShift: (json['receivedThisShift'] as num?)?.toInt() ?? 0,
+        deliveredThisShift: (json['deliveredThisShift'] as num?)?.toInt() ?? 0,
+        inHand: (json['inHand'] as num?)?.toInt() ?? 0,
+        message: json['message'] as String?,
+      );
+
+  bool get onDuty => state == 'ON_DUTY';
+  bool get onBreak => state == 'BREAK';
+  bool get off => state == 'OFF';
+}
+
+/// GET /v1/parking-vehicles/{id}/where - the driver's "Find my car" card.
+class VehicleWhere {
+  final int id;
+  final String ticketNo;
+  final String? plateNo;
+  final String? vehicleMake;
+  final String? vehicleModel;
+  final String? vehicleColor;
+  final String? status;
+  final String? building;
+  final String? floor;
+  final String? zone;
+  final String? slotNumber;
+  final String? bayNo;
+  final String? parkingLocation;
+  final String? keyHolderNo;
+  final String? parkingInTime;
+
+  VehicleWhere({
+    required this.id,
+    required this.ticketNo,
+    this.plateNo,
+    this.vehicleMake,
+    this.vehicleModel,
+    this.vehicleColor,
+    this.status,
+    this.building,
+    this.floor,
+    this.zone,
+    this.slotNumber,
+    this.bayNo,
+    this.parkingLocation,
+    this.keyHolderNo,
+    this.parkingInTime,
+  });
+
+  factory VehicleWhere.fromJson(Map<String, dynamic> json) => VehicleWhere(
+        id: (json['id'] as num).toInt(),
+        ticketNo: json['ticketNo'] as String? ?? '',
+        plateNo: json['plateNo'] as String?,
+        vehicleMake: json['vehicleMake'] as String?,
+        vehicleModel: json['vehicleModel'] as String?,
+        vehicleColor: json['vehicleColor'] as String?,
+        status: json['status'] as String?,
+        building: json['building'] as String?,
+        floor: json['floor'] as String?,
+        zone: json['zone'] as String?,
+        slotNumber: json['slotNumber'] as String?,
+        bayNo: json['bayNo'] as String?,
+        parkingLocation: json['parkingLocation'] as String?,
+        keyHolderNo: json['keyHolderNo'] as String?,
+        parkingInTime: json['parkingInTime'] as String?,
+      );
 }
 
 class DashboardDetails {
@@ -308,8 +431,10 @@ class DashboardDetails {
   final int ticketsTotal;
   final int ticketsUsed;
   final int ticketsRemaining;
+  final String? timestamp; // server clock at response time - lets wait timers ignore phone clock skew
 
   DashboardDetails({
+    this.timestamp,
     required this.requestedVehicles,
     required this.onthewayVehicles,
     required this.receivedCount,
@@ -334,6 +459,7 @@ class DashboardDetails {
       ticketsTotal: json['ticketsTotal'] ?? 0,
       ticketsUsed: json['ticketsUsed'] ?? 0,
       ticketsRemaining: json['ticketsRemaining'] ?? 0,
+      timestamp: json['timestamp'] as String?,
     );
   }
 }
@@ -419,14 +545,44 @@ class ValetService {
   // property than the one their account was created at (see CustomerHomePage's location picker).
   // The backend's JwtAuthenticationFilter re-points the tenant DB for this request when it sees
   // X-Company-Code on a CUSTOMER token - ignored (and ignored server-side) for every other role.
-  Future<Map<String, String>> _headers({String? companyCode}) async {
+  Future<Map<String, String>> _headers({String? companyCode, String? idempotencyKey}) async {
     final token = await SecureStore.token();
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
       if (companyCode != null && companyCode.isNotEmpty) 'X-Company-Code': companyCode,
+      if (idempotencyKey != null && idempotencyKey.isNotEmpty) 'Idempotency-Key': idempotencyKey,
     };
+  }
+
+  /// Where a car is parked, its key hook and since when ("Find my car").
+  Future<VehicleWhere> fetchWhere(int parkingVehicleId) async {
+    final headers = await _headers();
+    final response = await http
+        .get(Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/where'), headers: headers)
+        .timeout(timeout);
+    if (response.statusCode != 200) throw ValetApiException(_errorMessage(response));
+    return VehicleWhere.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  // ── Driver shift (Start shift / Break / End shift) ──
+  Future<DriverShift> fetchMyShift() async {
+    final headers = await _headers();
+    final response =
+        await http.get(Uri.parse('$apiBaseUrl/v1/driver-shift/me'), headers: headers).timeout(timeout);
+    if (response.statusCode != 200) throw ValetApiException(_errorMessage(response));
+    return DriverShift.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// state: 'ON_DUTY' (start shift / back from break), 'BREAK' or 'OFF' (end shift).
+  Future<DriverShift> updateMyShift(String state) async {
+    final headers = await _headers();
+    final response = await http
+        .post(Uri.parse('$apiBaseUrl/v1/driver-shift/me'), headers: headers, body: jsonEncode({'state': state}))
+        .timeout(timeout);
+    if (response.statusCode != 200) throw ValetApiException(_errorMessage(response));
+    return DriverShift.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   // ── Condition photos (taken at check-in, looked at again at handover) ──
@@ -526,8 +682,8 @@ class ValetService {
 
   /// Key Controller assigns/corrects the key holder (hook/board) number for an
   /// already-received vehicle - covers the in-person ticket+key handoff path.
-  Future<void> assignKeyHolder({required int parkingVehicleId, required String keyHolderNo}) async {
-    final headers = await _headers();
+  Future<void> assignKeyHolder({required int parkingVehicleId, required String keyHolderNo, String? idempotencyKey}) async {
+    final headers = await _headers(idempotencyKey: idempotencyKey);
     final response = await http
         .post(
           Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/key-holder'),
@@ -550,8 +706,9 @@ class ValetService {
     int? slotId,
     String? bayNo,
     String? keyHolderNo,
+    String? idempotencyKey,
   }) async {
-    final headers = await _headers();
+    final headers = await _headers(idempotencyKey: idempotencyKey);
     final response = await http
         .post(
           Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/park-details'),
@@ -636,8 +793,9 @@ class ValetService {
     String? shopRemarks,
     String? paymentMethod, // 'CASH' or 'CARD' - set when the customer app requests a payable pickup
     String? companyCode,
+    String? idempotencyKey,
   }) async {
-    final headers = await _headers(companyCode: companyCode);
+    final headers = await _headers(companyCode: companyCode, idempotencyKey: idempotencyKey);
     final response = await http
         .post(
           Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/request'),
@@ -659,8 +817,8 @@ class ValetService {
 
   /// Mirrors VehicleDispatchDTO. Pass driverId (preferred, from fetchAvailableDrivers) or vpaOut
   /// free-text as a fallback - the server resolves driverId into vpaOut itself.
-  Future<void> dispatchVehicle({required int parkingVehicleId, String? vpaOut, int? driverId}) async {
-    final headers = await _headers();
+  Future<void> dispatchVehicle({required int parkingVehicleId, String? vpaOut, int? driverId, String? idempotencyKey}) async {
+    final headers = await _headers(idempotencyKey: idempotencyKey);
     final response = await http
         .post(
           Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/dispatch'),
@@ -864,8 +1022,8 @@ class ValetService {
   }
 
   /// Lobby acknowledges physical arrival (ONTHEWAY -> ARRIVED).
-  Future<void> arriveVehicle(int parkingVehicleId) async {
-    final headers = await _headers();
+  Future<void> arriveVehicle(int parkingVehicleId, {String? idempotencyKey}) async {
+    final headers = await _headers(idempotencyKey: idempotencyKey);
     final response = await http
         .post(Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/arrive'), headers: headers)
         .timeout(timeout);
@@ -876,8 +1034,8 @@ class ValetService {
   }
 
   /// ONTHEWAY or ARRIVED -> DELIVERED.
-  Future<void> deliverVehicle(int parkingVehicleId) async {
-    final headers = await _headers();
+  Future<void> deliverVehicle(int parkingVehicleId, {String? idempotencyKey}) async {
+    final headers = await _headers(idempotencyKey: idempotencyKey);
     final response = await http
         .post(Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/deliver'), headers: headers)
         .timeout(timeout);

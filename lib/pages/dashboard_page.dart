@@ -15,13 +15,17 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../components/condition_photos.dart';
+import '../components/desk_board.dart';
 import '../components/guest_tracking_qr_sheet.dart';
+import '../components/key_tag.dart';
 import '../components/layout/app_layout.dart';
 import '../components/live_tracking_card.dart';
+import '../components/pending_sync_banner.dart';
 import '../components/slot_picker.dart';
 import '../components/undo_step_dialog.dart';
 import '../components/wash_requests_section.dart';
 import '../services/authentication_service.dart';
+import '../services/offline_queue.dart';
 import '../services/valet_service.dart';
 import 'driver_receive_page.dart';
 import 'parking_occupancy_page.dart';
@@ -137,6 +141,30 @@ class _DashboardPageState extends State<DashboardPage> {
       content: Text(message),
       backgroundColor: error ? AppColors.danger : AppColors.success,
     ));
+  }
+
+  // Every desk step goes through the offline queue (plan E13): sent now with an Idempotency-Key,
+  // or - with no signal - kept on the phone and sent automatically with that same key.
+  Future<SendOutcome> _send(String type, int parkingVehicleId, String label, [Map<String, dynamic> extra = const {}]) =>
+      OfflineQueue.instance.sendOrQueue(type: type, payload: {'parkingVehicleId': parkingVehicleId, ...extra}, label: label);
+
+  void _queuedSnack(String what) =>
+      _showSnack('No signal - $what saved on this phone and will be sent automatically.');
+
+  // Key tag QR on a car that's already in: scan the hook's tag and save it as the key holder.
+  Future<String?> _scanAndSetKeyHolder(TicketStatusResponse data) async {
+    if (data.parkingVehicleId == null) return null;
+    final tag = await scanKeyTag(context);
+    if (tag == null) return null;
+    try {
+      final outcome = await _send('key_holder', data.parkingVehicleId!, 'Key holder $tag for ticket ${data.ticketNo}',
+          {'keyHolderNo': tag});
+      outcome.queued ? _queuedSnack('key holder $tag') : _showSnack('Ticket ${data.ticketNo}: key holder set to $tag');
+      return tag;
+    } catch (e) {
+      _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
+      return null;
+    }
   }
 
   // Undo last step (mistaken request / dispatch / arrival / handover) - see undo_step_dialog.dart.
@@ -307,14 +335,15 @@ class _DashboardPageState extends State<DashboardPage> {
           }
           setSheetState(() => saving = true);
           try {
-            final message = await _valetService.recordParkDetails(
-              parkingVehicleId: data.parkingVehicleId!,
-              slotId: slot?.slotId,
-              bayNo: slot == null ? bayController.text.trim() : null,
-              keyHolderNo: keyController.text.trim(),
-            );
+            final outcome = await _send('park_details', data.parkingVehicleId!, 'Parking location for ticket ${data.ticketNo}', {
+              if (slot != null) 'slotId': slot!.slotId,
+              if (slot == null) 'bayNo': bayController.text.trim(),
+              if (keyController.text.trim().isNotEmpty) 'keyHolderNo': keyController.text.trim(),
+            });
             if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-            _showSnack('Ticket ${data.ticketNo}: $message');
+            outcome.queued
+                ? _queuedSnack('parking for ticket ${data.ticketNo}')
+                : _showSnack('Ticket ${data.ticketNo}: ${outcome.message ?? 'Parked'}');
             _ticketNoController.clear();
             _ticketNoFocusNode.requestFocus();
           } catch (e) {
@@ -342,7 +371,12 @@ class _DashboardPageState extends State<DashboardPage> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: keyController,
-                  decoration: const InputDecoration(labelText: 'Key Holder Number', border: OutlineInputBorder(), isDense: true),
+                  decoration: InputDecoration(
+                    labelText: 'Key Holder Number',
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    suffixIcon: ScanKeyTagSuffix(controller: keyController),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
@@ -381,6 +415,7 @@ class _DashboardPageState extends State<DashboardPage> {
     String? paymentMethod;
     final shopRemarksController = TextEditingController(text: data.shopRemarks ?? '');
     bool dialogLoading = false;
+    String? keyHolder = data.keyHolderNo;
 
     await showDialog<void>(
       context: context,
@@ -415,16 +450,15 @@ class _DashboardPageState extends State<DashboardPage> {
             }
             setDialogState(() => dialogLoading = true);
             try {
-              await _valetService.requestVehicle(
-                parkingVehicleId: data.parkingVehicleId!,
-                requestedRemarks: 'Vehicle Requested',
-                parkingCharge: parkingCharge,
-                shopId: selectedShopId,
-                shopRemarks: shopRemarksController.text.trim(),
-                paymentMethod: paymentMethod,
-              );
+              final outcome = await _send('request', data.parkingVehicleId!, 'Request for ticket ${data.ticketNo}', {
+                'requestedRemarks': 'Vehicle Requested',
+                'parkingCharge': parkingCharge,
+                if (selectedShopId != null) 'shopId': selectedShopId,
+                'shopRemarks': shopRemarksController.text.trim(),
+                if (paymentMethod != null) 'paymentMethod': paymentMethod,
+              });
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-              _showSnack('Vehicle requested successfully!');
+              outcome.queued ? _queuedSnack('the request for ticket ${data.ticketNo}') : _showSnack('Vehicle requested successfully!');
               _ticketNoController.clear();
               _fetchDashboard();
               _ticketNoFocusNode.requestFocus();
@@ -445,7 +479,26 @@ class _DashboardPageState extends State<DashboardPage> {
                   _kv('Ticket No', data.ticketNo),
                   _kv('Plate No', data.plateNo ?? '-'),
                   _kv('Parking Charge', parkingCharge.toStringAsFixed(2)),
-                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Text('Key hook', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      const Spacer(),
+                      Text(keyHolder == null || keyHolder!.isEmpty ? '-' : keyHolder!,
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      IconButton(
+                        tooltip: 'Scan key tag',
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.qr_code_scanner, size: 20),
+                        onPressed: dialogLoading
+                            ? null
+                            : () async {
+                                final tag = await _scanAndSetKeyHolder(data);
+                                if (tag != null) setDialogState(() => keyHolder = tag);
+                              },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   const Text('Outlet', style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 6),
                   if (isShopValidated)
@@ -567,13 +620,12 @@ class _DashboardPageState extends State<DashboardPage> {
             }
             setDialogState(() => dialogLoading = true);
             try {
-              await _valetService.dispatchVehicle(
-                parkingVehicleId: data.parkingVehicleId!,
-                driverId: manualEntry ? null : selectedDriver!.id,
-                vpaOut: manualEntry ? vpaOutController.text.trim() : null,
-              );
+              final outcome = await _send('dispatch', data.parkingVehicleId!, 'Dispatch of ticket ${data.ticketNo}', {
+                if (!manualEntry) 'driverId': selectedDriver!.id,
+                if (manualEntry) 'vpaOut': vpaOutController.text.trim(),
+              });
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-              _showSnack('Vehicle dispatched successfully!');
+              outcome.queued ? _queuedSnack('the dispatch of ticket ${data.ticketNo}') : _showSnack('Vehicle dispatched successfully!');
               _ticketNoController.clear();
               _fetchDashboard();
               _ticketNoFocusNode.requestFocus();
@@ -605,8 +657,32 @@ class _DashboardPageState extends State<DashboardPage> {
                       border: OutlineInputBorder(),
                       isDense: true,
                     ),
+                    // On-duty drivers come first (server order); break / off duty are marked.
                     items: drivers
-                        .map((d) => DropdownMenuItem(value: d, child: Text('${d.name}  (${d.loadLabel})')))
+                        .map((d) => DropdownMenuItem(
+                              value: d,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: d.offDuty
+                                          ? AppColors.textSecondary
+                                          : (d.onBreak ? AppColors.warning : AppColors.success),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text('${d.name}  (${d.loadLabel})',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(color: d.offDuty ? AppColors.textSecondary : null)),
+                                  ),
+                                ],
+                              ),
+                            ))
                         .toList(),
                     onChanged: (v) => setDialogState(() => selectedDriver = v),
                   ),
@@ -659,9 +735,11 @@ class _DashboardPageState extends State<DashboardPage> {
           Future<void> onArrived() async {
             setDialogState(() => dialogLoading = true);
             try {
-              await _valetService.arriveVehicle(data.parkingVehicleId!);
+              final outcome = await _send('arrive', data.parkingVehicleId!, 'Arrival of ticket ${data.ticketNo}');
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-              _showSnack('Arrival acknowledged - waiting for guest handover.');
+              outcome.queued
+                  ? _queuedSnack('the arrival of ticket ${data.ticketNo}')
+                  : _showSnack('Arrival acknowledged - waiting for guest handover.');
               _ticketNoController.clear();
               _fetchDashboard();
               _ticketNoFocusNode.requestFocus();
@@ -722,6 +800,7 @@ class _DashboardPageState extends State<DashboardPage> {
   // ── Confirm Delivery dialog (ARRIVED, or ONTHEWAY direct -> DELIVERED) ──
   Future<void> _openDeliveryDialog(TicketStatusResponse data) async {
     bool dialogLoading = false;
+    bool? keyChecked; // null: not scanned; true: tag matched; false: mismatch / no hook on record
 
     await showDialog<void>(
       context: context,
@@ -731,9 +810,11 @@ class _DashboardPageState extends State<DashboardPage> {
           Future<void> onDelivered() async {
             setDialogState(() => dialogLoading = true);
             try {
-              await _valetService.deliverVehicle(data.parkingVehicleId!);
+              final outcome = await _send('deliver', data.parkingVehicleId!, 'Handover of ticket ${data.ticketNo}');
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-              if (mounted) {
+              if (outcome.queued) {
+                _queuedSnack('the handover of ticket ${data.ticketNo}');
+              } else if (mounted) {
                 // this.context: the page - the dialog's own context is gone after the pop above.
                 ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(
                   content: Text('Ticket ${data.ticketNo} delivered'),
@@ -770,6 +851,23 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 8),
                 Text('Ticket No: ${data.ticketNo}', style: TextStyle(color: AppColors.textSecondary)),
+                const SizedBox(height: 8),
+                // Scan the tag on the key in hand - warns if it's from another car's hook.
+                OutlinedButton.icon(
+                  onPressed: dialogLoading
+                      ? null
+                      : () async {
+                          final ok = await verifyKeyTag(context, expected: data.keyHolderNo, ticketNo: data.ticketNo);
+                          setDialogState(() => keyChecked = ok);
+                        },
+                  icon: Icon(
+                    keyChecked == null ? Icons.qr_code_scanner : (keyChecked! ? Icons.verified_rounded : Icons.warning_amber_rounded),
+                    color: keyChecked == null ? null : (keyChecked! ? AppColors.success : AppColors.danger),
+                  ),
+                  label: Text(keyChecked == null
+                      ? 'Scan key tag'
+                      : (keyChecked! ? 'Key matches hook ${data.keyHolderNo}' : 'Key not matched - scan again')),
+                ),
                 // Compare against how the car came in before handing it over.
                 if (data.parkingVehicleId != null) ConditionPhotosStrip(parkingVehicleId: data.parkingVehicleId!),
               ],
@@ -822,35 +920,67 @@ class _DashboardPageState extends State<DashboardPage> {
         child: const DriverReceiveFlow(),
       );
     }
+    // Desk (scan + lists) and the live Board (Requested / On the way / At lobby with wait timers);
+    // tapping a car on the Board opens the same dialog as scanning its ticket here.
     return AppLayout(
       title: 'Valet Desk',
       actions: [_parkedAction()],
-      child: RefreshIndicator(
-        onRefresh: () async {
-          await _fetchDashboard();
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (_rolesLoaded) _buildStatStrip(),
-              const SizedBox(height: 16),
-              if (_isSimplifiedDesk) ...[
-                const WashRequestsSection(),
-              ],
-              _buildScanCard(),
-              if (_showEntryForm && !_isSimplifiedDesk) ...[
-                const SizedBox(height: 16),
-                _buildEntryForm(),
-              ],
-              const SizedBox(height: 16),
-              _buildVehicleList('Requested', _dashboard?.requestedVehicles ?? [], isOnTheWay: false),
-              const SizedBox(height: 16),
-              _buildVehicleList('On The Way', _dashboard?.onthewayVehicles ?? [], isOnTheWay: true),
+      child: DefaultTabController(
+        length: 2,
+        child: Column(
+          children: [
+            Material(
+              color: AppColors.card,
+              child: const TabBar(tabs: [
+                Tab(icon: Icon(Icons.qr_code_scanner, size: 20), text: 'Desk', iconMargin: EdgeInsets.only(bottom: 2)),
+                Tab(icon: Icon(Icons.view_agenda_outlined, size: 20), text: 'Board', iconMargin: EdgeInsets.only(bottom: 2)),
+              ]),
+            ),
+            Expanded(
+              child: TabBarView(
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  _buildDesk(),
+                  DeskBoard(onOpen: (ticketNo) async {
+                    await _tapListItem(ticketNo);
+                    _fetchDashboard();
+                  }),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesk() {
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _fetchDashboard();
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const PendingSyncBanner(),
+            if (_rolesLoaded) _buildStatStrip(),
+            const SizedBox(height: 16),
+            if (_isSimplifiedDesk) ...[
+              const WashRequestsSection(),
             ],
-          ),
+            _buildScanCard(),
+            if (_showEntryForm && !_isSimplifiedDesk) ...[
+              const SizedBox(height: 16),
+              _buildEntryForm(),
+            ],
+            const SizedBox(height: 16),
+            _buildVehicleList('Requested', _dashboard?.requestedVehicles ?? [], isOnTheWay: false),
+            const SizedBox(height: 16),
+            _buildVehicleList('On The Way', _dashboard?.onthewayVehicles ?? [], isOnTheWay: true),
+          ],
         ),
       ),
     );

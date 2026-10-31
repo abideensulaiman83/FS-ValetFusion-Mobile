@@ -14,7 +14,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../components/barcode_scanner_page.dart';
 import '../components/condition_photos.dart';
+import '../components/driver_shift_card.dart';
+import '../components/key_tag.dart';
 import '../components/pending_sync_banner.dart';
+import 'find_my_car_page.dart';
 import '../services/offline_queue.dart';
 import '../components/guest_tracking_qr_sheet.dart';
 import '../components/slot_picker.dart';
@@ -43,7 +46,6 @@ class MyDeliveriesSection extends StatefulWidget {
 }
 
 class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
-  final ValetService _valetService = ValetService();
   final DeliveryTracker _tracker = DeliveryTracker.instance;
   final Set<int> _acting = {};
 
@@ -53,11 +55,17 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
     _tracker.start();
   }
 
-  Future<void> _act(TicketStatusResponse d, Future<void> Function(int id) action) async {
+  // type: 'arrive' or 'deliver' - sent now, or kept on the phone with no signal (offline queue).
+  Future<void> _act(TicketStatusResponse d, String type) async {
     if (d.parkingVehicleId == null) return;
     setState(() => _acting.add(d.parkingVehicleId!));
     try {
-      await action(d.parkingVehicleId!);
+      final label = type == 'arrive' ? 'Arrival of ticket ${d.ticketNo}' : 'Handover of ticket ${d.ticketNo}';
+      final outcome = await OfflineQueue.instance
+          .sendOrQueue(type: type, payload: {'parkingVehicleId': d.parkingVehicleId}, label: label);
+      if (outcome.queued) {
+        _showSnack('No signal - ${type == 'arrive' ? 'arrival' : 'handover'} saved on this phone and will be sent automatically.');
+      }
       await _tracker.refresh();
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
@@ -183,13 +191,32 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
               ],
             ),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: d.parkingVehicleId == null
+                    ? null
+                    : () => FindMyCarPage.open(context, parkingVehicleId: d.parkingVehicleId!, ticketNo: d.ticketNo),
+                icon: const Icon(Icons.travel_explore, size: 18),
+                label: const Text('Find car'),
+                style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+              ),
+              TextButton.icon(
+                onPressed: () => verifyKeyTag(context, expected: d.keyHolderNo, ticketNo: d.ticketNo),
+                icon: const Icon(Icons.qr_code_scanner, size: 18),
+                label: const Text('Check key'),
+                style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
           Row(
             children: [
               if (!isArrived)
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: isActing ? null : () => _act(d, _valetService.arriveVehicle),
+                    onPressed: isActing ? null : () => _act(d, 'arrive'),
                     icon: const Icon(Icons.flag_outlined, size: 18),
                     label: const Text('Mark Arrived'),
                   ),
@@ -197,7 +224,7 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
               if (!isArrived) const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: isActing ? null : () => _act(d, _valetService.deliverVehicle),
+                  onPressed: isActing ? null : () => _act(d, 'deliver'),
                   icon: isActing
                       ? const SizedBox(
                           width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
@@ -415,30 +442,26 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
 
     setState(() => _submitting = true);
     try {
-      final message = await _valetService.recordParkDetails(
-        parkingVehicleId: data.parkingVehicleId!,
-        slotId: slot?.slotId,
-        bayNo: slot == null ? _bayNoController.text.trim() : null,
-        keyHolderNo: _textOrNull(_keyHolderNoController),
+      final keyHolder = _textOrNull(_keyHolderNoController);
+      // Basement, no signal: kept on the phone (same Idempotency-Key) and sent when back online.
+      final outcome = await OfflineQueue.instance.sendOrQueue(
+        type: 'park_details',
+        payload: {
+          'parkingVehicleId': data.parkingVehicleId,
+          if (slot != null) 'slotId': slot.slotId,
+          if (slot == null) 'bayNo': _bayNoController.text.trim(),
+          if (keyHolder != null) 'keyHolderNo': keyHolder,
+        },
+        label: 'Parking location for ticket ${data.ticketNo}',
       );
-      _showSnack(_keyHolderNoController.text.trim().isEmpty
-          ? '$message. Hand the key to the Key Controller.'
-          : '$message, key holder ${_keyHolderNoController.text.trim()}.');
+      if (outcome.queued) {
+        _showSnack('No signal - parking saved on this phone and will be sent automatically.');
+      } else {
+        final message = outcome.message ?? 'Parked';
+        _showSnack(keyHolder == null ? '$message. Hand the key to the Key Controller.' : '$message, key holder $keyHolder.');
+      }
       _resetFlow();
     } catch (e) {
-      if (isNetworkError(e)) {
-        // Basement, no signal: keep it on the phone and move on - it's sent when back online.
-        await OfflineQueue.instance.queueParkDetails(
-          parkingVehicleId: data.parkingVehicleId!,
-          ticketNo: data.ticketNo,
-          slotId: slot?.slotId,
-          bayNo: slot == null ? _bayNoController.text.trim() : null,
-          keyHolderNo: _textOrNull(_keyHolderNoController),
-        );
-        _showSnack('No signal - parking saved on this phone and will be sent automatically.');
-        _resetFlow();
-        return;
-      }
       final msg = e.toString().replaceAll('Exception: ', '');
       _showSnack(msg, error: true);
       // Someone else took the slot a moment ago - show the next nearest one.
@@ -446,6 +469,55 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  // Key tag QR on an already-parked car: scan the hook's tag and save it as the key holder.
+  Future<void> _scanKeyHolder(TicketStatusResponse data) async {
+    if (data.parkingVehicleId == null) return;
+    final tag = await scanKeyTag(context);
+    if (tag == null) return;
+    try {
+      final outcome = await OfflineQueue.instance.sendOrQueue(
+        type: 'key_holder',
+        payload: {'parkingVehicleId': data.parkingVehicleId, 'keyHolderNo': tag},
+        label: 'Key holder $tag for ticket ${data.ticketNo}',
+      );
+      _showSnack(outcome.queued
+          ? 'No signal - key holder $tag saved on this phone and will be sent automatically.'
+          : 'Ticket ${data.ticketNo}: key holder set to $tag');
+      if (!outcome.queued) await _lookup();
+    } catch (e) {
+      _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
+    }
+  }
+
+  Widget _lookupActions(TicketStatusResponse data, {required bool canSetKey}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: data.parkingVehicleId == null
+                  ? null
+                  : () => FindMyCarPage.open(context, parkingVehicleId: data.parkingVehicleId!, ticketNo: data.ticketNo),
+              icon: const Icon(Icons.travel_explore),
+              label: const Text('Find my car'),
+            ),
+          ),
+          if (canSetKey) ...[
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _scanKeyHolder(data),
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text('Scan key tag'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   void _resetFlow() {
@@ -474,6 +546,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const PendingSyncBanner(),
+          const DriverShiftCard(),
           const MyDeliveriesSection(),
           const WashRequestsSection(),
           _buildScanCard(),
@@ -500,6 +573,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
               message: 'Ticket ${data.ticketNo} is parked at ${data.parkingLocation ?? 'bay ${data.bayNo}'}'
                   '${data.keyHolderNo != null && data.keyHolderNo!.isNotEmpty ? ' (key: ${data.keyHolderNo})' : ''}.',
             ),
+            _lookupActions(data, canSetKey: true),
           ],
           if (pastParking) ...[
             const SizedBox(height: 16),
@@ -509,6 +583,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
               title: 'Ticket status: ${data.status ?? data.ticketStatus}',
               message: 'This ticket has already moved past the parking step.',
             ),
+            if (data.status != 'DELIVERED') _lookupActions(data, canSetKey: false),
           ],
         ],
       ),
@@ -716,11 +791,12 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
           const SizedBox(height: 10),
           TextField(
             controller: _keyHolderNoController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Key Holder Number (optional)',
-              helperText: "Leave blank if you'll hand the key to a Key Controller instead",
-              border: OutlineInputBorder(),
+              helperText: "Scan the hook's key tag, or leave blank if you'll hand the key to a Key Controller",
+              border: const OutlineInputBorder(),
               isDense: true,
+              suffixIcon: ScanKeyTagSuffix(controller: _keyHolderNoController),
             ),
           ),
           const SizedBox(height: 16),

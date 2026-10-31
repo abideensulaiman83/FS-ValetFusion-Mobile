@@ -250,8 +250,11 @@ class DeliveryTracker with WidgetsBindingObserver {
       NotificationService.instance.cancelFor(id);
       String message;
       if (choice.arrived) {
-        await _valetService.arriveVehicle(id);
-        message = 'Marked as arrived - the guest has been told.';
+        final outcome = await OfflineQueue.instance
+            .sendOrQueue(type: 'arrive', payload: {'parkingVehicleId': id}, label: 'Arrival of ticket ${d.ticketNo}');
+        message = outcome.queued
+            ? 'No signal - arrival saved on this phone and will be sent automatically.'
+            : 'Marked as arrived - the guest has been told.';
       } else {
         message = await _valetService.etaCheckIn(parkingVehicleId: id, extendMinutes: choice.extendMinutes);
       }

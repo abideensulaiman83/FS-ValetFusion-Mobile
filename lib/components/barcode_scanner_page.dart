@@ -7,8 +7,9 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 class BarcodeScannerPage extends StatefulWidget {
   final String title;
+  final String hint;
 
-  const BarcodeScannerPage({super.key, this.title = 'Scan Ticket Barcode'});
+  const BarcodeScannerPage({super.key, this.title = 'Scan Ticket Barcode', this.hint = 'Point the camera at the ticket barcode'});
 
   @override
   State<BarcodeScannerPage> createState() => _BarcodeScannerPageState();
@@ -40,10 +41,10 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
               width: double.infinity,
               color: Colors.black54,
               padding: const EdgeInsets.all(16),
-              child: const Text(
-                'Point the camera at the ticket barcode',
+              child: Text(
+                widget.hint,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ),

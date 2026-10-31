@@ -1,11 +1,14 @@
 // lib/services/offline_queue.dart
 //
-// Drivers park cars in basements with no signal. The actions they take down there - saving the
-// slot/key holder, condition photos, answering "still on the way?" - are queued on the phone when
-// the network fails and sent, in order, as soon as it's back (connectivity change, every 30s, or
-// "Send now"). Only network failures are queued; an answer from the server ("slot just taken") is
-// shown straight away as before. If a queued action is later rejected by the server, the driver
-// gets a notification to redo it - nothing is dropped silently.
+// Drivers park cars in basements with no signal, and the desk loses Wi-Fi too. Every step that
+// moves a car along - request, dispatch, arrived, handed over, parking slot, key holder - plus
+// condition photos and "still on the way?" answers is queued on the phone when the network
+// fails and sent, in order, as soon as it's back (connectivity change, every 30s, or "Send now").
+// Each lifecycle step carries a client-made Idempotency-Key (plan E13): if the first try timed
+// out after the server had already done it, the replay gets the original answer back instead of
+// "already delivered". Only network failures are queued; an answer from the server ("slot just
+// taken") is shown straight away as before. If a queued action is later rejected by the server,
+// the user gets a notification to redo it - nothing is dropped silently.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -22,9 +25,10 @@ bool isNetworkError(Object e) =>
 
 class QueuedAction {
   final String id;
-  final String type; // park_details | photo | eta_checkin
+  // park_details | photo | eta_checkin | request | dispatch | arrive | deliver | key_holder
+  final String type;
   final Map<String, dynamic> payload;
-  final String label; // what the driver sees, e.g. "Parking for ticket 90006"
+  final String label; // what the user sees, e.g. "Parking for ticket 90006"
   final String createdAt;
 
   QueuedAction({required this.id, required this.type, required this.payload, required this.label, required this.createdAt});
@@ -38,6 +42,15 @@ class QueuedAction {
         label: j['label'] as String? ?? '',
         createdAt: j['createdAt'] as String? ?? '',
       );
+
+  int? get parkingVehicleId => payload['parkingVehicleId'] as int?;
+}
+
+/// What happened to an action passed to [OfflineQueue.sendOrQueue].
+class SendOutcome {
+  final bool queued; // true: no signal, saved on the phone for later
+  final String? message; // the server's message when it was sent now
+  const SendOutcome._(this.queued, this.message);
 }
 
 class OfflineQueue {
@@ -92,13 +105,49 @@ class OfflineQueue {
     await _save([...pending.value, action]);
   }
 
+  /// Sends a lifecycle step now (with a fresh Idempotency-Key) or, with no signal, keeps it on
+  /// the phone to send later with that same key. If earlier steps for the same car are still
+  /// waiting, this one queues behind them so they reach the server in order. Server refusals
+  /// ("slot just taken", wrong status) are rethrown for the screen to show.
+  ///
+  /// type: request | dispatch | arrive | deliver | park_details | key_holder.
+  Future<SendOutcome> sendOrQueue({
+    required String type,
+    required Map<String, dynamic> payload,
+    required String label,
+  }) async {
+    final p = {...payload, 'idempotencyKey': newIdempotencyKey()};
+    final vehicleId = p['parkingVehicleId'];
+    if (vehicleId != null && pending.value.any((a) => a.type != 'photo' && a.parkingVehicleId == vehicleId)) {
+      await _add(type, p, label);
+      flush();
+      return const SendOutcome._(true, null);
+    }
+    try {
+      final message = await _sendPayload(type, p);
+      return SendOutcome._(false, message);
+    } catch (e) {
+      if (!isNetworkError(e)) rethrow;
+      await _add(type, p, label);
+      return const SendOutcome._(true, null);
+    }
+  }
+
   // ── Enqueue helpers (called after a network failure) ─────────────────
-  Future<void> queueParkDetails({required int parkingVehicleId, required String ticketNo, int? slotId, String? bayNo, String? keyHolderNo}) =>
+  Future<void> queueParkDetails({
+    required int parkingVehicleId,
+    required String ticketNo,
+    int? slotId,
+    String? bayNo,
+    String? keyHolderNo,
+    String? idempotencyKey,
+  }) =>
       _add('park_details', {
         'parkingVehicleId': parkingVehicleId,
         if (slotId != null) 'slotId': slotId,
         if (bayNo != null) 'bayNo': bayNo,
         if (keyHolderNo != null) 'keyHolderNo': keyHolderNo,
+        'idempotencyKey': idempotencyKey ?? newIdempotencyKey(),
       }, 'Parking location for ticket $ticketNo');
 
   /// Copies the photo out of the picker's cache (the OS may clear it) before queueing.
@@ -118,6 +167,10 @@ class OfflineQueue {
   List<QueuedAction> pendingPhotosFor(int parkingVehicleId) =>
       pending.value.where((a) => a.type == 'photo' && a.payload['parkingVehicleId'] == parkingVehicleId).toList();
 
+  /// Lifecycle steps still waiting for [parkingVehicleId] (e.g. a handover sent without signal).
+  List<QueuedAction> pendingFor(int parkingVehicleId) =>
+      pending.value.where((a) => a.type != 'photo' && a.parkingVehicleId == parkingVehicleId).toList();
+
   // ── Sending ───────────────────────────────────────────────────────────
   Future<void> flush() async {
     if (_flushing) return;
@@ -134,7 +187,7 @@ class OfflineQueue {
           await _save(queue);
         } catch (e) {
           if (isNetworkError(e)) break; // still offline - keep order, try again later
-          // Server said no (e.g. slot taken meanwhile): drop it, but tell the driver.
+          // Server said no (e.g. slot taken meanwhile): drop it, but tell the user.
           queue.removeAt(0);
           _cleanupFile(action);
           await _save(queue);
@@ -151,25 +204,64 @@ class OfflineQueue {
   }
 
   Future<void> _send(QueuedAction a) async {
-    final p = a.payload;
-    switch (a.type) {
+    if (a.type == 'photo') {
+      final path = a.payload['filePath'] as String;
+      if (!File(path).existsSync()) return; // file gone - nothing left to send
+      await _service.uploadPhoto(a.payload['parkingVehicleId'] as int, path, a.payload['angle'] as String);
+      return;
+    }
+    await _sendPayload(a.type, a.payload);
+  }
+
+  /// Returns the server's message where the endpoint has one.
+  Future<String?> _sendPayload(String type, Map<String, dynamic> p) async {
+    final id = p['parkingVehicleId'] as int;
+    final key = p['idempotencyKey'] as String?;
+    switch (type) {
       case 'park_details':
-        await _service.recordParkDetails(
-          parkingVehicleId: p['parkingVehicleId'] as int,
+        return _service.recordParkDetails(
+          parkingVehicleId: id,
           slotId: p['slotId'] as int?,
           bayNo: p['bayNo'] as String?,
           keyHolderNo: p['keyHolderNo'] as String?,
+          idempotencyKey: key,
         );
-        break;
-      case 'photo':
-        final path = p['filePath'] as String;
-        if (!File(path).existsSync()) return; // file gone - nothing left to send
-        await _service.uploadPhoto(p['parkingVehicleId'] as int, path, p['angle'] as String);
-        break;
       case 'eta_checkin':
-        await _service.etaCheckIn(parkingVehicleId: p['parkingVehicleId'] as int, extendMinutes: p['extendMinutes'] as int);
-        break;
+        return _service.etaCheckIn(parkingVehicleId: id, extendMinutes: p['extendMinutes'] as int);
+      case 'request':
+        await _service.requestVehicle(
+          parkingVehicleId: id,
+          requestedRemarks: p['requestedRemarks'] as String? ?? 'Vehicle Requested',
+          parkingCharge: (p['parkingCharge'] as num?)?.toDouble() ?? 0,
+          shopId: p['shopId'] as int?,
+          shopRemarks: p['shopRemarks'] as String?,
+          paymentMethod: p['paymentMethod'] as String?,
+          idempotencyKey: key,
+        );
+        return null;
+      case 'dispatch':
+        await _service.dispatchVehicle(
+          parkingVehicleId: id,
+          driverId: p['driverId'] as int?,
+          vpaOut: p['vpaOut'] as String?,
+          idempotencyKey: key,
+        );
+        return null;
+      case 'arrive':
+        await _service.arriveVehicle(id, idempotencyKey: key);
+        return null;
+      case 'deliver':
+        await _service.deliverVehicle(id, idempotencyKey: key);
+        return null;
+      case 'key_holder':
+        await _service.assignKeyHolder(
+          parkingVehicleId: id,
+          keyHolderNo: p['keyHolderNo'] as String,
+          idempotencyKey: key,
+        );
+        return null;
     }
+    return null;
   }
 
   void _cleanupFile(QueuedAction a) {
