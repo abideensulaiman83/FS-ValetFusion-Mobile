@@ -4,7 +4,11 @@
 // (frontend DashboardPage.tsx) - front bumper at the top, driver's side on the left - so a mark
 // at (x%, y%) sits on the same panel in the app and on the web. Marks are numbered dots coloured
 // by damage type; tapping the car reports the spot (and the panel under it) to [onTap].
+// The drawing is never mirrored in right-to-left layouts (its left is the car's left); only the
+// zone labels are translated. Panel names stay English in data (see diagramPartAt) and are
+// translated where they are shown.
 import 'package:flutter/material.dart';
+import '../../l10n/app_strings.dart';
 import '../../services/damage_service.dart';
 import '../../theme/app_theme.dart';
 
@@ -12,12 +16,12 @@ const double kDiagramW = 340;
 const double kDiagramH = 500;
 
 Color damageTypeColor(DamageType t, Brightness b) {
-  final dark = b == Brightness.dark;
+  final vf = VfColors.of(b);
   return switch (t) {
-    DamageType.scratch => dark ? AppColors.warningOnDark : AppColors.warning,
-    DamageType.dent => dark ? AppColors.dangerOnDark : AppColors.danger,
-    DamageType.crack => dark ? AppColors.liveOnDark : AppColors.live,
-    DamageType.other => dark ? AppColors.brassOnDark : AppColors.brass,
+    DamageType.scratch => vf.warning,
+    DamageType.dent => vf.danger,
+    DamageType.crack => vf.live,
+    DamageType.other => vf.brass,
   };
 }
 
@@ -77,6 +81,7 @@ const List<(String, double, double)> _labels = [
 ];
 
 /// The panel under a diagram point (in 340 x 500 units), e.g. "Bonnet"; null off the car.
+/// Returns the English name (it can end up in saved data) - show it with tr(context, part).
 String? diagramPartAt(Offset p) {
   for (final part in _parts.reversed) {
     if (part.path.contains(p)) return part.label;
@@ -97,6 +102,8 @@ class CarDiagram extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final b = Theme.of(context).brightness;
+    final labels = [for (final (text, x, y) in _labels) (tr(context, text), x, y)];
+    final dir = Directionality.of(context);
     return AspectRatio(
       aspectRatio: kDiagramW / kDiagramH,
       child: LayoutBuilder(builder: (context, c) {
@@ -116,10 +123,11 @@ class CarDiagram extends StatelessWidget {
                       },
                 child: Opacity(
                   opacity: dimmed ? 0.45 : 1,
-                  child: CustomPaint(painter: _CarPainter(b)),
+                  child: CustomPaint(painter: _CarPainter(b, labels, dir)),
                 ),
               ),
             ),
+            // Physical position on the car - deliberately not directional.
             for (var i = 0; i < marks.length; i++)
               Positioned(
                 left: marks[i].xPct / 100 * w - 12,
@@ -153,7 +161,7 @@ class DamageMarkDot extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: mark.saved ? AppColors.card : AppColors.ink, width: mark.saved ? 2 : 2.5),
+        border: Border.all(color: mark.saved ? context.vf.card : context.vf.textPrimary, width: mark.saved ? 2 : 2.5),
         boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 1))],
       ),
       child: Text('$number', style: AppTheme.numeral(size: size * 0.55, color: AppTheme.contrastOn(color))),
@@ -163,17 +171,19 @@ class DamageMarkDot extends StatelessWidget {
 
 class _CarPainter extends CustomPainter {
   final Brightness brightness;
-  _CarPainter(this.brightness);
+  final List<(String, double, double)> labels;
+  final TextDirection textDirection;
+  _CarPainter(this.brightness, this.labels, this.textDirection);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final dark = brightness == Brightness.dark;
+    final vf = VfColors.of(brightness);
     canvas.save();
     canvas.scale(size.width / kDiagramW, size.height / kDiagramH);
 
-    final fill = Paint()..color = dark ? AppColors.inkCard2 : AppColors.card2;
+    final fill = Paint()..color = vf.card2;
     final stroke = Paint()
-      ..color = dark ? AppColors.inkTextSecondary : AppColors.textSecondary
+      ..color = vf.textSecondary
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     final thin = Paint()
@@ -197,11 +207,11 @@ class _CarPainter extends CustomPainter {
     canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(130, 15, 80, 14), const Radius.circular(2)), thin);
     canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(122, 398, 96, 11), const Radius.circular(1.5)), thin);
 
-    final textColor = dark ? AppColors.inkTextSecondary : AppColors.textSecondary;
-    for (final (text, x, y) in _labels) {
+    final textColor = vf.textSecondary;
+    for (final (text, x, y) in labels) {
       final tp = TextPainter(
         text: TextSpan(text: text, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600, color: textColor, letterSpacing: 0.6)),
-        textDirection: TextDirection.ltr,
+        textDirection: textDirection,
       )..layout();
       tp.paint(canvas, Offset(x - tp.width / 2, y - tp.height / 2));
     }
@@ -209,5 +219,14 @@ class _CarPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _CarPainter old) => old.brightness != brightness;
+  bool shouldRepaint(covariant _CarPainter old) =>
+      old.brightness != brightness || old.textDirection != textDirection || !_sameLabels(old.labels, labels);
+
+  static bool _sameLabels(List<(String, double, double)> a, List<(String, double, double)> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 }

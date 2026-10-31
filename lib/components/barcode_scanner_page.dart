@@ -4,6 +4,7 @@
 // ticket barcode. Pops with the scanned code's raw text, or null if cancelled.
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../l10n/app_strings.dart';
 
 class BarcodeScannerPage extends StatefulWidget {
   final String title;
@@ -31,7 +32,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: AppBar(title: Text(tr(context, widget.title))),
       body: Stack(
         children: [
           MobileScanner(onDetect: _onDetect),
@@ -39,10 +40,10 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
             alignment: Alignment.bottomCenter,
             child: Container(
               width: double.infinity,
-              color: Colors.black54,
+              color: Colors.black54, // overlay on the camera view
               padding: const EdgeInsets.all(16),
               child: Text(
-                widget.hint,
+                tr(context, widget.hint),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white),
               ),

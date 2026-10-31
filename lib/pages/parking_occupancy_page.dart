@@ -6,6 +6,7 @@
 // from the ticket-by-ticket valet desk.
 import 'package:flutter/material.dart';
 import '../components/guest_tracking_qr_sheet.dart';
+import '../l10n/app_strings.dart';
 import '../services/valet_service.dart';
 import '../theme/app_theme.dart';
 
@@ -50,8 +51,8 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
     try {
       final start = DateTime.parse(isoTime);
       final diff = DateTime.now().difference(start);
-      if (diff.inHours >= 1) return '${diff.inHours}h ${diff.inMinutes % 60}m';
-      return '${diff.inMinutes}m';
+      if (diff.inHours >= 1) return tr(context, '{h}h {m}m', {'h': diff.inHours, 'm': diff.inMinutes % 60});
+      return tr(context, '{m}m', {'m': diff.inMinutes});
     } catch (_) {
       return '-';
     }
@@ -79,7 +80,7 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
               .toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Received Vehicles')),
+      appBar: AppBar(title: Text(tr(context, 'Received Vehicles'))),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -100,21 +101,26 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                               vertical: 14,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.infoSoft,
+                              color: context.vf.infoSoft,
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: Row(
                               children: [
                                 Icon(
                                   Icons.local_parking,
-                                  color: AppColors.live,
+                                  color: context.vf.live,
                                 ),
                                 const SizedBox(width: 10),
-                                Text(
-                                  '${_parked.length} received Â· ${_parked.where((p) => p.parkingLocation == null && (p.bayNo == null || p.bayNo!.isEmpty)).length} awaiting slot',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.live,
+                                Expanded(
+                                  child: Text(
+                                    tr(context, '{n} received · {m} awaiting slot', {
+                                      'n': _parked.length,
+                                      'm': _parked.where((p) => p.parkingLocation == null && (p.bayNo == null || p.bayNo!.isEmpty)).length,
+                                    }),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: context.vf.live,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -122,9 +128,9 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                           ),
                           const SizedBox(height: 12),
                           TextField(
-                            decoration: const InputDecoration(
-                              labelText: 'Search ticket, plate or slot',
-                              prefixIcon: Icon(Icons.search),
+                            decoration: InputDecoration(
+                              labelText: tr(context, 'Search ticket, plate or slot'),
+                              prefixIcon: const Icon(Icons.search),
                             ),
                             onChanged: (v) => setState(() => _search = v),
                           ),
@@ -135,8 +141,8 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                       child: filtered.isEmpty
                           ? Center(
                               child: Text(
-                                'No received vehicles found',
-                                style: TextStyle(color: AppColors.textSecondary),
+                                tr(context, 'No received vehicles found'),
+                                style: TextStyle(color: context.vf.textSecondary),
                               ),
                             )
                           : ListView.separated(
@@ -165,8 +171,8 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
     ].where((s) => s != null && s.isNotEmpty).join(' ');
     final slot =
         p.parkingLocation ??
-        (p.bayNo != null && p.bayNo!.isNotEmpty ? 'Bay ${p.bayNo}' : null);
-    final where = slot == null ? 'Awaiting slot' : 'Parked Â· $slot';
+        (p.bayNo != null && p.bayNo!.isNotEmpty ? tr(context, 'Bay {bay}', {'bay': p.bayNo}) : null);
+    final where = slot == null ? tr(context, 'Awaiting slot') : tr(context, 'Parked · {slot}', {'slot': slot});
     // Self-park check-ins (ParkingSlotService) get a synthetic SP-... number, not a guest
     // ticket, so there's no public tracking page for them.
     final hasGuestTicket = !p.ticketNo.startsWith('SP-');
@@ -185,9 +191,9 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.card,
+          color: context.vf.card,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.line),
+          border: Border.all(color: context.vf.line),
         ),
         child: Row(
           children: [
@@ -196,14 +202,14 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
               height: 48,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.infoSoft,
+                color: context.vf.infoSoft,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 p.bayNo ?? '-',
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
-                  color: AppColors.live,
+                  color: context.vf.live,
                   fontSize: 12,
                 ),
               ),
@@ -214,7 +220,7 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Ticket ${p.ticketNo}',
+                    tr(context, 'Ticket {no}', {'no': p.ticketNo}),
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 13.5,
@@ -225,7 +231,7 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                       vehicle,
                       p.plateNo ?? '-',
                     ].where((s) => s.isNotEmpty).join(' · '),
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 12, color: context.vf.textSecondary),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -234,8 +240,8 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: slot == null
-                          ? AppColors.live
-                          : AppColors.textSecondary,
+                          ? context.vf.live
+                          : context.vf.textSecondary,
                     ),
                   ),
                 ],
@@ -252,12 +258,12 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                   ),
                 ),
                 Text(
-                  'ago',
-                  style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                  tr(context, 'ago'),
+                  style: TextStyle(fontSize: 10, color: context.vf.textSecondary),
                 ),
                 if (hasGuestTicket) ...[
                   const SizedBox(height: 4),
-                  Icon(Icons.qr_code_2, size: 18, color: AppColors.textSecondary),
+                  Icon(Icons.qr_code_2, size: 18, color: context.vf.textSecondary),
                 ],
               ],
             ),

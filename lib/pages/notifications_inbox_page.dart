@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../l10n/app_strings.dart';
 import '../services/authentication_service.dart';
 import '../services/desk_links.dart';
 import '../services/inbox_service.dart';
@@ -88,7 +89,7 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage> with Wi
       if (mounted) setState(() => _items = _items.map((i) => i.asRead()).toList());
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.danger));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: context.vf.danger));
       }
     }
   }
@@ -109,11 +110,11 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage> with Wi
   Color _severityColor(String severity) {
     switch (severity) {
       case 'CRITICAL':
-        return AppColors.danger;
+        return context.vf.danger;
       case 'WARNING':
-        return AppColors.warning;
+        return context.vf.warning;
       default:
-        return AppColors.live;
+        return context.vf.live;
     }
   }
 
@@ -131,9 +132,9 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage> with Wi
   String _when(DateTime? t) {
     if (t == null) return '';
     final d = DateTime.now().difference(t);
-    if (d.inMinutes < 1) return 'just now';
-    if (d.inMinutes < 60) return '${d.inMinutes} min ago';
-    if (d.inHours < 24) return '${d.inHours} h ago';
+    if (d.inMinutes < 1) return tr(context, 'just now');
+    if (d.inMinutes < 60) return tr(context, '{n} min ago', {'n': d.inMinutes});
+    if (d.inHours < 24) return tr(context, '{n} h ago', {'n': d.inHours});
     return DateFormat('d MMM, HH:mm').format(t);
   }
 
@@ -143,9 +144,9 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage> with Wi
     final anyUnread = _items.any((i) => !i.read);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: Text(tr(context, 'Notifications')),
         actions: [
-          if (anyUnread) TextButton(onPressed: _markAll, child: const Text('Mark all read')),
+          if (anyUnread) TextButton(onPressed: _markAll, child: Text(tr(context, 'Mark all read'))),
         ],
       ),
       body: RefreshIndicator(
@@ -162,11 +163,11 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage> with Wi
                 : _items.isEmpty
                     ? ListView(children: [
                         const SizedBox(height: 80),
-                        Icon(Icons.notifications_none_rounded, size: 48, color: AppColors.textSecondary),
+                        Icon(Icons.notifications_none_rounded, size: 48, color: context.vf.textSecondary),
                         const SizedBox(height: 12),
-                        Text('No notifications yet', textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
+                        Text(tr(context, 'No notifications yet'), textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
                         const SizedBox(height: 4),
-                        Text('Alerts such as a guest waiting for a driver show up here.',
+                        Text(tr(context, 'Alerts such as a guest waiting for a driver show up here.'),
                             textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
                       ])
                     : ListView.separated(
@@ -183,7 +184,7 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage> with Wi
     final color = _severityColor(item.severity);
     final ticket = item.ticketNo;
     return Material(
-      color: item.read ? AppColors.card : AppColors.card2,
+      color: item.read ? context.vf.card : context.vf.card2,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -191,7 +192,7 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage> with Wi
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.line),
+            border: Border.all(color: context.vf.line),
           ),
           child: IntrinsicHeight(
             child: Row(
@@ -201,7 +202,7 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage> with Wi
                   width: 5,
                   decoration: BoxDecoration(
                     color: color,
-                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+                    borderRadius: const BorderRadiusDirectional.horizontal(start: Radius.circular(10)),
                   ),
                 ),
                 Expanded(
@@ -226,7 +227,7 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage> with Wi
                                   Container(
                                     width: 8,
                                     height: 8,
-                                    margin: const EdgeInsets.only(left: 6),
+                                    margin: const EdgeInsetsDirectional.only(start: 6),
                                     decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                                   ),
                               ]),
@@ -239,7 +240,7 @@ class _NotificationsInboxPageState extends State<NotificationsInboxPage> with Wi
                                 Text(_when(item.createdAt), style: theme.textTheme.bodySmall),
                                 if (ticket != null && _canOpenDesk) ...[
                                   const Spacer(),
-                                  Text('Open ticket $ticket',
+                                  Text(tr(context, 'Open ticket {no}', {'no': ticket}),
                                       style: theme.textTheme.bodySmall?.copyWith(
                                           color: theme.colorScheme.primary, fontWeight: FontWeight.w700)),
                                   Icon(Icons.chevron_right_rounded, size: 16, color: theme.colorScheme.primary),

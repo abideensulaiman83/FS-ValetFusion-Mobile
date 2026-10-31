@@ -134,7 +134,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: AppColors.danger,
+      backgroundColor: context.vf.danger,
     ));
   }
 
@@ -185,7 +185,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.page,
+      backgroundColor: context.vf.page,
       appBar: AppBar(
         title: Text(_isRegister ? tr(context, 'Guest Sign Up') : tr(context, 'Guest Sign In')),
         actions: const [LanguageToggle()],
@@ -196,7 +196,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
           child: Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: AppColors.card,
+              color: context.vf.card,
               borderRadius: BorderRadius.circular(18),
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 6))],
             ),
@@ -205,7 +205,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.local_parking_rounded, size: 40, color: AppColors.primary),
+                  Icon(Icons.local_parking_rounded, size: 40, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(height: 8),
                   Text(
                     _isRegister ? tr(context, 'Create your guest account') : tr(context, 'Welcome back'),
@@ -267,7 +267,7 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
                     child: ElevatedButton(
                       onPressed: _loading ? null : _submit,
                       child: _loading
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                           : Text(_isRegister ? tr(context, 'Sign Up') : tr(context, 'Sign In')),
                     ),
                   ),
@@ -311,10 +311,10 @@ class _CustomerAuthPageState extends State<CustomerAuthPage> {
     if (_companies.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: AppColors.warningSoft, borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: context.vf.warningSoft, borderRadius: BorderRadius.circular(8)),
         child: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 20),
+            Icon(Icons.warning_amber_rounded, color: context.vf.warning, size: 20),
             const SizedBox(width: 8),
             Expanded(child: Text(tr(context, 'Could not load properties.'), style: TextStyle(fontSize: 12))),
             TextButton(onPressed: _loadCompanies, child: Text(tr(context, 'Retry'))),

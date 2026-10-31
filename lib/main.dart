@@ -92,9 +92,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // English by default; Arabic (right-to-left) only once someone picks it with the language
-    // switch - staff screens are English-only, so following an Arabic phone automatically would
-    // mirror them with English text.
+    // English by default; Arabic (right-to-left) once someone picks it with the language switch
+    // (landing, guest screens and the staff drawer), remembered on the phone.
     return ValueListenableBuilder<Locale?>(
       valueListenable: LocaleController.locale,
       builder: (context, locale, _) => ValueListenableBuilder<Color?>(
@@ -104,13 +103,12 @@ class MyApp extends StatelessWidget {
       navigatorKey: NotificationService.navigatorKey,
       title: 'ValetFusion',
       // Control-room theme (plan §2.8 / C5); the venue's accent colour replaces brass after
-      // login (plan B2). Light for now: the staff and guest screens still paint the light
-      // surface tokens directly, so following the phone's dark setting would mix the two.
-      // Switch to ThemeMode.system once those screens read colours from the ColorScheme.
-      // Operations screens that are always dark use AppTheme.ops explicitly.
+      // login (plan B2). Follows the phone's light/dark setting: screens read surface, text and
+      // status colours through context.vf / the ColorScheme. Screens that are always dark
+      // (splash, landing, login) paint the ink tokens or wrap themselves in AppTheme.ops.
       theme: AppTheme.light(accent: accent),
       darkTheme: AppTheme.dark(accent: accent),
-      themeMode: ThemeMode.light,
+      themeMode: ThemeMode.system,
       locale: locale ?? const Locale('en'),
       supportedLocales: const [Locale('en'), Locale('ar')],
       localizationsDelegates: const [

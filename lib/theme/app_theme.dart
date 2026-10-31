@@ -47,6 +47,12 @@ class AppColors {
   static const Color dangerSoft = Color(0xFFF9DEDC);
   static const Color infoSoft = Color(0xFFD9EEF4);
   static const Color accentSoft = Color(0xFFF3E9D2);
+  // the same tints for dark surfaces (readable under the *OnDark status colours)
+  static const Color successSoftDark = Color(0xFF15372A);
+  static const Color warningSoftDark = Color(0xFF3D2C10);
+  static const Color dangerSoftDark = Color(0xFF3F1E1D);
+  static const Color infoSoftDark = Color(0xFF12323C);
+  static const Color accentSoftDark = Color(0xFF392C14);
   // plates
   static const Color plateBg = Color(0xFFFFFFFF);
   static const Color plateFg = Color(0xFF111111);
@@ -305,4 +311,51 @@ Color waitBandColor(Duration waited, Brightness b) {
   if (waited.inMinutes >= 20) return dark ? AppColors.dangerOnDark : AppColors.danger;
   if (waited.inMinutes >= 10) return dark ? AppColors.warningOnDark : AppColors.warning;
   return dark ? AppColors.successOnDark : AppColors.success;
+}
+
+/// Surface, text, line and status colours for the brightness of the theme in force where the
+/// widget sits, so one screen reads right in the light theme, the dark theme (phone setting) and
+/// under [AppTheme.ops]. Use `context.vf.card` etc. instead of the fixed light [AppColors] tokens.
+/// Status colours (success/warning/danger/live) and their soft tints are tuned per brightness.
+class VfColors {
+  final bool dark;
+  const VfColors._(this.dark);
+  static const VfColors lightSet = VfColors._(false);
+  static const VfColors darkSet = VfColors._(true);
+  static VfColors of(Brightness b) => b == Brightness.dark ? darkSet : lightSet;
+
+  // surfaces
+  Color get page => dark ? AppColors.inkPage : AppColors.page;
+  Color get card => dark ? AppColors.inkCard : AppColors.card;
+  Color get card2 => dark ? AppColors.inkCard2 : AppColors.card2;
+  Color get line => dark ? AppColors.inkLine : AppColors.line;
+  Color get lineStrong => dark ? AppColors.inkLineStrong : AppColors.lineStrong;
+  // text
+  Color get textPrimary => dark ? AppColors.inkText : AppColors.textPrimary;
+  Color get textBody => dark ? AppColors.inkTextBody : AppColors.textBody;
+  Color get textSecondary => dark ? AppColors.inkTextSecondary : AppColors.textSecondary;
+  /// Text/icons on a coloured (status or accent) fill - white in both modes.
+  Color get onColor => Colors.white;
+  /// Strongest contrast against the page: black in light mode, white in dark mode.
+  Color get contrast => dark ? Colors.white : Colors.black;
+  // brand
+  Color get brass => dark ? AppColors.brassOnDark : AppColors.brass;
+  // status
+  Color get success => dark ? AppColors.successOnDark : AppColors.success;
+  Color get warning => dark ? AppColors.warningOnDark : AppColors.warning;
+  Color get danger => dark ? AppColors.dangerOnDark : AppColors.danger;
+  Color get live => dark ? AppColors.liveOnDark : AppColors.live;
+  // soft tints behind status text/icons
+  Color get successSoft => dark ? AppColors.successSoftDark : AppColors.successSoft;
+  Color get warningSoft => dark ? AppColors.warningSoftDark : AppColors.warningSoft;
+  Color get dangerSoft => dark ? AppColors.dangerSoftDark : AppColors.dangerSoft;
+  Color get infoSoft => dark ? AppColors.infoSoftDark : AppColors.infoSoft;
+  Color get accentSoft => dark ? AppColors.accentSoftDark : AppColors.accentSoft;
+  /// Dim backdrop for overlays/scrims.
+  Color get scrim => Colors.black.withValues(alpha: dark ? 0.6 : 0.4);
+}
+
+extension VfColorsContext on BuildContext {
+  /// The colour tokens for the active theme's brightness (see [VfColors]).
+  VfColors get vf => VfColors.of(Theme.of(this).brightness);
 }

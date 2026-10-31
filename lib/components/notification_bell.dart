@@ -4,6 +4,7 @@
 // to the front; tapping it opens the inbox.
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../l10n/app_strings.dart';
 import '../pages/notifications_inbox_page.dart';
 import '../services/inbox_service.dart';
 import '../theme/app_theme.dart';
@@ -43,7 +44,7 @@ class _NotificationBellState extends State<NotificationBell> with WidgetsBinding
     return ValueListenableBuilder<int>(
       valueListenable: InboxController.instance.unread,
       builder: (context, unread, _) => IconButton(
-        tooltip: unread > 0 ? 'Notifications ($unread unread)' : 'Notifications',
+        tooltip: unread > 0 ? tr(context, 'Notifications ({n} unread)', {'n': unread}) : tr(context, 'Notifications'),
         onPressed: () async {
           await Navigator.of(context).push(MaterialPageRoute(
             settings: const RouteSettings(name: '/notifications'),
@@ -53,8 +54,8 @@ class _NotificationBellState extends State<NotificationBell> with WidgetsBinding
         },
         icon: Badge(
           isLabelVisible: unread > 0,
-          backgroundColor: AppColors.danger,
-          textColor: Colors.white,
+          backgroundColor: context.vf.danger,
+          textColor: Colors.white, // on the red badge, both themes
           label: Text(unread > 99 ? '99+' : '$unread'),
           child: Icon(unread > 0 ? Icons.notifications_active_rounded : Icons.notifications_none_rounded),
         ),

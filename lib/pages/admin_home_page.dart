@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../components/confirm_dialog.dart';
+import '../l10n/app_strings.dart';
 import '../components/notification_bell.dart';
 import '../components/premium.dart';
 import '../services/authentication_service.dart';
@@ -73,12 +74,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
         await _logout();
       },
       child: Scaffold(
-        backgroundColor: AppColors.page,
+        backgroundColor: context.vf.page,
         appBar: AppBar(
-          title: const Text('Admin Console'),
+          title: Text(tr(context, 'Admin Console')),
           actions: [
             const NotificationBell(),
-            IconButton(onPressed: _logout, icon: const Icon(Icons.logout), tooltip: 'Logout'),
+            IconButton(onPressed: _logout, icon: const Icon(Icons.logout), tooltip: tr(context, 'Logout')),
           ],
         ),
         body: SafeArea(
@@ -102,19 +103,19 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   const SizedBox(height: 10),
                   _moduleTile(
                     icon: Icons.bar_chart_rounded,
-                    color: AppColors.live,
-                    title: 'Operational Report',
-                    subtitle: 'Today\'s throughput, inventory & payment mix',
+                    color: context.vf.live,
+                    title: tr(context, 'Operational Report'),
+                    subtitle: tr(context, "Today's throughput, inventory & payment mix"),
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DriverActivityPage())),
                   ),
                   const SizedBox(height: 10),
                   // Premium: the Report Builder and exports live in the web console.
                   _moduleTile(
                     icon: Icons.insights_rounded,
-                    color: AppColors.brass,
-                    title: 'Advanced reports',
+                    color: context.vf.brass,
+                    title: tr(context, 'Advanced reports'),
                     premiumFeature: PremiumFeature.advancedReports,
-                    subtitle: 'Report Builder, Excel/PDF exports - opens the web console',
+                    subtitle: tr(context, 'Report Builder, Excel/PDF exports - opens the web console'),
                     onTap: () => guardPremium(context, PremiumFeature.advancedReports,
                         () => launchUrl(Uri.parse(kWebConsoleUrl), mode: LaunchMode.externalApplication)),
                   ),
@@ -123,8 +124,8 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   const SizedBox(height: 10),
                   _moduleTile(
                     icon: Icons.privacy_tip_outlined,
-                    color: AppColors.textSecondary,
-                    title: 'Privacy & Policy',
+                    color: context.vf.textSecondary,
+                    title: tr(context, 'Privacy & Policy'),
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyPolicyPage())),
                   ),
                 ],
@@ -137,7 +138,8 @@ class _AdminHomePageState extends State<AdminHomePage> {
   }
 
   Widget _sectionLabel(String text) {
-    return Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: AppColors.textSecondary));
+    return Text(tr(context, text),
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: context.vf.textSecondary));
   }
 
   Widget _buildInsights() {
@@ -145,13 +147,14 @@ class _AdminHomePageState extends State<AdminHomePage> {
       return const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: CircularProgressIndicator()));
     }
     final d = _details;
+    final vf = context.vf;
     final stats = [
-      ('Received', d?.receivedCount ?? 0, Icons.local_parking, AppColors.primary),
-      ('Delivered', d?.deliveredCount ?? 0, Icons.check_circle_outline, AppColors.success),
-      ('In Inventory', d?.currentInventory ?? 0, Icons.inventory_2_outlined, AppColors.warning),
-      ('Complimentary', d?.complimentaryCount ?? 0, Icons.card_giftcard_outlined, AppColors.live),
-      ('Paid', d?.paidCount ?? 0, Icons.attach_money, AppColors.success),
-      ('Tickets Left', d?.ticketsRemaining ?? 0, Icons.confirmation_number_outlined, AppColors.danger),
+      ('Received', d?.receivedCount ?? 0, Icons.local_parking, vf.brass),
+      ('Delivered', d?.deliveredCount ?? 0, Icons.check_circle_outline, vf.success),
+      ('In Inventory', d?.currentInventory ?? 0, Icons.inventory_2_outlined, vf.warning),
+      ('Complimentary', d?.complimentaryCount ?? 0, Icons.card_giftcard_outlined, vf.live),
+      ('Paid', d?.paidCount ?? 0, Icons.attach_money, vf.success),
+      ('Tickets Left', d?.ticketsRemaining ?? 0, Icons.confirmation_number_outlined, vf.danger),
     ];
     return GridView.count(
       shrinkWrap: true,
@@ -178,35 +181,36 @@ class _AdminHomePageState extends State<AdminHomePage> {
           Icon(icon, color: color, size: 20),
           const Spacer(),
           Text('$value', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color)),
-          Text(label, style: TextStyle(fontSize: 10.5, color: color), maxLines: 2, overflow: TextOverflow.ellipsis),
+          Text(tr(context, label), style: TextStyle(fontSize: 10.5, color: color), maxLines: 2, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
   }
 
   Widget _buildOperationsGrid() {
+    final vf = context.vf;
     final modules = <Map<String, dynamic>>[
       {
         'icon': Icons.directions_car_filled_outlined,
-        'color': AppColors.live,
+        'color': vf.live,
         'title': 'Valet Desk',
         'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DashboardPage())),
       },
       {
         'icon': Icons.local_parking_outlined,
-        'color': AppColors.success,
+        'color': vf.success,
         'title': 'Parking Occupancy',
         'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ParkingOccupancyPage())),
       },
       {
         'icon': Icons.grid_view_outlined,
-        'color': AppColors.success,
+        'color': vf.success,
         'title': 'Parking Setup',
         'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ParkingSetupPage())),
       },
       {
         'icon': Icons.forum_outlined,
-        'color': AppColors.danger,
+        'color': vf.danger,
         'title': 'Complaints',
         'onTap': () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminComplaintsPage())),
       },
@@ -226,14 +230,14 @@ class _AdminHomePageState extends State<AdminHomePage> {
 
   Widget _quickTile(IconData icon, Color color, String title, VoidCallback onTap) {
     return Material(
-      color: AppColors.card,
+      color: context.vf.card,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.line)),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: context.vf.line)),
           child: Row(
             children: [
               Container(
@@ -242,7 +246,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 child: Icon(icon, color: color, size: 18),
               ),
               const SizedBox(width: 10),
-              Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5), overflow: TextOverflow.ellipsis)),
+              Expanded(child: Text(tr(context, title), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5), overflow: TextOverflow.ellipsis)),
             ],
           ),
         ),
@@ -252,14 +256,14 @@ class _AdminHomePageState extends State<AdminHomePage> {
 
   Widget _moduleTile({required IconData icon, required Color color, required String title, String? subtitle, String? premiumFeature, required VoidCallback onTap}) {
     return Material(
-      color: AppColors.card,
+      color: context.vf.card,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.line)),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: context.vf.line)),
           child: Row(
             children: [
               Container(
@@ -279,11 +283,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
                         PremiumStar(featureKey: premiumFeature, size: 15),
                       ],
                     ]),
-                    if (subtitle != null) Text(subtitle, style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
+                    if (subtitle != null) Text(subtitle, style: TextStyle(fontSize: 11.5, color: context.vf.textSecondary)),
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textSecondary),
+              // arrow_forward_ios_rounded mirrors itself in RTL (matchTextDirection).
+              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: context.vf.textSecondary),
             ],
           ),
         ),

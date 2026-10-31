@@ -1,13 +1,20 @@
 // lib/l10n/app_strings.dart
 //
-// English / Arabic for the guest-facing screens (landing, guest sign-in, My Valet, history, live
-// tracking). Keys are the English text itself, so an untranslated string simply shows in English
+// English / Arabic for the app: the guest-facing screens here (landing, guest sign-in, My Valet,
+// history, live tracking) and the staff screens in l10n/staff/ (desk, driver, parking, admin).
+// Keys are the English text itself, so an untranslated string simply shows in English
 // instead of breaking. Placeholders use {name}. Arabic flips the layout right-to-left through
 // flutter_localizations (see MaterialApp in main.dart).
 //
 // The Arabic below should be reviewed by a native speaker before a store release.
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'staff/ar_admin.dart';
+import 'staff/ar_customer.dart';
+import 'staff/ar_desk.dart';
+import 'staff/ar_premium.dart';
+import 'staff/ar_driver.dart';
+import 'staff/ar_parking.dart';
 
 class LocaleController {
   LocaleController._();
@@ -32,9 +39,19 @@ class LocaleController {
 bool isArabic(BuildContext context) => Localizations.localeOf(context).languageCode == 'ar';
 
 String tr(BuildContext context, String en, [Map<String, Object?> args = const {}]) {
-  var text = isArabic(context) ? (_ar[en] ?? en) : en;
+  var text = isArabic(context) ? (_lookupAr(en) ?? en) : en;
   args.forEach((k, v) => text = text.replaceAll('{$k}', '${v ?? ''}'));
   return text;
+}
+
+const List<Map<String, String>> _arMaps = [_ar, arDesk, arDriver, arParking, arAdmin, arPremium, arCustomer];
+
+String? _lookupAr(String en) {
+  for (final m in _arMaps) {
+    final v = m[en];
+    if (v != null) return v;
+  }
+  return null;
 }
 
 /// "العربية" / "English" switch for app bars and headers.

@@ -6,6 +6,7 @@
 // given to another car) and its message is shown as-is when it refuses.
 import 'package:flutter/material.dart';
 import '../services/valet_service.dart';
+import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 
 const _label = {
@@ -88,35 +89,37 @@ class _UndoStepDialogState extends State<_UndoStepDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final from = _label[widget.status] ?? widget.status;
-    final to = _backTo[widget.status];
+    final vf = context.vf;
+    final from = _label[widget.status] == null ? widget.status : tr(context, _label[widget.status]!);
+    final toKey = _backTo[widget.status];
+    final to = toKey == null ? null : tr(context, toKey);
     final plate = widget.plateNo == null || widget.plateNo!.isEmpty ? '' : ' · ${widget.plateNo}';
     return AlertDialog(
       title: Row(children: [
-        const Icon(Icons.undo, color: AppColors.warning),
+        Icon(Icons.undo, color: vf.warning),
         const SizedBox(width: 8),
-        const Text('Undo last step'),
+        Text(tr(context, 'Undo last step')),
       ]),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Ticket ${widget.ticketNo}$plate: move it back from $from to ${to ?? '-'}?',
+            Text(tr(context, 'Ticket {no}: move it back from {from} to {to}?', {'no': '${widget.ticketNo}$plate', 'from': from, 'to': to ?? '-'}),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            Text(to == null ? 'This ticket has no step to undo.' : _effect[widget.status]!,
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+            Text(tr(context, to == null ? 'This ticket has no step to undo.' : _effect[widget.status]!),
+                style: TextStyle(fontSize: 13, color: vf.textSecondary)),
             const SizedBox(height: 14),
-            Text('Reason (saved in the audit log)', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            Text(tr(context, 'Reason (saved in the audit log)'), style: TextStyle(fontSize: 12, color: vf.textSecondary)),
             const SizedBox(height: 6),
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: _quick
                   .map((q) => ActionChip(
-                        label: Text(q, style: const TextStyle(fontSize: 12)),
-                        onPressed: _busy ? null : () => setState(() => _reason.text = q),
+                        label: Text(tr(context, q), style: const TextStyle(fontSize: 12)),
+                        onPressed: _busy ? null : () => setState(() => _reason.text = tr(context, q)),
                       ))
                   .toList(),
             ),
@@ -125,26 +128,26 @@ class _UndoStepDialogState extends State<_UndoStepDialog> {
               controller: _reason,
               enabled: !_busy,
               maxLength: 200,
-              decoration: const InputDecoration(hintText: 'Why is this step being undone?', isDense: true),
+              decoration: InputDecoration(hintText: tr(context, 'Why is this step being undone?'), isDense: true),
               onChanged: (_) => setState(() {}),
               onSubmitted: (_) => _submit(),
             ),
             if (_error.isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text(_error, style: const TextStyle(color: AppColors.danger, fontSize: 13)),
+              Text(_error, style: TextStyle(color: vf.danger, fontSize: 13)),
             ],
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: _busy ? null : () => Navigator.of(context).pop(), child: const Text('Keep as is')),
+        TextButton(onPressed: _busy ? null : () => Navigator.of(context).pop(), child: Text(tr(context, 'Keep as is'))),
         FilledButton.icon(
-          style: FilledButton.styleFrom(backgroundColor: AppColors.warning, foregroundColor: AppColors.ink),
+          style: FilledButton.styleFrom(backgroundColor: vf.warning, foregroundColor: AppColors.ink),
           onPressed: to == null || _busy || _reason.text.trim().length < 3 ? null : _submit,
           icon: _busy
               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
               : const Icon(Icons.undo, size: 18),
-          label: Text('Back to ${to ?? '-'}'),
+          label: Text(tr(context, 'Back to {step}', {'step': to ?? '-'})),
         ),
       ],
     );

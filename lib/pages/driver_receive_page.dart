@@ -23,6 +23,7 @@ import '../services/offline_queue.dart';
 import '../components/guest_tracking_qr_sheet.dart';
 import '../components/slot_picker.dart';
 import '../components/wash_requests_section.dart';
+import '../l10n/app_strings.dart';
 import '../services/delivery_tracker.dart';
 import '../services/ocr_service.dart';
 import '../services/valet_service.dart';
@@ -61,11 +62,16 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
     if (d.parkingVehicleId == null) return;
     setState(() => _acting.add(d.parkingVehicleId!));
     try {
-      final label = type == 'arrive' ? 'Arrival of ticket ${d.ticketNo}' : 'Handover of ticket ${d.ticketNo}';
+      final label = type == 'arrive'
+          ? tr(context, 'Arrival of ticket {no}', {'no': d.ticketNo})
+          : tr(context, 'Handover of ticket {no}', {'no': d.ticketNo});
       final outcome = await OfflineQueue.instance
           .sendOrQueue(type: type, payload: {'parkingVehicleId': d.parkingVehicleId}, label: label);
       if (outcome.queued) {
-        _showSnack('No signal - ${type == 'arrive' ? 'arrival' : 'handover'} saved on this phone and will be sent automatically.');
+        if (!mounted) return;
+        _showSnack(type == 'arrive'
+            ? tr(context, 'No signal - arrival saved on this phone and will be sent automatically.')
+            : tr(context, 'No signal - handover saved on this phone and will be sent automatically.'));
       }
       await _tracker.refresh();
     } catch (e) {
@@ -79,7 +85,7 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? AppColors.danger : AppColors.success,
+      backgroundColor: error ? context.vf.danger : context.vf.success,
     ));
   }
 
@@ -101,8 +107,8 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('My Deliveries',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                Text(tr(context, 'My Deliveries'),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.vf.textPrimary)),
                 const SizedBox(height: 10),
                 for (final d in deliveries) ...[
                   _buildDeliveryCard(d),
@@ -121,32 +127,33 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
     final isActing = d.parkingVehicleId != null && _acting.contains(d.parkingVehicleId);
     final isArrived = d.status == 'ARRIVED';
     final car = [d.vehicleColor, d.vehicleMake, d.vehicleModel].where((s) => s != null && s.isNotEmpty).join(' ');
+    final vf = context.vf;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.infoSoft, Colors.white],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          colors: [vf.infoSoft, vf.card],
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
         ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: d.checkInDue ? AppColors.warning : AppColors.infoSoft),
+        border: Border.all(color: d.checkInDue ? vf.warning : vf.infoSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.directions_car_filled, color: AppColors.live),
+              Icon(Icons.directions_car_filled, color: vf.live),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(car.isEmpty ? 'Vehicle' : car,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                child: Text(car.isEmpty ? tr(context, 'Vehicle') : car,
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: vf.textPrimary)),
               ),
               Chip(
-                label: Text(isArrived ? 'Arrived' : 'On the way',
+                label: Text(tr(context, isArrived ? 'Arrived' : 'On the way'),
                     style: const TextStyle(color: Colors.white, fontSize: 11)),
-                backgroundColor: isArrived ? AppColors.success : AppColors.warning,
+                backgroundColor: isArrived ? vf.success : vf.warning,
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
               ),
@@ -157,19 +164,23 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
             spacing: 16,
             runSpacing: 4,
             children: [
-              _detail('Ticket', d.ticketNo),
-              _detail('Plate', d.plateNo ?? '-'),
-              if (d.keyHolderNo != null && d.keyHolderNo!.isNotEmpty) _detail('Key', d.keyHolderNo!),
+              _detail(tr(context, 'Ticket'), d.ticketNo),
+              _detail(tr(context, 'Plate'), d.plateNo ?? '-'),
+              if (d.keyHolderNo != null && d.keyHolderNo!.isNotEmpty) _detail(tr(context, 'Key'), d.keyHolderNo!),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.local_parking, size: 16, color: AppColors.textSecondary),
+              Icon(Icons.local_parking, size: 16, color: vf.textSecondary),
               const SizedBox(width: 4),
               Expanded(
-                child: Text(d.parkingLocation ?? (d.bayNo != null ? 'Bay ${d.bayNo}' : 'Parking spot not recorded'),
-                    style: TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                child: Text(
+                    d.parkingLocation ??
+                        (d.bayNo != null
+                            ? tr(context, 'Bay {bay}', {'bay': d.bayNo})
+                            : tr(context, 'Parking spot not recorded')),
+                    style: TextStyle(fontSize: 13, color: vf.textPrimary, fontWeight: FontWeight.w600)),
               ),
             ],
           ),
@@ -177,17 +188,19 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
             const SizedBox(height: 6),
             Row(
               children: [
-                Icon(Icons.schedule, size: 16, color: AppColors.warning),
+                Icon(Icons.schedule, size: 16, color: vf.warning),
                 const SizedBox(width: 4),
                 Text(
-                  d.etaMinutes! <= 0 ? 'Guest expects the car now' : 'Guest expects the car in ${d.etaMinutes} min',
-                  style: TextStyle(fontSize: 13, color: AppColors.warning, fontWeight: FontWeight.w600),
+                  d.etaMinutes! <= 0
+                      ? tr(context, 'Guest expects the car now')
+                      : tr(context, 'Guest expects the car in {n} min', {'n': d.etaMinutes}),
+                  style: TextStyle(fontSize: 13, color: vf.warning, fontWeight: FontWeight.w600),
                 ),
                 const Spacer(),
                 TextButton(
                   onPressed: () => _tracker.promptCheckIn(d),
                   style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                  child: const Text('Update ETA'),
+                  child: Text(tr(context, 'Update ETA')),
                 ),
               ],
             ),
@@ -200,13 +213,13 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
                     ? null
                     : () => FindMyCarPage.open(context, parkingVehicleId: d.parkingVehicleId!, ticketNo: d.ticketNo),
                 icon: const Icon(Icons.travel_explore, size: 18),
-                label: const Text('Find car'),
+                label: Text(tr(context, 'Find car')),
                 style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
               ),
               TextButton.icon(
                 onPressed: () => verifyKeyTag(context, expected: d.keyHolderNo, ticketNo: d.ticketNo),
                 icon: const Icon(Icons.qr_code_scanner, size: 18),
-                label: const Text('Check key'),
+                label: Text(tr(context, 'Check key')),
                 style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
               ),
             ],
@@ -219,7 +232,7 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
                   child: OutlinedButton.icon(
                     onPressed: isActing ? null : () => _act(d, 'arrive'),
                     icon: const Icon(Icons.flag_outlined, size: 18),
-                    label: const Text('Mark Arrived'),
+                    label: Text(tr(context, 'Mark Arrived')),
                   ),
                 ),
               if (!isArrived) const SizedBox(width: 10),
@@ -230,8 +243,8 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
                       ? const SizedBox(
                           width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.check_circle_outline, size: 18),
-                  label: Text(isActing ? 'Saving...' : 'Hand Over'),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.live),
+                  label: Text(tr(context, isActing ? 'Saving...' : 'Hand Over')),
+                  style: ElevatedButton.styleFrom(backgroundColor: vf.live, foregroundColor: Colors.white),
                 ),
               ),
             ],
@@ -245,8 +258,8 @@ class _MyDeliveriesSectionState extends State<MyDeliveriesSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+        Text(label, style: TextStyle(fontSize: 10, color: context.vf.textSecondary, fontWeight: FontWeight.w600)),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.vf.textPrimary)),
       ],
     );
   }
@@ -293,7 +306,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? AppColors.danger : AppColors.success,
+      backgroundColor: error ? context.vf.danger : context.vf.success,
     ));
   }
 
@@ -319,7 +332,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
   Future<void> _lookup() async {
     final ticketNo = _ticketNoController.text.trim();
     if (ticketNo.isEmpty) {
-      _showSnack('Enter or scan a ticket number first', error: true);
+      _showSnack(tr(context, 'Enter or scan a ticket number first'), error: true);
       return;
     }
     setState(() {
@@ -357,7 +370,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
       final result = await _ocrService.recognize(file);
       if (!mounted) return;
       if (result.reason == 'no_vehicle_detected') {
-        setState(() => _ocrProblem = 'No vehicle found in the photo - retake it, or type the details below.');
+        setState(() => _ocrProblem = tr(context, 'No vehicle found in the photo - retake it, or type the details below.'));
         return;
       }
       // Only the four things the desk needs - plate, color, brand, model. Keep anything the
@@ -372,7 +385,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
         fill(_brandController, result.vehicle?.brand);
         fill(_modelController, result.vehicle?.model);
         _ocrFilled = true;
-        if (result.plate == null) _ocrProblem = 'Plate not readable - please type it.';
+        if (result.plate == null) _ocrProblem = tr(context, 'Plate not readable - please type it.');
       });
     } catch (e) {
       if (mounted) setState(() => _ocrProblem = e.toString().replaceAll('Exception: ', ''));
@@ -391,7 +404,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
   Future<void> _submitReceive() async {
     final ticketNo = _ticketNoController.text.trim();
     if (_plateNoController.text.trim().isEmpty) {
-      _showSnack('Please enter the Plate Number (or take a photo first)', error: true);
+      _showSnack(tr(context, 'Please enter the Plate Number (or take a photo first)'), error: true);
       return;
     }
 
@@ -405,7 +418,8 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
         vehicleColor: _textOrNull(_vehicleColorController),
         requestedRemarks: 'Received by driver (OCR-assisted)',
       );
-      _showSnack('Vehicle linked to ticket $ticketNo - park it in the slot shown below.');
+      if (!mounted) return;
+      _showSnack(tr(context, 'Vehicle linked to ticket {no} - park it in the slot shown below.', {'no': ticketNo}));
       final vehicleText = [
         _vehicleColorController.text.trim(),
         _brandController.text.trim(),
@@ -437,13 +451,14 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     if (data == null || data.parkingVehicleId == null) return;
     final slot = _chosenSlot;
     if (slot == null && _bayNoController.text.trim().isEmpty) {
-      _showSnack('Pick a slot or type the bay where you parked', error: true);
+      _showSnack(tr(context, 'Pick a slot or type the bay where you parked'), error: true);
       return;
     }
 
     setState(() => _submitting = true);
     try {
       final keyHolder = _textOrNull(_keyHolderNoController);
+      final queueLabel = tr(context, 'Parking location for ticket {no}', {'no': data.ticketNo});
       // Basement, no signal: kept on the phone (same Idempotency-Key) and sent when back online.
       final outcome = await OfflineQueue.instance.sendOrQueue(
         type: 'park_details',
@@ -453,13 +468,16 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
           if (slot == null) 'bayNo': _bayNoController.text.trim(),
           if (keyHolder != null) 'keyHolderNo': keyHolder,
         },
-        label: 'Parking location for ticket ${data.ticketNo}',
+        label: queueLabel,
       );
+      if (!mounted) return;
       if (outcome.queued) {
-        _showSnack('No signal - parking saved on this phone and will be sent automatically.');
+        _showSnack(tr(context, 'No signal - parking saved on this phone and will be sent automatically.'));
       } else {
-        final message = outcome.message ?? 'Parked';
-        _showSnack(keyHolder == null ? '$message. Hand the key to the Key Controller.' : '$message, key holder $keyHolder.');
+        final message = outcome.message ?? tr(context, 'Parked');
+        _showSnack(keyHolder == null
+            ? tr(context, '{message}. Hand the key to the Key Controller.', {'message': message})
+            : tr(context, '{message}, key holder {key}.', {'message': message, 'key': keyHolder}));
       }
       _resetFlow();
     } catch (e) {
@@ -476,16 +494,18 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
   Future<void> _scanKeyHolder(TicketStatusResponse data) async {
     if (data.parkingVehicleId == null) return;
     final tag = await scanKeyTag(context);
-    if (tag == null) return;
+    if (tag == null || !mounted) return;
+    final queueLabel = tr(context, 'Key holder {key} for ticket {no}', {'key': tag, 'no': data.ticketNo});
     try {
       final outcome = await OfflineQueue.instance.sendOrQueue(
         type: 'key_holder',
         payload: {'parkingVehicleId': data.parkingVehicleId, 'keyHolderNo': tag},
-        label: 'Key holder $tag for ticket ${data.ticketNo}',
+        label: queueLabel,
       );
+      if (!mounted) return;
       _showSnack(outcome.queued
-          ? 'No signal - key holder $tag saved on this phone and will be sent automatically.'
-          : 'Ticket ${data.ticketNo}: key holder set to $tag');
+          ? tr(context, 'No signal - key holder {key} saved on this phone and will be sent automatically.', {'key': tag})
+          : tr(context, 'Ticket {no}: key holder set to {key}', {'no': data.ticketNo, 'key': tag}));
       if (!outcome.queued) await _lookup();
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
@@ -494,7 +514,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
 
   Widget _lookupActions(TicketStatusResponse data, {required bool canSetKey}) {
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsetsDirectional.only(top: 10),
       child: Row(
         children: [
           Expanded(
@@ -503,7 +523,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
                   ? null
                   : () => FindMyCarPage.open(context, parkingVehicleId: data.parkingVehicleId!, ticketNo: data.ticketNo),
               icon: const Icon(Icons.travel_explore),
-              label: const Text('Find my car'),
+              label: Text(tr(context, 'Find my car')),
             ),
           ),
           if (canSetKey) ...[
@@ -512,7 +532,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
               child: OutlinedButton.icon(
                 onPressed: () => _scanKeyHolder(data),
                 icon: const Icon(Icons.qr_code_scanner),
-                label: const Text('Scan key tag'),
+                label: Text(tr(context, 'Scan key tag')),
               ),
             ),
           ],
@@ -571,10 +591,18 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             const SizedBox(height: 16),
             _infoCard(
               icon: Icons.check_circle,
-              color: AppColors.success,
-              title: 'Already parked',
-              message: 'Ticket ${data.ticketNo} is parked at ${data.parkingLocation ?? 'bay ${data.bayNo}'}'
-                  '${data.keyHolderNo != null && data.keyHolderNo!.isNotEmpty ? ' (key: ${data.keyHolderNo})' : ''}.',
+              color: context.vf.success,
+              title: tr(context, 'Already parked'),
+              message: data.keyHolderNo != null && data.keyHolderNo!.isNotEmpty
+                  ? tr(context, 'Ticket {no} is parked at {place} (key: {key}).', {
+                      'no': data.ticketNo,
+                      'place': data.parkingLocation ?? tr(context, 'bay {bay}', {'bay': data.bayNo}),
+                      'key': data.keyHolderNo,
+                    })
+                  : tr(context, 'Ticket {no} is parked at {place}.', {
+                      'no': data.ticketNo,
+                      'place': data.parkingLocation ?? tr(context, 'bay {bay}', {'bay': data.bayNo}),
+                    }),
             ),
             _lookupActions(data, canSetKey: true),
           ],
@@ -582,9 +610,9 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             const SizedBox(height: 16),
             _infoCard(
               icon: Icons.info_outline,
-              color: AppColors.textSecondary,
-              title: 'Ticket status: ${data.status ?? data.ticketStatus}',
-              message: 'This ticket has already moved past the parking step.',
+              color: context.vf.textSecondary,
+              title: tr(context, 'Ticket status: {status}', {'status': data.status ?? data.ticketStatus}),
+              message: tr(context, 'This ticket has already moved past the parking step.'),
             ),
             if (data.status != 'DELIVERED') _lookupActions(data, canSetKey: false),
           ],
@@ -597,28 +625,28 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.vf.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.vf.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Scan Ticket', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Text(tr(context, 'Scan Ticket'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           Text(
-            'Scan when taking the car from the guest - you will then be shown where to park it.',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            tr(context, 'Scan when taking the car from the guest - you will then be shown where to park it.'),
+            style: TextStyle(fontSize: 12, color: context.vf.textSecondary),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _ticketNoController,
             enabled: !_loading,
-            decoration: const InputDecoration(
-              labelText: 'Ticket Number',
-              hintText: 'Scan or type the ticket number',
-              prefixIcon: Icon(Icons.confirmation_number_outlined),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: tr(context, 'Ticket Number'),
+              hintText: tr(context, 'Scan or type the ticket number'),
+              prefixIcon: const Icon(Icons.confirmation_number_outlined),
+              border: const OutlineInputBorder(),
             ),
             onSubmitted: (_) => _lookup(),
           ),
@@ -629,7 +657,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
                 child: OutlinedButton.icon(
                   onPressed: _loading ? null : _scanTicketBarcode,
                   icon: const Icon(Icons.qr_code_scanner),
-                  label: const Text('Scan Barcode'),
+                  label: Text(tr(context, 'Scan Barcode')),
                 ),
               ),
               const SizedBox(width: 10),
@@ -638,7 +666,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
                   onPressed: _loading ? null : _lookup,
                   child: _loading
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Check'),
+                      : Text(tr(context, 'Check')),
                 ),
               ),
             ],
@@ -652,18 +680,18 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.vf.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.vf.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Photograph the Vehicle', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Text(tr(context, 'Photograph the Vehicle'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           Text(
-            'Plate, color, brand and model are filled in from the photo.',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            tr(context, 'Plate, color, brand and model are filled in from the photo.'),
+            style: TextStyle(fontSize: 12, color: context.vf.textSecondary),
           ),
           const SizedBox(height: 12),
           if (_vehicleImage != null)
@@ -675,9 +703,9 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             const SizedBox(height: 10),
             Row(
               children: [
-                Icon(Icons.error_outline, size: 18, color: AppColors.warning),
+                Icon(Icons.error_outline, size: 18, color: context.vf.warning),
                 const SizedBox(width: 6),
-                Expanded(child: Text(_ocrProblem!, style: TextStyle(fontSize: 13, color: AppColors.warning))),
+                Expanded(child: Text(_ocrProblem!, style: TextStyle(fontSize: 13, color: context.vf.warning))),
               ],
             ),
           ],
@@ -690,9 +718,11 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
               icon: _ocrRunning
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.camera_alt_outlined),
-              label: Text(_ocrRunning
-                  ? 'Reading the car...'
-                  : (_vehicleImage == null ? 'Take Photo' : 'Retake Photo')),
+              label: Text(tr(
+                  context,
+                  _ocrRunning
+                      ? 'Reading the car...'
+                      : (_vehicleImage == null ? 'Take Photo' : 'Retake Photo'))),
             ),
           ),
         ],
@@ -702,23 +732,23 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
 
   Widget _buildReceiveConfirmCard() {
     InputDecoration field(String label) =>
-        InputDecoration(labelText: label, border: const OutlineInputBorder(), isDense: true);
+        InputDecoration(labelText: tr(context, label), border: const OutlineInputBorder(), isDense: true);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.vf.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.vf.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Text('Vehicle Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              Text(tr(context, 'Vehicle Details'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               const Spacer(),
               if (_ocrFilled)
-                Text('From photo - check', style: TextStyle(fontSize: 12, color: AppColors.success)),
+                Text(tr(context, 'From photo - check'), style: TextStyle(fontSize: 12, color: context.vf.success)),
             ],
           ),
           const SizedBox(height: 12),
@@ -761,7 +791,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             child: ElevatedButton.icon(
               onPressed: _submitting ? null : _submitReceive,
               icon: const Icon(Icons.link),
-              label: Text(_submitting ? 'Saving...' : 'Receive Vehicle'),
+              label: Text(tr(context, _submitting ? 'Saving...' : 'Receive Vehicle')),
             ),
           ),
         ],
@@ -774,17 +804,17 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.vf.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.vf.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Park the Car', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Text(tr(context, 'Park the Car'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          Text('Ticket ${data.ticketNo} · ${data.plateNo ?? 'plate unknown'}${car.isEmpty ? '' : ' · $car'}',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          Text('${tr(context, 'Ticket {no}', {'no': data.ticketNo})} · ${data.plateNo ?? tr(context, 'plate unknown')}${car.isEmpty ? '' : ' · $car'}',
+              style: TextStyle(color: context.vf.textSecondary, fontSize: 13)),
           const SizedBox(height: 14),
           SlotPicker(
             key: _slotPickerKey,
@@ -795,8 +825,8 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
           TextField(
             controller: _keyHolderNoController,
             decoration: InputDecoration(
-              labelText: 'Key Holder Number (optional)',
-              helperText: "Scan the hook's key tag, or leave blank if you'll hand the key to a Key Controller",
+              labelText: tr(context, 'Key Holder Number (optional)'),
+              helperText: tr(context, "Scan the hook's key tag, or leave blank if you'll hand the key to a Key Controller"),
               border: const OutlineInputBorder(),
               isDense: true,
               suffixIcon: ScanKeyTagSuffix(controller: _keyHolderNoController),
@@ -809,7 +839,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             child: ElevatedButton.icon(
               onPressed: _submitting ? null : _submitParkDetails,
               icon: const Icon(Icons.local_parking),
-              label: Text(_submitting ? 'Saving...' : 'Parked Here - Confirm'),
+              label: Text(tr(context, _submitting ? 'Saving...' : 'Parked Here - Confirm')),
             ),
           ),
         ],

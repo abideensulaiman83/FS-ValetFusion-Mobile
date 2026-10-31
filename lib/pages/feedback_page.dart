@@ -65,7 +65,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? AppColors.danger : AppColors.success,
+      backgroundColor: error ? context.vf.danger : context.vf.success,
     ));
   }
 
@@ -133,32 +133,32 @@ class _FeedbackPageState extends State<FeedbackPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle, color: AppColors.success, size: 72),
+            Icon(Icons.check_circle, color: context.vf.success, size: 72),
             const SizedBox(height: 16),
             const Text('Thank you', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             Text(
               "We've received your report and the team will follow up.",
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: context.vf.textSecondary),
             ),
             if (complaint != null) ...[
               const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: BoxDecoration(
-                  color: AppColors.successSoft,
+                  color: context.vf.successSoft,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.successSoft),
+                  border: Border.all(color: context.vf.successSoft),
                 ),
                 child: Column(
                   children: [
-                    Text('Your reference number', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    Text('Your reference number', style: TextStyle(fontSize: 12, color: context.vf.textSecondary)),
                     const SizedBox(height: 4),
                     Text('#${complaint.id}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 4),
                     Text('Save this to check your report\'s status later',
-                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                        style: TextStyle(fontSize: 11, color: context.vf.textSecondary)),
                   ],
                 ),
               ),
@@ -203,7 +203,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
           children: [
             Text(
               'Tell us what went wrong. Your report goes straight to the property team.',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: context.vf.textSecondary),
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -248,7 +248,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.card2,
+                color: context.vf.card2,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -284,7 +284,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
               child: ElevatedButton(
                 onPressed: _submitting ? null : _submit,
                 child: _submitting
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Text('Submit Report'),
               ),
             ),

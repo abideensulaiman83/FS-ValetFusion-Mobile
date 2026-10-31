@@ -3,6 +3,7 @@
 // Staff/admin side of the complaint desk (LOCATION_ADMIN / SUPER_ADMIN) - acknowledge, then
 // close with optional resolution notes. Reached from the AppLayout drawer.
 import 'package:flutter/material.dart';
+import '../l10n/app_strings.dart';
 import '../services/complaint_service.dart';
 import '../theme/app_theme.dart';
 
@@ -41,14 +42,15 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? AppColors.danger : AppColors.success,
+      backgroundColor: error ? context.vf.danger : context.vf.success,
     ));
   }
 
   Future<void> _acknowledge(Complaint c) async {
     try {
       await _complaintService.acknowledge(c.id);
-      _showSnack('Marked as seen.');
+      if (!mounted) return;
+      _showSnack(tr(context, 'Marked as seen.'));
       _load();
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
@@ -60,18 +62,18 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Close Complaint'),
+        title: Text(tr(dialogContext, 'Close Complaint')),
         content: TextField(
           controller: notesController,
           maxLines: 3,
-          decoration: const InputDecoration(
-            labelText: 'Resolution notes (optional)',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: tr(dialogContext, 'Resolution notes (optional)'),
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Close Complaint')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: Text(tr(dialogContext, 'Cancel'))),
+          ElevatedButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: Text(tr(dialogContext, 'Close Complaint'))),
         ],
       ),
     );
@@ -79,7 +81,8 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
 
     try {
       await _complaintService.close(c.id, resolutionNotes: notesController.text.trim());
-      _showSnack('Complaint closed.');
+      if (!mounted) return;
+      _showSnack(tr(context, 'Complaint closed.'));
       _load();
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
@@ -89,11 +92,25 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
   Color _statusColor(String status) {
     switch (status) {
       case 'OPEN':
-        return AppColors.danger;
+        return context.vf.danger;
       case 'ACKNOWLEDGED':
-        return AppColors.warning;
+        return context.vf.warning;
       default:
-        return AppColors.success;
+        return context.vf.success;
+    }
+  }
+
+  /// Display label for a complaint status code (the code itself stays English for the API).
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'OPEN':
+        return tr(context, 'Open');
+      case 'ACKNOWLEDGED':
+        return tr(context, 'Acknowledged');
+      case 'CLOSED':
+        return tr(context, 'Closed');
+      default:
+        return status;
     }
   }
 
@@ -101,19 +118,20 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Complaints'),
+        title: Text(tr(context, 'Complaints')),
         actions: [
           PopupMenuButton<String?>(
             icon: const Icon(Icons.filter_list),
+            tooltip: tr(context, 'Filter'),
             onSelected: (value) {
               setState(() => _filterStatus = value);
               _load();
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: null, child: Text('All')),
-              PopupMenuItem(value: 'OPEN', child: Text('Open')),
-              PopupMenuItem(value: 'ACKNOWLEDGED', child: Text('Acknowledged')),
-              PopupMenuItem(value: 'CLOSED', child: Text('Closed')),
+            itemBuilder: (_) => [
+              PopupMenuItem(value: null, child: Text(tr(context, 'All'))),
+              PopupMenuItem(value: 'OPEN', child: Text(_statusLabel('OPEN'))),
+              PopupMenuItem(value: 'ACKNOWLEDGED', child: Text(_statusLabel('ACKNOWLEDGED'))),
+              PopupMenuItem(value: 'CLOSED', child: Text(_statusLabel('CLOSED'))),
             ],
           ),
         ],
@@ -128,8 +146,11 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
                         Padding(
                           padding: const EdgeInsets.only(top: 80),
                           child: Center(
-                            child: Text('No complaints${_filterStatus != null ? ' with status $_filterStatus' : ''}',
-                                style: TextStyle(color: AppColors.textSecondary)),
+                            child: Text(
+                                _filterStatus != null
+                                    ? tr(context, 'No complaints with status {status}', {'status': _statusLabel(_filterStatus!)})
+                                    : tr(context, 'No complaints'),
+                                style: TextStyle(color: context.vf.textSecondary)),
                           ),
                         ),
                       ],
@@ -143,9 +164,9 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
                         return Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: AppColors.card,
+                            color: context.vf.card,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.line),
+                            border: Border.all(color: context.vf.line),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,7 +177,8 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
                                     child: Text(c.customerName, style: const TextStyle(fontWeight: FontWeight.w700)),
                                   ),
                                   Chip(
-                                    label: Text(c.status, style: const TextStyle(fontSize: 11, color: Colors.white)),
+                                    // white on the status-coloured chip (both themes)
+                                    label: Text(_statusLabel(c.status), style: const TextStyle(fontSize: 11, color: Colors.white)),
                                     backgroundColor: _statusColor(c.status),
                                     padding: EdgeInsets.zero,
                                     visualDensity: VisualDensity.compact,
@@ -165,13 +187,13 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
                               ),
                               const SizedBox(height: 4),
                               Text('${c.mobile}${c.place != null && c.place!.isNotEmpty ? ' - ${c.place}' : ''}',
-                                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                  style: TextStyle(fontSize: 12, color: context.vf.textSecondary)),
                               const SizedBox(height: 8),
                               Text(c.message),
                               if (c.resolutionNotes != null && c.resolutionNotes!.isNotEmpty) ...[
                                 const SizedBox(height: 8),
-                                Text('Resolution: ${c.resolutionNotes}',
-                                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
+                                Text(tr(context, 'Resolution: {notes}', {'notes': c.resolutionNotes}),
+                                    style: TextStyle(fontSize: 12, color: context.vf.textSecondary, fontStyle: FontStyle.italic)),
                               ],
                               if (c.status != 'CLOSED') ...[
                                 const SizedBox(height: 10),
@@ -181,14 +203,14 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
                                       Expanded(
                                         child: OutlinedButton(
                                           onPressed: () => _acknowledge(c),
-                                          child: const Text('Acknowledge'),
+                                          child: Text(tr(context, 'Acknowledge')),
                                         ),
                                       ),
                                     if (c.status == 'OPEN') const SizedBox(width: 8),
                                     Expanded(
                                       child: ElevatedButton(
                                         onPressed: () => _close(c),
-                                        child: const Text('Close'),
+                                        child: Text(tr(context, 'Close')),
                                       ),
                                     ),
                                   ],

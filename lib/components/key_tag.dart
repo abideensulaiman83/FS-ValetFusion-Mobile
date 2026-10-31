@@ -4,6 +4,7 @@
 // "HOOK 17", "H17" or just "17". Scanning it when hanging the key sets the car's key holder
 // (no typing), and scanning the tag on the key at handover checks it is the right car's key.
 import 'package:flutter/material.dart';
+import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 import 'barcode_scanner_page.dart';
 
@@ -28,14 +29,14 @@ bool keyTagMatches(String scanned, String? recorded) {
 /// Opens the camera on a key tag; returns the hook number, or null if cancelled / not a tag.
 Future<String?> scanKeyTag(BuildContext context) async {
   final raw = await Navigator.of(context).push<String>(MaterialPageRoute(
-    builder: (_) => const BarcodeScannerPage(title: 'Scan Key Tag', hint: 'Point the camera at the QR on the key tag'),
+    builder: (_) => BarcodeScannerPage(title: tr(context, 'Scan Key Tag'), hint: tr(context, 'Point the camera at the QR on the key tag')),
   ));
   if (raw == null || raw.trim().isEmpty) return null;
   final tag = parseKeyTag(raw);
   if (tag == null && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('"${raw.length > 30 ? '${raw.substring(0, 30)}…' : raw}" is not a key tag'),
-      backgroundColor: AppColors.danger,
+      content: Text(tr(context, '"{code}" is not a key tag', {'code': raw.length > 30 ? '${raw.substring(0, 30)}…' : raw})),
+      backgroundColor: context.vf.danger,
     ));
   }
   return tag;
@@ -52,20 +53,20 @@ Future<bool> verifyKeyTag(BuildContext context, {required String? expected, requ
     context: context,
     builder: (ctx) => AlertDialog(
       icon: Icon(ok ? Icons.verified_rounded : Icons.warning_amber_rounded,
-          color: ok ? AppColors.success : (hasExpected ? AppColors.danger : AppColors.warning), size: 40),
-      title: Text(ok ? 'Right key' : (hasExpected ? 'Wrong key?' : 'No key hook recorded')),
+          color: ok ? ctx.vf.success : (hasExpected ? ctx.vf.danger : ctx.vf.warning), size: 40),
+      title: Text(tr(ctx, ok ? 'Right key' : (hasExpected ? 'Wrong key?' : 'No key hook recorded'))),
       content: Text(
         ok
-            ? 'Key tag $tag matches ticket $ticketNo.'
+            ? tr(ctx, 'Key tag {tag} matches ticket {no}.', {'tag': tag, 'no': ticketNo})
             : hasExpected
-                ? 'This key is from hook $tag, but ticket $ticketNo\'s key should be on hook ${expected.trim()}. '
-                    'Check you have the right key before handing the car over.'
-                : 'Ticket $ticketNo has no key hook on record - the tag reads $tag. Check the plate before handing over.',
+                ? tr(ctx, "This key is from hook {tag}, but ticket {no}'s key should be on hook {hook}. Check you have the right key before handing the car over.",
+                    {'tag': tag, 'no': ticketNo, 'hook': expected.trim()})
+                : tr(ctx, 'Ticket {no} has no key hook on record - the tag reads {tag}. Check the plate before handing over.', {'no': ticketNo, 'tag': tag}),
         textAlign: TextAlign.center,
       ),
       actions: [
-        if (!ok) TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Scan again')),
-        ElevatedButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(ok ? 'OK' : 'Close')),
+        if (!ok) TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(tr(ctx, 'Scan again'))),
+        ElevatedButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr(ctx, ok ? 'OK' : 'Close'))),
       ],
     ),
   );
@@ -81,7 +82,7 @@ class ScanKeyTagSuffix extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      tooltip: 'Scan key tag',
+      tooltip: tr(context, 'Scan key tag'),
       icon: const Icon(Icons.qr_code_scanner),
       onPressed: () async {
         final tag = await scanKeyTag(context);

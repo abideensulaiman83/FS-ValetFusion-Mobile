@@ -8,6 +8,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../l10n/app_strings.dart';
 import '../services/offline_queue.dart';
 import '../services/plan_service.dart';
 import '../services/valet_service.dart';
@@ -15,7 +16,8 @@ import '../theme/app_theme.dart';
 import 'premium.dart';
 
 const List<String> _angles = ['FRONT', 'BACK', 'LEFT', 'RIGHT'];
-String _angleLabel(String a) => a[0] + a.substring(1).toLowerCase();
+/// 'Front' / 'Back' / 'Left' / 'Right' in the active language.
+String _angleLabel(BuildContext context, String a) => a.isEmpty ? a : tr(context, a[0] + a.substring(1).toLowerCase());
 
 /// Photo bytes loaded once per url and kept for the session - the strip and the full-screen view
 /// share them, and the endpoint needs the auth header anyway.
@@ -37,10 +39,10 @@ class _PhotoThumb extends StatelessWidget {
         return Container(
           width: size,
           height: size,
-          color: AppColors.line,
+          color: context.vf.line,
           alignment: Alignment.center,
           child: snap.hasError
-              ? Icon(Icons.broken_image_outlined, color: AppColors.textSecondary)
+              ? Icon(Icons.broken_image_outlined, color: context.vf.textSecondary)
               : const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
         );
       },
@@ -52,7 +54,7 @@ void _openFull(BuildContext context, VehiclePhotoInfo photo) {
   Navigator.of(context).push(MaterialPageRoute(
     builder: (_) => Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white, title: Text(_angleLabel(photo.angle))),
+      appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white, title: Text(_angleLabel(context, photo.angle))),
       body: Center(
         child: InteractiveViewer(
           maxScale: 5,
@@ -150,28 +152,29 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
   @override
   Widget build(BuildContext context) {
     final done = _angles.where((a) => _photos.any((p) => p.angle == a)).length;
+    final vf = context.vf;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: vf.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: vf.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Text('Condition photos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              Text(tr(context, 'Condition photos'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: vf.textPrimary)),
               const SizedBox(width: 6),
               const PremiumStar(featureKey: PremiumFeature.damageMarking),
               const Spacer(),
-              Text('$done of 4', style: TextStyle(fontSize: 12, color: done == 4 ? AppColors.success : AppColors.textSecondary)),
+              Text(tr(context, '{done} of {total}', {'done': done, 'total': 4}), style: TextStyle(fontSize: 12, color: done == 4 ? vf.success : vf.textSecondary)),
             ],
           ),
           const SizedBox(height: 4),
-          Text('Photograph each side now - shown again at handover if the guest asks about damage.',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          Text(tr(context, 'Photograph each side now - shown again at handover if the guest asks about damage.'),
+              style: TextStyle(fontSize: 12, color: vf.textSecondary)),
           const SizedBox(height: 12),
           Row(
             children: _angles.map((angle) {
@@ -195,7 +198,7 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
                           child: AspectRatio(
                             aspectRatio: 1,
                             child: busy
-                                ? Container(color: AppColors.card2, alignment: Alignment.center,
+                                ? Container(color: vf.card2, alignment: Alignment.center,
                                     child: const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
                                 : photo != null
                                     ? LayoutBuilder(builder: (_, c) => _PhotoThumb(url: photo.url, size: c.maxWidth))
@@ -214,17 +217,17 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
                                           ])
                                         : Container(
                                         decoration: BoxDecoration(
-                                          color: AppColors.card2,
-                                          border: Border.all(color: AppColors.line),
+                                          color: vf.card2,
+                                          border: Border.all(color: vf.line),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         alignment: Alignment.center,
-                                        child: Icon(Icons.add_a_photo_outlined, color: AppColors.textSecondary),
+                                        child: Icon(Icons.add_a_photo_outlined, color: vf.textSecondary),
                                       ),
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(_angleLabel(angle), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        Text(_angleLabel(context, angle), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: vf.textBody)),
                       ],
                     ),
                   ),
@@ -234,11 +237,11 @@ class ConditionPhotosCardState extends State<ConditionPhotosCard> {
           ),
           if (_photos.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text('Tap a photo to view it, long-press to retake.', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+            Text(tr(context, 'Tap a photo to view it, long-press to retake.'), style: TextStyle(fontSize: 11, color: vf.textSecondary)),
           ],
           if (_error != null) ...[
             const SizedBox(height: 8),
-            Text(_error!, style: TextStyle(fontSize: 12, color: AppColors.danger)),
+            Text(_error!, style: TextStyle(fontSize: 12, color: vf.danger)),
           ],
         ],
       ),
@@ -272,8 +275,8 @@ class _ConditionPhotosGridState extends State<ConditionPhotosGrid> {
         }
         final photos = snap.data ?? const [];
         if (photos.isEmpty) {
-          return Text(snap.hasError ? 'Photos could not be loaded.' : 'No photos were taken at check-in.',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary));
+          return Text(tr(context, snap.hasError ? 'Photos could not be loaded.' : 'No photos were taken at check-in.'),
+              style: TextStyle(fontSize: 13, color: context.vf.textSecondary));
         }
         return GridView.count(
           crossAxisCount: 2,
@@ -289,12 +292,12 @@ class _ConditionPhotosGridState extends State<ConditionPhotosGrid> {
                       child: Stack(fit: StackFit.expand, children: [
                         LayoutBuilder(builder: (_, c) => _PhotoThumb(url: p.url, size: c.maxWidth)),
                         Align(
-                          alignment: Alignment.bottomLeft,
+                          alignment: AlignmentDirectional.bottomStart,
                           child: Container(
                             margin: const EdgeInsets.all(6),
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(color: AppColors.ink.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(4)),
-                            child: Text(_angleLabel(p.angle),
+                            child: Text(_angleLabel(context, p.angle),
                                 style: const TextStyle(color: AppColors.inkText, fontSize: 11, fontWeight: FontWeight.w700)),
                           ),
                         ),
@@ -331,7 +334,7 @@ class _ConditionPhotosStripState extends State<ConditionPhotosStrip> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 10),
-            Text('Condition at check-in', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+            Text(tr(context, 'Condition at check-in'), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: context.vf.textSecondary)),
             const SizedBox(height: 6),
             SizedBox(
               height: 64,

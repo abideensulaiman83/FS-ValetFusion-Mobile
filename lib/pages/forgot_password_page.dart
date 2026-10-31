@@ -91,7 +91,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Icon(Icons.lock_reset_rounded, size: 48, color: AppColors.primary),
+        Icon(Icons.lock_reset_rounded, size: 48, color: Theme.of(context).colorScheme.primary),
         const SizedBox(height: 12),
         const Text(
           "Enter the email on your account (Customer accounts: your mobile number also works) "
@@ -105,7 +105,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         ),
         if (_error != null) ...[
           const SizedBox(height: 12),
-          Text(_error!, style: TextStyle(color: AppColors.danger, fontSize: 13)),
+          Text(_error!, style: TextStyle(color: context.vf.danger, fontSize: 13)),
         ],
         const SizedBox(height: 20),
         SizedBox(
@@ -113,7 +113,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           child: ElevatedButton(
             onPressed: _loading ? null : _requestCode,
             child: _loading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Text('Send Reset Code'),
           ),
         ),
@@ -127,7 +127,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(Icons.mark_email_read_outlined, size: 48, color: AppColors.success),
+          Icon(Icons.mark_email_read_outlined, size: 48, color: context.vf.success),
           const SizedBox(height: 12),
           Text(
             "If ${_emailController.text.trim()} is registered, a code has been sent. Enter it below with your new password.",
@@ -149,7 +149,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 8),
-            Text(_error!, style: TextStyle(color: AppColors.danger, fontSize: 13)),
+            Text(_error!, style: TextStyle(color: context.vf.danger, fontSize: 13)),
           ],
           const SizedBox(height: 20),
           SizedBox(
@@ -157,7 +157,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             child: ElevatedButton(
               onPressed: _loading ? null : _submitReset,
               child: _loading
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Reset Password'),
             ),
           ),
@@ -175,7 +175,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.check_circle, size: 56, color: AppColors.success),
+        Icon(Icons.check_circle, size: 56, color: context.vf.success),
         const SizedBox(height: 16),
         const Text('Password reset', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),

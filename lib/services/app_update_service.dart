@@ -16,6 +16,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/environment.dart';
+import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 import 'authentication_service.dart';
 import 'notification_service.dart';
@@ -102,11 +103,12 @@ class AppUpdateService {
     final go = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Update available'),
-        content: Text('Valet Fusion ${update.latestVersionName} is available, with fixes and improvements.'),
+        title: Text(tr(dialogContext, 'Update available')),
+        content: Text(tr(dialogContext, 'Valet Fusion {version} is available, with fixes and improvements.',
+            {'version': update.latestVersionName})),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Later')),
-          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Update')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: Text(tr(dialogContext, 'Later'))),
+          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: Text(tr(dialogContext, 'Update'))),
         ],
       ),
     );
@@ -116,6 +118,7 @@ class AppUpdateService {
 }
 
 /// Full-screen block for builds older than the server's minimum. No way past it except updating.
+/// Deliberately dark (ink) in both themes, so it keeps the fixed ink colours.
 class UpdateRequiredPage extends StatelessWidget {
   final UpdateInfo update;
   const UpdateRequiredPage({super.key, required this.update});
@@ -135,13 +138,16 @@ class UpdateRequiredPage extends StatelessWidget {
               children: [
                 const Icon(Icons.system_update, color: AppColors.brassOnDark, size: 64),
                 const SizedBox(height: 20),
-                const Text('Update required',
+                Text(tr(context, 'Update required'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.inkText, fontSize: 22, fontWeight: FontWeight.w800)),
+                    style: const TextStyle(color: AppColors.inkText, fontSize: 22, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 10),
                 Text(
-                  'This version of Valet Fusion is no longer supported. Please install the latest version'
-                  '${update.latestVersionName.isEmpty ? '' : ' (${update.latestVersionName})'} to continue.',
+                  update.latestVersionName.isEmpty
+                      ? tr(context, 'This version of Valet Fusion is no longer supported. Please install the latest version to continue.')
+                      : tr(context,
+                          'This version of Valet Fusion is no longer supported. Please install the latest version ({version}) to continue.',
+                          {'version': update.latestVersionName}),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.inkTextSecondary, fontSize: 14.5, height: 1.4),
                 ),
@@ -150,7 +156,7 @@ class UpdateRequiredPage extends StatelessWidget {
                   FilledButton.icon(
                     onPressed: () => AppUpdateService.openStore(update.storeUrl),
                     icon: const Icon(Icons.download),
-                    label: Text(update.storeUrl.endsWith('.apk') ? 'Download update' : 'Update now'),
+                    label: Text(tr(context, update.storeUrl.endsWith('.apk') ? 'Download update' : 'Update now')),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.brassOnDark,
                       foregroundColor: AppColors.ink,
@@ -158,8 +164,8 @@ class UpdateRequiredPage extends StatelessWidget {
                     ),
                   )
                 else
-                  const Text('Ask your manager for the latest ValetFusion app.',
-                      textAlign: TextAlign.center, style: TextStyle(color: AppColors.inkTextSecondary)),
+                  Text(tr(context, 'Ask your manager for the latest ValetFusion app.'),
+                      textAlign: TextAlign.center, style: const TextStyle(color: AppColors.inkTextSecondary)),
               ],
             ),
           ),
@@ -185,29 +191,32 @@ class AppUpdateBanner extends StatelessWidget {
             return const SizedBox.shrink();
           }
           final theme = Theme.of(context);
+          final vf = context.vf;
           return Material(
-            color: AppColors.infoSoft,
+            color: vf.infoSoft,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 6, 4, 6),
+              padding: const EdgeInsetsDirectional.fromSTEB(14, 6, 4, 6),
               child: Row(children: [
-                const Icon(Icons.system_update_rounded, size: 20, color: AppColors.live),
+                Icon(Icons.system_update_rounded, size: 20, color: vf.live),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Update available${update.latestVersionName.isEmpty ? '' : ' - ${update.latestVersionName}'}',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                    update.latestVersionName.isEmpty
+                        ? tr(context, 'Update available')
+                        : tr(context, 'Update available - {version}', {'version': update.latestVersionName}),
+                    style: theme.textTheme.bodyMedium?.copyWith(color: vf.textPrimary, fontWeight: FontWeight.w600),
                   ),
                 ),
                 TextButton(
                   onPressed: () => AppUpdateService.openStore(update.storeUrl),
-                  style: TextButton.styleFrom(foregroundColor: AppColors.live),
-                  child: Text(update.storeUrl.endsWith('.apk') ? 'Download' : 'Update'),
+                  style: TextButton.styleFrom(foregroundColor: vf.live),
+                  child: Text(tr(context, update.storeUrl.endsWith('.apk') ? 'Download' : 'Update')),
                 ),
                 IconButton(
-                  tooltip: 'Later',
+                  tooltip: tr(context, 'Later'),
                   visualDensity: VisualDensity.compact,
                   onPressed: () => AppUpdateService.bannerDismissed.value = true,
-                  icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.textSecondary),
+                  icon: Icon(Icons.close_rounded, size: 18, color: vf.textSecondary),
                 ),
               ]),
             ),

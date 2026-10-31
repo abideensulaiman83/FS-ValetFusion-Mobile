@@ -6,6 +6,7 @@
 // layout configured (or the suggested spot is physically blocked).
 import 'package:flutter/material.dart';
 import '../services/valet_service.dart';
+import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 
 class SlotPicker extends StatefulWidget {
@@ -78,8 +79,8 @@ class SlotPickerState extends State<SlotPicker> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text('${_slots.length} free slot${_slots.length == 1 ? '' : 's'} · nearest first',
+              padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 8),
+              child: Text(tr(context, _slots.length == 1 ? '{n} free slot · nearest first' : '{n} free slots · nearest first', {'n': _slots.length}),
                   style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
             ),
             Expanded(
@@ -92,13 +93,13 @@ class SlotPickerState extends State<SlotPicker> {
                   final selected = s.slotId == _selected?.slotId;
                   return ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: selected ? AppColors.success : AppColors.line,
-                      foregroundColor: selected ? Colors.white : AppColors.textPrimary,
+                      backgroundColor: selected ? context.vf.success : context.vf.line,
+                      foregroundColor: selected ? context.vf.onColor : context.vf.textPrimary,
                       child: const Icon(Icons.local_parking, size: 20),
                     ),
-                    title: Text('Slot ${s.slotNumber}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    title: Text(tr(context, 'Slot {no}', {'no': s.slotNumber}), style: const TextStyle(fontWeight: FontWeight.w700)),
                     subtitle: s.where.isEmpty ? null : Text(s.where),
-                    trailing: i == 0 ? const Chip(label: Text('Nearest'), visualDensity: VisualDensity.compact) : null,
+                    trailing: i == 0 ? Chip(label: Text(tr(context, 'Nearest')), visualDensity: VisualDensity.compact) : null,
                     onTap: () => Navigator.of(sheetContext).pop(s),
                   );
                 },
@@ -117,12 +118,12 @@ class SlotPickerState extends State<SlotPicker> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
         child: Row(children: [
-          SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-          SizedBox(width: 12),
-          Text('Finding the nearest free slot...'),
+          const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+          const SizedBox(width: 12),
+          Text(tr(context, 'Finding the nearest free slot...')),
         ]),
       );
     }
@@ -136,17 +137,17 @@ class SlotPickerState extends State<SlotPicker> {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 _error != null
-                    ? 'Could not load free slots ($_error) - type the bay instead.'
-                    : 'No free slot in the parking layout - type where you parked.',
-                style: TextStyle(fontSize: 12, color: AppColors.warning),
+                    ? tr(context, 'Could not load free slots ({error}) - type the bay instead.', {'error': _error})
+                    : tr(context, 'No free slot in the parking layout - type where you parked.'),
+                style: TextStyle(fontSize: 12, color: context.vf.warning),
               ),
             ),
           TextField(
             controller: widget.bayController,
-            decoration: const InputDecoration(
-              labelText: 'Bay / spot *',
-              hintText: 'e.g. B2-14',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: tr(context, 'Bay / spot *'),
+              hintText: tr(context, 'e.g. B2-14'),
+              border: const OutlineInputBorder(),
               isDense: true,
             ),
           ),
@@ -156,13 +157,13 @@ class SlotPickerState extends State<SlotPicker> {
                 TextButton.icon(
                   onPressed: () => _setManual(false),
                   icon: const Icon(Icons.local_parking, size: 18),
-                  label: const Text('Pick from free slots'),
+                  label: Text(tr(context, 'Pick from free slots')),
                 ),
               const Spacer(),
               TextButton.icon(
                 onPressed: reload,
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Refresh'),
+                label: Text(tr(context, 'Refresh')),
               ),
             ],
           ),
@@ -172,15 +173,16 @@ class SlotPickerState extends State<SlotPicker> {
 
     final s = _selected!;
     final isNearest = _slots.isNotEmpty && _slots.first.slotId == s.slotId;
+    final vf = context.vf;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.successSoft,
+            color: vf.successSoft,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.successSoft, width: 1.5),
+            border: Border.all(color: vf.successSoft, width: 1.5),
           ),
           child: Row(
             children: [
@@ -188,7 +190,7 @@ class SlotPickerState extends State<SlotPicker> {
                 width: 56,
                 height: 56,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(color: AppColors.success, borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: vf.success, borderRadius: BorderRadius.circular(10)),
                 child: FittedBox(
                   child: Padding(
                     padding: const EdgeInsets.all(6),
@@ -202,12 +204,12 @@ class SlotPickerState extends State<SlotPicker> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(isNearest ? 'Park here - nearest free slot' : 'Park here',
-                        style: TextStyle(fontSize: 12, color: AppColors.success, fontWeight: FontWeight.w600)),
+                    Text(tr(context, isNearest ? 'Park here - nearest free slot' : 'Park here'),
+                        style: TextStyle(fontSize: 12, color: vf.success, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
-                    Text('Slot ${s.slotNumber}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                    Text(tr(context, 'Slot {no}', {'no': s.slotNumber}), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
                     if (s.where.isNotEmpty)
-                      Text(s.where, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                      Text(s.where, style: TextStyle(fontSize: 13, color: vf.textSecondary)),
                   ],
                 ),
               ),
@@ -219,10 +221,10 @@ class SlotPickerState extends State<SlotPicker> {
           children: [
             TextButton(
               onPressed: _chooseOther,
-              child: Text('Choose another (${_slots.length} free)'),
+              child: Text(tr(context, 'Choose another ({n} free)', {'n': _slots.length})),
             ),
             const Spacer(),
-            TextButton(onPressed: () => _setManual(true), child: const Text('Type bay instead')),
+            TextButton(onPressed: () => _setManual(true), child: Text(tr(context, 'Type bay instead'))),
           ],
         ),
       ],

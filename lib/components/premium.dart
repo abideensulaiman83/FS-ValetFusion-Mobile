@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/environment.dart';
+import '../l10n/app_strings.dart';
 import '../services/authentication_service.dart';
 import '../services/notification_service.dart';
 import '../services/plan_service.dart';
@@ -31,9 +32,9 @@ class PremiumStar extends StatelessWidget {
       valueListenable: PlanController.instance.plan,
       builder: (context, plan, _) {
         final locked = !(plan?.has(featureKey) ?? true);
-        final color = onDark || Theme.of(context).brightness == Brightness.dark ? AppColors.brassOnDark : AppColors.brass;
+        final color = onDark ? AppColors.brassOnDark : context.vf.brass;
         return Tooltip(
-          message: locked ? 'Premium - not on your plan' : 'Premium feature',
+          message: tr(context, locked ? 'Premium - not on your plan' : 'Premium feature'),
           child: Icon(locked ? Icons.star_rounded : Icons.star_outline_rounded, size: size, color: color),
         );
       },
@@ -73,7 +74,7 @@ Future<void> showPremiumSheet(BuildContext context, {String? featureKey, String?
   final admin = await _isCompanyAdmin();
   if (!context.mounted) return;
   final plan = PlanController.instance.plan.value;
-  final label = featureLabel ?? (featureKey != null ? PlanController.instance.labelFor(featureKey) : 'This feature');
+  final label = featureLabel ?? (featureKey != null ? PlanController.instance.labelFor(featureKey) : tr(context, 'This feature'));
   final description = featureKey != null ? plan?.feature(featureKey)?.description : null;
   _sheetOpen = true;
   try {
@@ -82,8 +83,8 @@ Future<void> showPremiumSheet(BuildContext context, {String? featureKey, String?
       isScrollControlled: true,
       builder: (sheetContext) {
         final theme = Theme.of(sheetContext);
-        final dark = theme.brightness == Brightness.dark;
-        final accent = dark ? AppColors.brassOnDark : AppColors.brass;
+        final vf = sheetContext.vf;
+        final accent = vf.brass;
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
@@ -94,13 +95,13 @@ Future<void> showPremiumSheet(BuildContext context, {String? featureKey, String?
                 Row(children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: dark ? AppColors.inkCard2 : AppColors.accentSoft, borderRadius: BorderRadius.circular(10)),
+                    decoration: BoxDecoration(color: vf.accentSoft, borderRadius: BorderRadius.circular(10)),
                     child: Icon(Icons.star_rounded, color: accent, size: 26),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Part of Premium', style: theme.textTheme.titleLarge),
+                      Text(tr(sheetContext, 'Part of Premium'), style: theme.textTheme.titleLarge),
                       Text(label, style: theme.textTheme.bodyMedium),
                     ]),
                   ),
@@ -111,14 +112,18 @@ Future<void> showPremiumSheet(BuildContext context, {String? featureKey, String?
                 ],
                 const SizedBox(height: 14),
                 Text(
-                  admin
-                      ? 'Upgrade from the web console${plan?.canStartTrial == true ? ' - or start the free 14-day trial there' : ''}.'
-                      : 'Ask your company admin - they can upgrade from the web console.',
+                  tr(
+                      sheetContext,
+                      admin
+                          ? (plan?.canStartTrial == true
+                              ? 'Upgrade from the web console - or start the free 14-day trial there.'
+                              : 'Upgrade from the web console.')
+                          : 'Ask your company admin - they can upgrade from the web console.'),
                   style: theme.textTheme.bodyMedium,
                 ),
                 if (plan != null) ...[
                   const SizedBox(height: 6),
-                  Text('Your plan: ${plan.headerLabel}', style: theme.textTheme.bodySmall),
+                  Text(tr(sheetContext, 'Your plan: {plan}', {'plan': plan.headerLabel}), style: theme.textTheme.bodySmall),
                 ],
                 const SizedBox(height: 20),
                 if (admin)
@@ -130,12 +135,12 @@ Future<void> showPremiumSheet(BuildContext context, {String? featureKey, String?
                       } catch (_) {}
                     },
                     icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                    label: const Text('Open web console'),
+                    label: Text(tr(sheetContext, 'Open web console')),
                   ),
                 if (admin) const SizedBox(height: 8),
                 OutlinedButton(
                   onPressed: () => Navigator.of(sheetContext).pop(),
-                  child: Text(admin ? 'Not now' : 'OK'),
+                  child: Text(tr(sheetContext, admin ? 'Not now' : 'OK')),
                 ),
               ],
             ),

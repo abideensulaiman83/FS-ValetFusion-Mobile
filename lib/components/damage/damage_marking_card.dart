@@ -7,6 +7,7 @@
 // shows the star and the "Part of Premium" sheet instead of the editor; a PLAN_REQUIRED from the
 // server does the same.
 import 'package:flutter/material.dart';
+import '../../l10n/app_strings.dart';
 import '../../services/damage_service.dart';
 import '../../services/plan_service.dart';
 import '../../theme/app_theme.dart';
@@ -67,7 +68,7 @@ class _DamageMarkingCardState extends State<DamageMarkingCard> {
       return;
     }
     if (_all.length >= 50) {
-      setState(() => _error = 'Up to 50 marks per car.');
+      setState(() => _error = tr(context, 'Up to 50 marks per car.'));
       return;
     }
     final mark = await showDamageMarkSheet(context, number: _all.length + 1, part: part);
@@ -96,7 +97,9 @@ class _DamageMarkingCardState extends State<DamageMarkingCard> {
 
   void _showSavedMark(int number, DamageMark m) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('#$number ${m.type.label}${m.note.isEmpty ? '' : ' - ${m.note}'} (already saved)'),
+      content: Text(m.note.isEmpty
+          ? tr(context, '#{n} {type} (already saved)', {'n': number, 'type': tr(context, m.type.label)})
+          : tr(context, '#{n} {type} - {note} (already saved)', {'n': number, 'type': tr(context, m.type.label), 'note': m.note})),
     ));
   }
 
@@ -111,8 +114,10 @@ class _DamageMarkingCardState extends State<DamageMarkingCard> {
       if (!mounted) return;
       _pending.clear();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(r.failed == 0 ? 'Damage marks saved' : '${r.saved} saved, ${r.failed} could not be saved'),
-        backgroundColor: r.failed == 0 ? AppColors.success : AppColors.warning,
+        content: Text(r.failed == 0
+            ? tr(context, 'Damage marks saved')
+            : tr(context, '{saved} saved, {failed} could not be saved', {'saved': r.saved, 'failed': r.failed})),
+        backgroundColor: r.failed == 0 ? context.vf.success : context.vf.warning,
       ));
       await _load();
     } catch (e) {
@@ -133,27 +138,29 @@ class _DamageMarkingCardState extends State<DamageMarkingCard> {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.card,
+            color: context.vf.card,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.line),
+            border: Border.all(color: context.vf.line),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                const Text('Damage marking', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                Text(tr(context, 'Damage marking'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(width: 6),
                 const PremiumStar(featureKey: PremiumFeature.damageMarking),
                 const Spacer(),
                 if (_all.isNotEmpty)
-                  Text('${_all.length} mark${_all.length == 1 ? '' : 's'}', style: theme.textTheme.bodySmall),
+                  Text(_all.length == 1 ? tr(context, '1 mark') : tr(context, '{n} marks', {'n': _all.length}), style: theme.textTheme.bodySmall),
               ]),
               const SizedBox(height: 4),
               Text(
-                locked
-                    ? 'Mark existing scratches and dents on the car - part of Premium.'
-                    : 'Tap the car where there is existing damage. Front of the car is at the top.',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                tr(
+                    context,
+                    locked
+                        ? 'Mark existing scratches and dents on the car - part of Premium.'
+                        : 'Tap the car where there is existing damage. Front of the car is at the top.'),
+                style: TextStyle(fontSize: 12, color: context.vf.textSecondary),
               ),
               const SizedBox(height: 12),
               Center(
@@ -180,7 +187,7 @@ class _DamageMarkingCardState extends State<DamageMarkingCard> {
               ],
               if (_error != null) ...[
                 const SizedBox(height: 8),
-                Text(_error!, style: TextStyle(fontSize: 12, color: AppColors.danger)),
+                Text(_error!, style: TextStyle(fontSize: 12, color: context.vf.danger)),
               ],
               const SizedBox(height: 12),
               if (locked)
@@ -188,8 +195,8 @@ class _DamageMarkingCardState extends State<DamageMarkingCard> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () => showPremiumSheet(context, featureKey: PremiumFeature.damageMarking),
-                    icon: const Icon(Icons.star_rounded, size: 18, color: AppColors.brass),
-                    label: const Text('Part of Premium'),
+                    icon: Icon(Icons.star_rounded, size: 18, color: context.vf.brass),
+                    label: Text(tr(context, 'Part of Premium')),
                   ),
                 )
               else if (_pending.isNotEmpty)
@@ -200,7 +207,11 @@ class _DamageMarkingCardState extends State<DamageMarkingCard> {
                     icon: _saving
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.save_outlined, size: 18),
-                    label: Text(_saving ? 'Saving...' : 'Save ${_pending.length} mark${_pending.length == 1 ? '' : 's'}'),
+                    label: Text(_saving
+                        ? tr(context, 'Saving...')
+                        : _pending.length == 1
+                            ? tr(context, 'Save 1 mark')
+                            : tr(context, 'Save {n} marks', {'n': _pending.length})),
                   ),
                 ),
             ],
@@ -235,10 +246,10 @@ class _DamageMarksViewState extends State<DamageMarksView> {
         }
         if (snap.hasError) {
           return Row(children: [
-            Expanded(child: Text('Damage marks could not be loaded.', style: theme.textTheme.bodySmall)),
+            Expanded(child: Text(tr(context, 'Damage marks could not be loaded.'), style: theme.textTheme.bodySmall)),
             TextButton(
               onPressed: () => setState(() => _marks = DamageService().load(widget.parkingVehicleId)),
-              child: const Text('Retry'),
+              child: Text(tr(context, 'Retry')),
             ),
           ]);
         }
@@ -254,7 +265,7 @@ class _DamageMarksViewState extends State<DamageMarksView> {
             ),
             const SizedBox(height: 8),
             if (marks.isEmpty)
-              Text('No damage was marked at check-in.', style: theme.textTheme.bodyMedium)
+              Text(tr(context, 'No damage was marked at check-in.'), style: theme.textTheme.bodyMedium)
             else
               DamageMarkList(marks: marks),
           ],
@@ -279,7 +290,7 @@ class DamageTypeLegend extends StatelessWidget {
           Row(mainAxisSize: MainAxisSize.min, children: [
             Container(width: 10, height: 10, decoration: BoxDecoration(color: damageTypeColor(t, b), shape: BoxShape.circle)),
             const SizedBox(width: 4),
-            Text(t.label, style: Theme.of(context).textTheme.bodySmall),
+            Text(tr(context, t.label), style: Theme.of(context).textTheme.bodySmall),
           ]),
       ],
     );
@@ -310,12 +321,12 @@ class DamageMarkList extends StatelessWidget {
                   Expanded(
                     child: Text.rich(
                       TextSpan(children: [
-                        TextSpan(text: marks[i].type.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        TextSpan(text: tr(context, marks[i].type.label), style: const TextStyle(fontWeight: FontWeight.w700)),
                         if (marks[i].note.isNotEmpty) TextSpan(text: ' - ${marks[i].note}'),
                         if (!marks[i].saved)
-                          TextSpan(text: '  not saved yet', style: TextStyle(color: AppColors.warning, fontSize: 11.5)),
+                          TextSpan(text: '  ${tr(context, 'not saved yet')}', style: TextStyle(color: context.vf.warning, fontSize: 11.5)),
                       ]),
-                      style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textBody),
+                      style: theme.textTheme.bodyMedium?.copyWith(color: context.vf.textBody),
                     ),
                   ),
                 ],
@@ -334,7 +345,8 @@ const String _removeSentinel = '\u0000remove';
 Future<DamageMark?> showDamageMarkSheet(BuildContext context,
     {required int number, String? part, DamageMark? initial, bool allowRemove = false}) {
   var type = initial?.type ?? DamageType.scratch;
-  final note = TextEditingController(text: initial?.note ?? (part ?? ''));
+  // The panel name pre-fills the note in the staff member's language (the note is free text).
+  final note = TextEditingController(text: initial?.note ?? (part == null ? '' : tr(context, part)));
   return showModalBottomSheet<DamageMark>(
     context: context,
     isScrollControlled: true,
@@ -348,7 +360,11 @@ Future<DamageMark?> showDamageMarkSheet(BuildContext context,
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Mark #$number${part != null && initial == null ? ' - $part' : ''}', style: theme.textTheme.titleLarge),
+            Text(
+                part != null && initial == null
+                    ? tr(context, 'Mark #{n} - {part}', {'n': number, 'part': tr(context, part)})
+                    : tr(context, 'Mark #{n}', {'n': number}),
+                style: theme.textTheme.titleLarge),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -356,7 +372,7 @@ Future<DamageMark?> showDamageMarkSheet(BuildContext context,
               children: [
                 for (final t in DamageType.values)
                   ChoiceChip(
-                    label: Text(t.label),
+                    label: Text(tr(context, t.label)),
                     selected: type == t,
                     avatar: CircleAvatar(backgroundColor: damageTypeColor(t, theme.brightness), radius: 6),
                     onSelected: (_) => setSheet(() => type = t),
@@ -368,7 +384,8 @@ Future<DamageMark?> showDamageMarkSheet(BuildContext context,
               controller: note,
               maxLength: 200,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: 'Note', hintText: 'e.g. Bonnet, 5 cm scratch near the badge'),
+              decoration: InputDecoration(
+                  labelText: tr(context, 'Note'), hintText: tr(context, 'e.g. Bonnet, 5 cm scratch near the badge')),
             ),
             const SizedBox(height: 8),
             Row(children: [
@@ -376,15 +393,15 @@ Future<DamageMark?> showDamageMarkSheet(BuildContext context,
                 TextButton.icon(
                   onPressed: () => Navigator.of(sheetContext).pop(result(_removeSentinel)),
                   icon: const Icon(Icons.delete_outline, size: 18),
-                  label: const Text('Remove'),
-                  style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+                  label: Text(tr(context, 'Remove')),
+                  style: TextButton.styleFrom(foregroundColor: context.vf.danger),
                 ),
               const Spacer(),
-              TextButton(onPressed: () => Navigator.of(sheetContext).pop(), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.of(sheetContext).pop(), child: Text(tr(context, 'Cancel'))),
               const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: () => Navigator.of(sheetContext).pop(result()),
-                child: Text(initial == null ? 'Add mark' : 'Update'),
+                child: Text(tr(context, initial == null ? 'Add mark' : 'Update')),
               ),
             ]),
           ],

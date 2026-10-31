@@ -6,11 +6,13 @@
 // underneath. SupervisorTracker keeps reporting the position in the background meanwhile.
 import 'package:flutter/material.dart';
 import '../components/notification_bell.dart';
+import '../l10n/app_strings.dart';
 import '../services/authentication_service.dart';
 import '../services/supervisor_service.dart';
 import '../services/supervisor_tracker.dart';
 import '../theme/app_theme.dart';
 
+// English keys are what the server stores; the sheet shows them through tr().
 const List<String> kSupervisorChecklist = [
   'Valet team present and in uniform',
   'Queue and drop-off under control',
@@ -59,7 +61,7 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> {
   void _snack(String msg, {bool error = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: error ? AppColors.danger : AppColors.success,
+      backgroundColor: error ? context.vf.danger : context.vf.success,
     ));
   }
 
@@ -68,14 +70,16 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> {
     try {
       final fix = await SupervisorTracker.currentFix();
       final me = _tracker.me.value;
+      if (!mounted) return;
       if (fix == null && (me?.requireGps ?? true)) {
-        _snack('Turn on location (GPS) and allow it for ValetFusion to check in.', error: true);
+        _snack(tr(context, 'Turn on location (GPS) and allow it for ValetFusion to check in.'), error: true);
         return;
       }
       final v = await _api.checkIn(site.id, lat: fix?.latitude, lng: fix?.longitude, accuracyM: fix?.accuracy);
+      if (!mounted) return;
       _snack(v.checkInOnSite == false
-          ? 'Checked in at ${site.name} - note: you are ${v.checkInDistanceM} m from the site.'
-          : 'Checked in at ${site.name}.');
+          ? tr(context, 'Checked in at {site} - note: you are {m} m from the site.', {'site': site.name, 'm': v.checkInDistanceM})
+          : tr(context, 'Checked in at {site}.', {'site': site.name}));
       await _load();
     } catch (e) {
       _snack(e.toString().replaceAll('Exception: ', ''), error: true);
@@ -95,7 +99,8 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> {
     try {
       final fix = await SupervisorTracker.currentFix();
       await _api.checkOut(lat: fix?.latitude, lng: fix?.longitude, checklist: result.checklist, notes: result.notes);
-      _snack('Checked out of ${visit.locationName}.');
+      if (!mounted) return;
+      _snack(tr(context, 'Checked out of {site}.', {'site': visit.locationName}));
       await _load();
     } catch (e) {
       _snack(e.toString().replaceAll('Exception: ', ''), error: true);
@@ -109,18 +114,19 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> {
     if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 
-  String _dur(int min) => min < 60 ? '$min min' : '${min ~/ 60} h ${min % 60} min';
+  String _dur(int min) =>
+      min < 60 ? tr(context, '{n} min', {'n': min}) : tr(context, '{h} h {m} min', {'h': min ~/ 60, 'm': min % 60});
   String _time(DateTime d) => '${d.day}/${d.month} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Supervisor'),
+        title: Text(tr(context, 'Supervisor')),
         actions: [
           const NotificationBell(),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _busy ? null : _load),
-          IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
+          IconButton(icon: const Icon(Icons.refresh), tooltip: tr(context, 'Refresh'), onPressed: _busy ? null : _load),
+          IconButton(icon: const Icon(Icons.logout), tooltip: tr(context, 'Log out'), onPressed: _logout),
         ],
       ),
       body: SafeArea(
@@ -137,20 +143,20 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> {
                         builder: (context, visit, _) => ListView(
                           padding: const EdgeInsets.all(16),
                           children: [
-                            Text('Hello, ${me?.name ?? ''}', style: Theme.of(context).textTheme.titleLarge),
+                            Text(tr(context, 'Hello, {name}', {'name': me?.name ?? ''}), style: Theme.of(context).textTheme.titleLarge),
                             const SizedBox(height: 12),
                             if (visit != null) _dutyCard(visit) else ..._siteCards(me),
                             const SizedBox(height: 24),
-                            Text('Recent visits', style: Theme.of(context).textTheme.titleMedium),
+                            Text(tr(context, 'Recent visits'), style: Theme.of(context).textTheme.titleMedium),
                             const SizedBox(height: 8),
-                            if (_history.isEmpty) const Text('No visits yet.'),
+                            if (_history.isEmpty) Text(tr(context, 'No visits yet.')),
                             ..._history.map((v) => ListTile(
                                   dense: true,
                                   contentPadding: EdgeInsets.zero,
                                   leading: Icon(v.status == 'OPEN' ? Icons.timelapse : Icons.check_circle_outline),
                                   title: Text(v.locationName),
                                   subtitle: Text('${_time(v.checkInAt)} · ${_dur(v.durationMinutes)}'
-                                      '${v.offSiteMinutes > 0 ? ' · away ${_dur(v.offSiteMinutes)}' : ''}'),
+                                      '${v.offSiteMinutes > 0 ? ' · ${tr(context, 'away {d}', {'d': _dur(v.offSiteMinutes)})}' : ''}'),
                                 )),
                           ],
                         ),
@@ -163,7 +169,7 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> {
 
   Widget _dutyCard(SupervisorVisit v) {
     final away = v.lastOnSite == false;
-    final color = away ? AppColors.warning : AppColors.success;
+    final color = away ? context.vf.warning : context.vf.success;
     return Card(
       color: color.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: color)),
@@ -175,23 +181,27 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> {
             Row(children: [
               Icon(away ? Icons.directions_walk : Icons.location_on, color: color),
               const SizedBox(width: 8),
-              Expanded(child: Text('On duty at ${v.locationName}', style: Theme.of(context).textTheme.titleMedium)),
+              Expanded(child: Text(tr(context, 'On duty at {site}', {'site': v.locationName}), style: Theme.of(context).textTheme.titleMedium)),
             ]),
             const SizedBox(height: 8),
-            Text('Since ${_time(v.checkInAt)} (${_dur(DateTime.now().difference(v.checkInAt).inMinutes)})'),
+            Text(tr(context, 'Since {time} ({dur})',
+                {'time': _time(v.checkInAt), 'dur': _dur(DateTime.now().difference(v.checkInAt).inMinutes)})),
             if (v.lastDistanceM != null)
-              Text(away ? 'You are ${v.lastDistanceM} m away from the site.' : 'At the site (${v.lastDistanceM} m).',
+              Text(
+                  away
+                      ? tr(context, 'You are {m} m away from the site.', {'m': v.lastDistanceM})
+                      : tr(context, 'At the site ({m} m).', {'m': v.lastDistanceM}),
                   style: TextStyle(color: color, fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            const Text('Your location is shared with head office until you check out. Keep the app running.',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            Text(tr(context, 'Your location is shared with head office until you check out. Keep the app running.'),
+                style: TextStyle(fontSize: 12, color: context.vf.textSecondary)),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: _busy ? null : () => _checkOut(v),
                 icon: const Icon(Icons.logout),
-                label: const Text('Check out'),
+                label: Text(tr(context, 'Check out')),
               ),
             ),
           ],
@@ -203,17 +213,17 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> {
   List<Widget> _siteCards(SupervisorMe? me) {
     final sites = me?.sites ?? const <SupervisorSite>[];
     if (sites.isEmpty) {
-      return const [Text('No sites are assigned to you yet. Ask your manager to assign your sites on the portal.')];
+      return [Text(tr(context, 'No sites are assigned to you yet. Ask your manager to assign your sites on the portal.'))];
     }
     return [
-      const Text('Choose the site you are at to check in:'),
+      Text(tr(context, 'Choose the site you are at to check in:')),
       const SizedBox(height: 8),
       ...sites.map((s) => Card(
             child: ListTile(
               leading: const Icon(Icons.apartment),
               title: Text(s.name),
-              subtitle: Text(s.lat == null ? 'Site position not set' : (s.code ?? '')),
-              trailing: FilledButton(onPressed: _busy ? null : () => _checkIn(s), child: const Text('Check in')),
+              subtitle: Text(s.lat == null ? tr(context, 'Site position not set') : (s.code ?? '')),
+              trailing: FilledButton(onPressed: _busy ? null : () => _checkIn(s), child: Text(tr(context, 'Check in'))),
             ),
           )),
     ];
@@ -255,24 +265,24 @@ class _CheckOutSheetState extends State<_CheckOutSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Check out of ${widget.siteName}', style: Theme.of(context).textTheme.titleLarge),
+              Text(tr(context, 'Check out of {site}', {'site': widget.siteName}), style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 4),
-              const Text('Untick anything that was not OK.'),
+              Text(tr(context, 'Untick anything that was not OK.')),
               ...kSupervisorChecklist.map((item) => CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     value: _answers[item],
-                    title: Text(item),
+                    title: Text(tr(context, item)),
                     onChanged: (v) => setState(() => _answers[item] = v ?? false),
                   )),
               TextField(
                 controller: _notes,
                 maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Notes / incidents (optional)', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: tr(context, 'Notes / incidents (optional)'), border: const OutlineInputBorder()),
               ),
               const SizedBox(height: 12),
               FilledButton(
                 onPressed: () => Navigator.pop(context, _CheckOutResult(_answers, _notes.text)),
-                child: const Text('Check out'),
+                child: Text(tr(context, 'Check out')),
               ),
             ],
           ),

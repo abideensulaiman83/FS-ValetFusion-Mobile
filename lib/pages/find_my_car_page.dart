@@ -6,6 +6,7 @@
 // lookup on the driver desk.
 import 'package:flutter/material.dart';
 import '../components/condition_photos.dart';
+import '../l10n/app_strings.dart';
 import '../services/valet_service.dart';
 import '../theme/app_theme.dart';
 
@@ -50,13 +51,13 @@ class _FindMyCarPageState extends State<FindMyCarPage> {
     }
   }
 
-  static String _parkedFor(String? iso) {
+  static String _parkedFor(BuildContext context, String? iso) {
     final start = iso == null ? null : DateTime.tryParse(iso);
     if (start == null) return '-';
     final d = DateTime.now().difference(start);
-    if (d.isNegative) return 'just now';
-    if (d.inHours >= 1) return '${d.inHours}h ${d.inMinutes % 60}m';
-    return '${d.inMinutes} min';
+    if (d.isNegative) return tr(context, 'just now');
+    if (d.inHours >= 1) return tr(context, '{h}h {m}m', {'h': d.inHours, 'm': d.inMinutes % 60});
+    return tr(context, '{n} min', {'n': d.inMinutes});
   }
 
   static String _clock(String? iso) {
@@ -68,7 +69,7 @@ class _FindMyCarPageState extends State<FindMyCarPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Find car · ${widget.ticketNo}')),
+      appBar: AppBar(title: Text(tr(context, 'Find car · {no}', {'no': widget.ticketNo}))),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
@@ -77,13 +78,13 @@ class _FindMyCarPageState extends State<FindMyCarPage> {
             if (_loading && _where == null)
               const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator()))
             else if (_error != null && _where == null)
-              Text(_error!, style: TextStyle(color: AppColors.danger))
+              Text(_error!, style: TextStyle(color: context.vf.danger))
             else if (_where != null) ...[
               _locationCard(_where!),
               const SizedBox(height: 12),
               _keyAndTimeRow(_where!),
               const SizedBox(height: 16),
-              Text('Check-in photos', style: Theme.of(context).textTheme.titleSmall),
+              Text(tr(context, 'Check-in photos'), style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
               ConditionPhotosGrid(parkingVehicleId: widget.parkingVehicleId),
             ],
@@ -116,7 +117,7 @@ class _FindMyCarPageState extends State<FindMyCarPage> {
               const Icon(Icons.directions_car_filled, color: AppColors.liveOnDark),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(car.isEmpty ? 'Vehicle' : car,
+                child: Text(car.isEmpty ? tr(context, 'Vehicle') : car,
                     style: const TextStyle(color: AppColors.inkText, fontWeight: FontWeight.w700, fontSize: 15)),
               ),
               Container(
@@ -127,9 +128,9 @@ class _FindMyCarPageState extends State<FindMyCarPage> {
             ],
           ),
           const SizedBox(height: 16),
-          Text(w.slotNumber != null ? 'SLOT' : 'BAY',
+          Text(tr(context, w.slotNumber != null ? 'SLOT' : 'BAY'),
               style: const TextStyle(color: AppColors.inkTextSecondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.4)),
-          Text(spot == null || spot.isEmpty ? 'Not recorded' : spot,
+          Text(spot == null || spot.isEmpty ? tr(context, 'Not recorded') : spot,
               style: AppTheme.numeral(size: spot == null || spot.isEmpty ? 28 : 56, color: AppColors.brassOnDark)),
           if (rows.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -140,7 +141,7 @@ class _FindMyCarPageState extends State<FindMyCarPage> {
                   .map((r) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(r.key.toUpperCase(),
+                          Text(tr(context, r.key).toUpperCase(),
                               style: const TextStyle(color: AppColors.inkTextSecondary, fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
                           Text(r.value, style: const TextStyle(color: AppColors.inkText, fontSize: 16, fontWeight: FontWeight.w700)),
                         ],
@@ -168,21 +169,21 @@ class _FindMyCarPageState extends State<FindMyCarPage> {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.card,
+              color: context.vf.card,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: context.vf.line),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  Icon(icon, size: 16, color: AppColors.textSecondary),
+                  Icon(icon, size: 16, color: context.vf.textSecondary),
                   const SizedBox(width: 6),
-                  Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                  Text(label, style: TextStyle(fontSize: 12, color: context.vf.textSecondary, fontWeight: FontWeight.w600)),
                 ]),
                 const SizedBox(height: 6),
-                Text(value, style: AppTheme.numeral(size: 28, color: AppColors.textPrimary)),
-                if (sub != null) Text(sub, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Text(value, style: AppTheme.numeral(size: 28, color: context.vf.textPrimary)),
+                if (sub != null) Text(sub, style: TextStyle(fontSize: 12, color: context.vf.textSecondary)),
               ],
             ),
           ),
@@ -190,10 +191,11 @@ class _FindMyCarPageState extends State<FindMyCarPage> {
     final key = w.keyHolderNo;
     return Row(
       children: [
-        tile(Icons.vpn_key_outlined, 'Key hook', key == null || key.isEmpty ? '-' : key,
-            key == null || key.isEmpty ? 'Not recorded' : null),
+        tile(Icons.vpn_key_outlined, tr(context, 'Key hook'), key == null || key.isEmpty ? '-' : key,
+            key == null || key.isEmpty ? tr(context, 'Not recorded') : null),
         const SizedBox(width: 10),
-        tile(Icons.schedule, 'Parked for', _parkedFor(w.parkingInTime), 'since ${_clock(w.parkingInTime)}'),
+        tile(Icons.schedule, tr(context, 'Parked for'), _parkedFor(context, w.parkingInTime),
+            tr(context, 'since {time}', {'time': _clock(w.parkingInTime)})),
       ],
     );
   }

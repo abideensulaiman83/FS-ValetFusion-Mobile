@@ -67,13 +67,13 @@ class _ComplaintStatusPageState extends State<ComplaintStatusPage> {
   Color _statusColor(String status) {
     switch (status) {
       case 'OPEN':
-        return AppColors.danger;
+        return context.vf.danger;
       case 'ACKNOWLEDGED':
-        return AppColors.warning;
+        return context.vf.warning;
       case 'CLOSED':
-        return AppColors.success;
+        return context.vf.success;
       default:
-        return AppColors.textSecondary;
+        return context.vf.textSecondary;
     }
   }
 
@@ -104,7 +104,7 @@ class _ComplaintStatusPageState extends State<ComplaintStatusPage> {
               children: [
                 Text(
                   'Enter your reference number and the mobile number you reported with.',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.vf.textSecondary),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -135,7 +135,7 @@ class _ComplaintStatusPageState extends State<ComplaintStatusPage> {
                   child: ElevatedButton(
                     onPressed: _loading ? null : _check,
                     child: _loading
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Text('Check Status'),
                   ),
                 ),
@@ -143,8 +143,8 @@ class _ComplaintStatusPageState extends State<ComplaintStatusPage> {
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(color: AppColors.dangerSoft, borderRadius: BorderRadius.circular(10)),
-                    child: Text(_error!, style: TextStyle(color: AppColors.danger)),
+                    decoration: BoxDecoration(color: context.vf.dangerSoft, borderRadius: BorderRadius.circular(10)),
+                    child: Text(_error!, style: TextStyle(color: context.vf.danger)),
                   ),
                 ],
                 if (_result != null) ...[
@@ -152,7 +152,7 @@ class _ComplaintStatusPageState extends State<ComplaintStatusPage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.card,
+                      color: context.vf.card,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: _statusColor(_result!.status).withValues(alpha: 0.4)),
                     ),
@@ -166,19 +166,19 @@ class _ComplaintStatusPageState extends State<ComplaintStatusPage> {
                               backgroundColor: _statusColor(_result!.status),
                             ),
                             const Spacer(),
-                            Text('#${_result!.id}', style: TextStyle(color: AppColors.textSecondary)),
+                            Text('#${_result!.id}', style: TextStyle(color: context.vf.textSecondary)),
                           ],
                         ),
                         const SizedBox(height: 12),
                         Text(_statusMessage(_result!.status), style: const TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 10),
-                        Text('Your report: "${_result!.message}"', style: TextStyle(color: AppColors.textSecondary)),
+                        Text('Your report: "${_result!.message}"', style: TextStyle(color: context.vf.textSecondary)),
                         if (_result!.resolutionNotes != null && _result!.resolutionNotes!.isNotEmpty) ...[
                           const SizedBox(height: 10),
                           Container(
                             padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(color: AppColors.successSoft, borderRadius: BorderRadius.circular(8)),
-                            child: Text('Resolution: ${_result!.resolutionNotes}', style: TextStyle(color: AppColors.success)),
+                            decoration: BoxDecoration(color: context.vf.successSoft, borderRadius: BorderRadius.circular(8)),
+                            child: Text('Resolution: ${_result!.resolutionNotes}', style: TextStyle(color: context.vf.success)),
                           ),
                         ],
                       ],

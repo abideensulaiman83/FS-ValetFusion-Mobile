@@ -21,7 +21,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             children: [
               const Text('Valet Fusion - Privacy Policy', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
-              Text('Last updated: September 2026', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              Text('Last updated: September 2026', style: TextStyle(fontSize: 12, color: context.vf.textSecondary)),
               const SizedBox(height: 20),
               _section(
                 'What we collect',
@@ -71,7 +71,7 @@ class PrivacyPolicyPage extends StatelessWidget {
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(color: AppColors.accentSoft, borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: context.vf.accentSoft, borderRadius: BorderRadius.circular(10)),
                 child: const Text(
                   'This app is provided by Integrated Parking Solution '
                   '(www.integeratedparkingsolution.com/ae) to its client properties. Each property '

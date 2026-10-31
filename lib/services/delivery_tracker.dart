@@ -20,6 +20,7 @@ import '../components/eta_check_in_dialog.dart';
 import 'notification_service.dart';
 import 'offline_queue.dart';
 import 'valet_service.dart';
+import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 
 class DeliveryTracker with WidgetsBindingObserver {
@@ -278,9 +279,10 @@ class DeliveryTracker with WidgetsBindingObserver {
   void _snack(String message, {bool error = false}) {
     final context = NotificationService.navigatorKey.currentContext;
     if (context == null) return;
+    // App messages are translated; server messages have no Arabic entry and pass through.
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
-      content: Text(message),
-      backgroundColor: error ? AppColors.danger : AppColors.success,
+      content: Text(tr(context, message)),
+      backgroundColor: error ? context.vf.danger : context.vf.success,
     ));
   }
 }

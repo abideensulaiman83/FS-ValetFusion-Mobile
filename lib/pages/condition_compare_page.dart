@@ -12,11 +12,13 @@ import 'package:intl/intl.dart';
 import '../components/condition_photos.dart';
 import '../components/damage/damage_marking_card.dart';
 import '../components/premium.dart';
+import '../l10n/app_strings.dart';
 import '../services/plan_service.dart';
 import '../services/valet_service.dart';
 import '../theme/app_theme.dart';
 
 const List<String> _sides = ['FRONT', 'BACK', 'LEFT', 'RIGHT'];
+/// "Front", "Back"... - the English key; shown through tr(). LEFT/RIGHT are the car's own sides.
 String _sideLabel(String a) => a[0] + a.substring(1).toLowerCase();
 
 /// Small button for the delivery dialog: "Compare condition".
@@ -32,10 +34,10 @@ class ConditionCompareButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ConditionComparePage(data: data))),
         icon: const Icon(Icons.compare_rounded, size: 18),
-        label: Row(mainAxisSize: MainAxisSize.min, children: const [
-          Text('Compare condition'),
-          SizedBox(width: 6),
-          PremiumStar(featureKey: PremiumFeature.damageMarking, size: 14),
+        label: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(tr(context, 'Compare condition')),
+          const SizedBox(width: 6),
+          const PremiumStar(featureKey: PremiumFeature.damageMarking, size: 14),
         ]),
       ),
     );
@@ -135,7 +137,7 @@ class _ConditionComparePageState extends State<ConditionComparePage> {
       });
     } catch (e) {
       if (mounted && e is! PlanRequiredException) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.danger));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: context.vf.danger));
       }
     } finally {
       if (mounted) setState(() => _uploading.remove(side));
@@ -151,8 +153,8 @@ class _ConditionComparePageState extends State<ConditionComparePage> {
     return Scaffold(
       appBar: AppBar(
         title: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-          const Text('Compare condition'),
-          Text('Ticket ${d.ticketNo}${d.plateNo != null ? ' · ${d.plateNo}' : ''}',
+          Text(tr(context, 'Compare condition')),
+          Text('${tr(context, 'Ticket {no}', {'no': d.ticketNo})}${d.plateNo != null ? ' · ${d.plateNo}' : ''}',
               style: theme.textTheme.bodySmall?.copyWith(fontSize: 11.5)),
         ]),
         actions: [IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh_rounded))],
@@ -163,16 +165,19 @@ class _ConditionComparePageState extends State<ConditionComparePage> {
           padding: const EdgeInsets.all(16),
           children: [
             if (vehicle.isNotEmpty) Text(vehicle, style: theme.textTheme.titleMedium),
+            // The two columns swap sides in right-to-left layouts; the Arabic text says so.
             Text(
-              'Left: at check-in${d.parkingInTime != null ? ' (${_fmt(d.parkingInTime!)})' : ''}. '
-              'Right: now - tap an empty slot to photograph that side.',
+              d.parkingInTime != null
+                  ? tr(context, 'Left: at check-in ({time}). Right: now - tap an empty slot to photograph that side.',
+                      {'time': _fmt(d.parkingInTime!)})
+                  : tr(context, 'Left: at check-in. Right: now - tap an empty slot to photograph that side.'),
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),
             Row(children: [
-              Expanded(child: Text('CHECK-IN', style: theme.textTheme.labelSmall, textAlign: TextAlign.center)),
+              Expanded(child: Text(tr(context, 'CHECK-IN'), style: theme.textTheme.labelSmall, textAlign: TextAlign.center)),
               const SizedBox(width: 10),
-              Expanded(child: Text('NOW', style: theme.textTheme.labelSmall, textAlign: TextAlign.center)),
+              Expanded(child: Text(tr(context, 'NOW'), style: theme.textTheme.labelSmall, textAlign: TextAlign.center)),
             ]),
             const SizedBox(height: 6),
             if (_loading)
@@ -180,13 +185,13 @@ class _ConditionComparePageState extends State<ConditionComparePage> {
             else if (_error != null)
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text(_error!, style: TextStyle(color: AppColors.danger)),
+                child: Text(_error!, style: TextStyle(color: context.vf.danger)),
               )
             else
               for (final side in _sides) _sideRow(side, theme),
             if (others.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('Other photos', style: theme.textTheme.titleSmall),
+              Text(tr(context, 'Other photos'), style: theme.textTheme.titleSmall),
               const SizedBox(height: 6),
               Wrap(spacing: 6, runSpacing: 6, children: [
                 for (final p in others)
@@ -198,7 +203,7 @@ class _ConditionComparePageState extends State<ConditionComparePage> {
             ],
             const SizedBox(height: 20),
             Row(children: [
-              Text('Damage marked at check-in', style: theme.textTheme.titleMedium),
+              Text(tr(context, 'Damage marked at check-in'), style: theme.textTheme.titleMedium),
               const SizedBox(width: 6),
               const PremiumStar(featureKey: PremiumFeature.damageMarking),
             ]),
@@ -206,9 +211,9 @@ class _ConditionComparePageState extends State<ConditionComparePage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.card,
+                color: context.vf.card,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.vf.line),
               ),
               child: DamageMarksView(parkingVehicleId: _vehicleId),
             ),
@@ -232,10 +237,10 @@ class _ConditionComparePageState extends State<ConditionComparePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(_sideLabel(side), style: theme.textTheme.titleSmall),
+          Text(tr(context, _sideLabel(side)), style: theme.textTheme.titleSmall),
           const SizedBox(height: 6),
           Row(children: [
-            Expanded(child: _tile(before, emptyText: 'No check-in photo')),
+            Expanded(child: _tile(before, emptyText: tr(context, 'No check-in photo'))),
             const SizedBox(width: 10),
             Expanded(
               child: busy
@@ -246,9 +251,9 @@ class _ConditionComparePageState extends State<ConditionComparePage> {
                           borderRadius: BorderRadius.circular(8),
                           onTap: () => _takeNow(side),
                           child: _frame(Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            Icon(Icons.add_a_photo_outlined, color: AppColors.textSecondary),
+                            Icon(Icons.add_a_photo_outlined, color: context.vf.textSecondary),
                             const SizedBox(height: 4),
-                            Text('Take now', style: theme.textTheme.bodySmall),
+                            Text(tr(context, 'Take now'), style: theme.textTheme.bodySmall),
                           ])),
                         ),
             ),
@@ -262,8 +267,8 @@ class _ConditionComparePageState extends State<ConditionComparePage> {
         aspectRatio: 4 / 3,
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.card2,
-            border: Border.all(color: AppColors.line),
+            color: context.vf.card2,
+            border: Border.all(color: context.vf.line),
             borderRadius: BorderRadius.circular(8),
           ),
           child: child,
@@ -285,6 +290,7 @@ class _ConditionComparePageState extends State<ConditionComparePage> {
           borderRadius: BorderRadius.circular(8),
           child: Stack(fit: StackFit.expand, children: [
             LayoutBuilder(builder: (_, c) => ConditionPhotoThumb(url: photo.url, size: c.maxWidth)),
+            // Time stamp on a dark band over the photo - stays dark in both themes.
             if (t != null)
               Positioned(
                 left: 0,

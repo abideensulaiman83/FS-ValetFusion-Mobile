@@ -6,10 +6,12 @@
 // (Free / Premium / Premium until ...), the menu for their role - Premium entries starred - and
 // sign-out. Only routes that exist in main.dart are listed.
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../confirm_dialog.dart';
+import '../../l10n/app_strings.dart';
 import '../notification_bell.dart';
 import '../premium.dart';
 import '../../services/app_update_service.dart';
@@ -71,14 +73,14 @@ class _AppLayoutState extends State<AppLayout> {
     });
   }
 
-  String get roleLabel {
+  String roleLabel(BuildContext context) {
     const names = {
       'SUPER_ADMIN': 'Super admin', 'LOCATION_ADMIN': 'Company admin', 'KEY_CONTROLLER': 'Location manager', 'LOBBY': 'Cashier',
       'VALET_STAFF': 'Valet desk', 'DRIVER': 'Valet', 'GATE_SCANNER': 'Gate scanner', 'SUPERVISOR': 'Supervisor',
       'OPERATIONS_HEAD': 'Division head', 'SECURITY': 'Security', 'REPORT_VIEWER': 'Reports', 'CUSTOMER': 'Guest',
     };
-    final known = roles.where(names.containsKey).map((r) => names[r]!).toList();
-    return known.isEmpty ? 'Staff' : known.join(' · ');
+    final known = roles.where(names.containsKey).map((r) => tr(context, names[r]!)).toList();
+    return known.isEmpty ? tr(context, 'Staff') : known.join(' · ');
   }
 
   bool has(String r) => roles.contains(r);
@@ -106,9 +108,9 @@ class _AppLayoutState extends State<AppLayout> {
   Future<void> _logout() async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Sign out?',
-      message: "You'll need your password to sign in again.",
-      confirmLabel: 'Sign out',
+      title: tr(context, 'Sign out?'),
+      message: tr(context, "You'll need your password to sign in again."),
+      confirmLabel: tr(context, 'Sign out'),
       destructive: true,
     );
     if (!confirmed) return;
@@ -143,7 +145,7 @@ class _AppLayoutState extends State<AppLayout> {
           child: SafeArea(
             child: Column(
               children: [
-                _DrawerHeader(userName: userName, roleLabel: roleLabel, location: currentLocation),
+                _DrawerHeader(userName: userName, roleLabel: roleLabel(context), location: currentLocation),
                 const Divider(color: AppColors.inkLine),
                 Expanded(
                   child: ListView(
@@ -151,22 +153,28 @@ class _AppLayoutState extends State<AppLayout> {
                     children: [
                       ...mainMenu.map((m) => _item(m, currentRoute)),
                       if (managementMenu.isNotEmpty) ...[
-                        _sectionLabel('Management'),
+                        _sectionLabel(tr(context, 'Management')),
                         ...managementMenu.map((m) => _item(m, currentRoute)),
                       ],
-                      _sectionLabel('Help'),
+                      _sectionLabel(tr(context, 'Help')),
                       _item(const _MenuEntry('Privacy & policy', Icons.privacy_tip_outlined, '/privacy-policy'), currentRoute),
                     ],
                   ),
                 ),
                 const Divider(color: AppColors.inkLine),
                 ListTile(
+                  leading: const Icon(Icons.translate_rounded, color: AppColors.inkTextSecondary),
+                  title: Text(tr(context, 'Language'), style: const TextStyle(color: AppColors.inkText, fontWeight: FontWeight.w600)),
+                  trailing: const LanguageToggle(color: AppColors.brassOnDark),
+                  onTap: () => LocaleController.set(isArabic(context) ? 'en' : 'ar'),
+                ),
+                ListTile(
                   leading: const Icon(Icons.logout_rounded, color: AppColors.inkTextSecondary),
-                  title: const Text('Sign out', style: TextStyle(color: AppColors.inkText, fontWeight: FontWeight.w600)),
+                  title: Text(tr(context, 'Sign out'), style: const TextStyle(color: AppColors.inkText, fontWeight: FontWeight.w600)),
                   onTap: _logout,
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 12),
                   child: Row(
                     children: [
                       Text('ValetFusion $version', style: const TextStyle(color: AppColors.inkTextSecondary, fontSize: 11)),
@@ -188,7 +196,7 @@ class _AppLayoutState extends State<AppLayout> {
   }
 
   Widget _sectionLabel(String text) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 14, 16, 4),
+        padding: const EdgeInsetsDirectional.fromSTEB(20, 14, 16, 4),
         child: Text(text.toUpperCase(),
             style: const TextStyle(color: AppColors.inkTextSecondary, fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.4)),
       );
@@ -208,7 +216,7 @@ class _AppLayoutState extends State<AppLayout> {
         leading: Icon(m.icon, size: 20, color: active ? AppColors.brassOnDark : AppColors.inkTextSecondary),
         title: Row(children: [
           Flexible(
-            child: Text(m.title,
+            child: Text(tr(context, m.title),
                 style: TextStyle(color: active ? AppColors.inkText : AppColors.inkTextBody, fontWeight: active ? FontWeight.w700 : FontWeight.w500, fontSize: 14)),
           ),
           if (m.premiumFeature != null) ...[
@@ -247,7 +255,7 @@ class _DrawerHeader extends StatelessWidget {
             builder: (context, logo, _) => logo != null
                 ? Container(
                     height: 40,
-                    alignment: Alignment.centerLeft,
+                    alignment: AlignmentDirectional.centerStart,
                     child: Image.network(logo, height: 40, fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => Image.asset('assets/icon/app_icon.png', width: 36, height: 36)),
                   )
@@ -312,12 +320,12 @@ class _PlanLine extends StatelessWidget {
           padding: const EdgeInsets.only(top: 10),
           child: InkWell(
             borderRadius: BorderRadius.circular(6),
-            onTap: premium ? null : () => showPremiumSheet(context, featureLabel: 'Premium features'),
+            onTap: premium ? null : () => showPremiumSheet(context, featureLabel: tr(context, 'Premium features')),
             child: Row(children: [
               Icon(premium ? Icons.star_rounded : Icons.star_outline_rounded, size: 15, color: AppColors.brassOnDark),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(plan.headerLabel,
+                child: Text(planHeaderLabel(context, plan),
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         color: premium ? AppColors.brassOnDark : AppColors.inkTextBody, fontSize: 13, fontWeight: FontWeight.w600)),
@@ -327,5 +335,20 @@ class _PlanLine extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+/// [PlanInfo.headerLabel] in the app's language (the package's own name stays as it is).
+String planHeaderLabel(BuildContext context, PlanInfo plan) {
+  if (plan.trialActive && plan.trialEndsAt != null) {
+    return tr(context, 'Premium until {date}', {'date': DateFormat('d MMM yyyy').format(plan.trialEndsAt!)});
+  }
+  switch (plan.tier) {
+    case 'FREE':
+      return tr(context, 'Free plan');
+    case 'PREMIUM':
+      return tr(context, 'Premium');
+    default:
+      return plan.planName.isEmpty ? tr(context, 'Customized') : plan.planName;
   }
 }

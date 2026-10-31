@@ -32,6 +32,7 @@ import 'condition_compare_page.dart';
 import 'driver_receive_page.dart';
 import 'parking_occupancy_page.dart';
 import '../theme/app_theme.dart';
+import '../l10n/app_strings.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -150,11 +151,13 @@ class _DashboardPageState extends State<DashboardPage> {
     } catch (_) {}
   }
 
-  void _showSnack(String message, {bool error = false}) {
+  // [message] is an English key (translated here, after the mounted check) or a server message
+  // (no Arabic entry, so it shows as-is).
+  void _showSnack(String message, {bool error = false, Map<String, Object?> args = const {}}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message),
-      backgroundColor: error ? AppColors.danger : AppColors.success,
+      content: Text(tr(context, message, args)),
+      backgroundColor: error ? context.vf.danger : context.vf.success,
     ));
   }
 
@@ -163,8 +166,10 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<SendOutcome> _send(String type, int parkingVehicleId, String label, [Map<String, dynamic> extra = const {}]) =>
       OfflineQueue.instance.sendOrQueue(type: type, payload: {'parkingVehicleId': parkingVehicleId, ...extra}, label: label);
 
-  void _queuedSnack(String what) =>
-      _showSnack('No signal - $what saved on this phone and will be sent automatically.');
+  void _queuedSnack(String what, [Map<String, Object?> args = const {}]) {
+    if (!mounted) return;
+    _showSnack('No signal - {what} saved on this phone and will be sent automatically.', args: {'what': tr(context, what, args)});
+  }
 
   // Key tag QR on a car that's already in: scan the hook's tag and save it as the key holder.
   Future<String?> _scanAndSetKeyHolder(TicketStatusResponse data) async {
@@ -174,7 +179,9 @@ class _DashboardPageState extends State<DashboardPage> {
     try {
       final outcome = await _send('key_holder', data.parkingVehicleId!, 'Key holder $tag for ticket ${data.ticketNo}',
           {'keyHolderNo': tag});
-      outcome.queued ? _queuedSnack('key holder $tag') : _showSnack('Ticket ${data.ticketNo}: key holder set to $tag');
+      outcome.queued
+          ? _queuedSnack('key holder {tag}', {'tag': tag})
+          : _showSnack('Ticket {no}: key holder set to {tag}', args: {'no': data.ticketNo, 'tag': tag});
       return tag;
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
@@ -259,13 +266,13 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _saveEntry() async {
     final ticketNo = _ticketNoController.text.trim();
     final missing = <String>[];
-    if (ticketNo.isEmpty) missing.add('Ticket Number');
-    if (_vpaInController.text.trim().isEmpty) missing.add('VPA-In');
-    if (_plateNoController.text.trim().isEmpty) missing.add('Plate Number');
-    if (_selectedServiceTypeId == null) missing.add('Service Type');
+    if (ticketNo.isEmpty) missing.add(tr(context, 'Ticket Number'));
+    if (_vpaInController.text.trim().isEmpty) missing.add(tr(context, 'VPA-In'));
+    if (_plateNoController.text.trim().isEmpty) missing.add(tr(context, 'Plate Number'));
+    if (_selectedServiceTypeId == null) missing.add(tr(context, 'Service Type'));
 
     if (missing.isNotEmpty) {
-      _showSnack('Please fill: ${missing.join(', ')}', error: true);
+      _showSnack('Please fill: {fields}', args: {'fields': missing.join(', ')}, error: true);
       return;
     }
 
@@ -291,10 +298,10 @@ class _DashboardPageState extends State<DashboardPage> {
             parkingVehicleId: received.parkingVehicleId!,
             slotId: slot.slotId,
           );
-          _showSnack('Vehicle received - $message');
+          _showSnack('Vehicle received - {message}', args: {'message': message});
         } catch (e) {
-          _showSnack('Vehicle received, but the slot was not saved: ${e.toString().replaceAll('Exception: ', '')}. '
-              'Scan the ticket again to pick a slot.', error: true);
+          _showSnack('Vehicle received, but the slot was not saved: {error}. Scan the ticket again to pick a slot.',
+              args: {'error': e.toString().replaceAll('Exception: ', '')}, error: true);
         }
       } else {
         _showSnack('Vehicle received successfully!');
@@ -322,7 +329,7 @@ class _DashboardPageState extends State<DashboardPage> {
   // desk for drivers, lobby and key controllers, not just the admin home.
   Widget _parkedAction() => IconButton(
         icon: const Icon(Icons.vpn_key_outlined),
-        tooltip: 'Received vehicles',
+        tooltip: tr(context, 'Received vehicles'),
         onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ParkingOccupancyPage())),
       );
 
@@ -357,8 +364,10 @@ class _DashboardPageState extends State<DashboardPage> {
             });
             if (sheetContext.mounted) Navigator.of(sheetContext).pop();
             outcome.queued
-                ? _queuedSnack('parking for ticket ${data.ticketNo}')
-                : _showSnack('Ticket ${data.ticketNo}: ${outcome.message ?? 'Parked'}');
+                ? _queuedSnack('parking for ticket {no}', {'no': data.ticketNo})
+                : (outcome.message == null
+                    ? _showSnack('Ticket {no}: Parked', args: {'no': data.ticketNo})
+                    : _showSnack('Ticket {no}: {message}', args: {'no': data.ticketNo, 'message': outcome.message}));
             _ticketNoController.clear();
             _ticketNoFocusNode.requestFocus();
           } catch (e) {
@@ -377,17 +386,17 @@ class _DashboardPageState extends State<DashboardPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Where is this car parked?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                Text(tr(context, 'Where is this car parked?'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                Text('Ticket ${data.ticketNo} · ${data.plateNo ?? '-'}${car.isEmpty ? '' : ' · $car'}',
-                    style: TextStyle(color: AppColors.textSecondary)),
+                Text('${tr(context, 'Ticket {no}', {'no': data.ticketNo})} · ${data.plateNo ?? '-'}${car.isEmpty ? '' : ' · $car'}',
+                    style: TextStyle(color: context.vf.textSecondary)),
                 const SizedBox(height: 16),
                 SlotPicker(key: pickerKey, bayController: bayController, onChanged: (s) => slot = s),
                 const SizedBox(height: 10),
                 TextField(
                   controller: keyController,
                   decoration: InputDecoration(
-                    labelText: 'Key Holder Number',
+                    labelText: tr(context, 'Key Holder Number'),
                     border: const OutlineInputBorder(),
                     isDense: true,
                     suffixIcon: ScanKeyTagSuffix(controller: keyController),
@@ -399,7 +408,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: ElevatedButton.icon(
                     onPressed: saving ? null : save,
                     icon: const Icon(Icons.local_parking),
-                    label: Text(saving ? 'Saving...' : 'Save Parking Location'),
+                    label: Text(tr(context, saving ? 'Saving...' : 'Save Parking Location')),
                   ),
                 ),
                 TextButton(
@@ -409,7 +418,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           Navigator.of(sheetContext).pop();
                           _openRequestDialog(data);
                         },
-                  child: const Text('Skip - request the car instead'),
+                  child: Text(tr(context, 'Skip - request the car instead')),
                 ),
               ],
             ),
@@ -473,7 +482,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 if (paymentMethod != null) 'paymentMethod': paymentMethod,
               });
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-              outcome.queued ? _queuedSnack('the request for ticket ${data.ticketNo}') : _showSnack('Vehicle requested successfully!');
+              outcome.queued
+                  ? _queuedSnack('the request for ticket {no}', {'no': data.ticketNo})
+                  : _showSnack('Vehicle requested successfully!');
               _ticketNoController.clear();
               _fetchDashboard();
               _ticketNoFocusNode.requestFocus();
@@ -485,7 +496,7 @@ class _DashboardPageState extends State<DashboardPage> {
           }
 
           return AlertDialog(
-            title: const Text('Payment Details'),
+            title: Text(tr(context, 'Payment Details')),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -496,12 +507,12 @@ class _DashboardPageState extends State<DashboardPage> {
                   _kv('Parking Charge', parkingCharge.toStringAsFixed(2)),
                   Row(
                     children: [
-                      Text('Key hook', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      Text(tr(context, 'Key hook'), style: TextStyle(color: context.vf.textSecondary, fontSize: 13)),
                       const Spacer(),
                       Text(keyHolder == null || keyHolder!.isEmpty ? '-' : keyHolder!,
                           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                       IconButton(
-                        tooltip: 'Scan key tag',
+                        tooltip: tr(context, 'Scan key tag'),
                         visualDensity: VisualDensity.compact,
                         icon: const Icon(Icons.qr_code_scanner, size: 20),
                         onPressed: dialogLoading
@@ -514,24 +525,24 @@ class _DashboardPageState extends State<DashboardPage> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text('Outlet', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text(tr(context, 'Outlet'), style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 6),
                   if (isShopValidated)
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.successSoft,
+                        color: context.vf.successSoft,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.successSoft),
+                        border: Border.all(color: context.vf.successSoft),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.check_circle, color: AppColors.success, size: 18),
+                          Icon(Icons.check_circle, color: context.vf.success, size: 18),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Validated at ${data.shopName ?? 'Shop'}'
-                              '${data.shopValidateTime != null ? ' • ${data.shopValidateTime}' : ''}',
+                              tr(context, 'Validated at {shop}', {'shop': data.shopName ?? tr(context, 'Shop')}) +
+                                  (data.shopValidateTime != null ? ' • ${data.shopValidateTime}' : ''),
                               style: const TextStyle(fontSize: 13),
                             ),
                           ),
@@ -543,7 +554,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       value: selectedShopId,
                       decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
                       items: [
-                        const DropdownMenuItem<int?>(value: null, child: Text('-- Select Outlet --')),
+                        DropdownMenuItem<int?>(value: null, child: Text(tr(context, '-- Select Outlet --'))),
                         ..._shopsList.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.shopName))),
                       ],
                       onChanged: onOutletChange,
@@ -553,9 +564,9 @@ class _DashboardPageState extends State<DashboardPage> {
                     TextField(
                       controller: shopRemarksController,
                       maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Shop Remarks',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: tr(context, 'Shop Remarks'),
+                        border: const OutlineInputBorder(),
                         isDense: true,
                       ),
                     ),
@@ -564,8 +575,8 @@ class _DashboardPageState extends State<DashboardPage> {
                   Text.rich(
                     TextSpan(
                       children: [
-                        const TextSpan(text: 'Payment Method  ', style: TextStyle(fontWeight: FontWeight.w600)),
-                        if (parkingCharge > 0) const TextSpan(text: '*', style: TextStyle(color: AppColors.danger)),
+                        TextSpan(text: '${tr(context, 'Payment Method')}  ', style: const TextStyle(fontWeight: FontWeight.w600)),
+                        if (parkingCharge > 0) TextSpan(text: '*', style: TextStyle(color: context.vf.danger)),
                       ],
                     ),
                   ),
@@ -574,9 +585,9 @@ class _DashboardPageState extends State<DashboardPage> {
                     value: paymentMethod,
                     decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('-- Select Payment Method --')),
-                      const DropdownMenuItem(value: 'Cash', child: Text('Cash')),
-                      if (parkingCharge > 0) const DropdownMenuItem(value: 'Card', child: Text('Card')),
+                      DropdownMenuItem(value: null, child: Text(tr(context, '-- Select Payment Method --'))),
+                      DropdownMenuItem(value: 'Cash', child: Text(tr(context, 'Cash'))),
+                      if (parkingCharge > 0) DropdownMenuItem(value: 'Card', child: Text(tr(context, 'Card'))),
                     ],
                     onChanged: (v) => setDialogState(() => paymentMethod = v),
                   ),
@@ -584,12 +595,12 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: Text(tr(context, 'Cancel'))),
               ElevatedButton(
                 onPressed: dialogLoading ? null : onRequest,
                 child: dialogLoading
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Request'),
+                    : Text(tr(context, 'Request')),
               ),
             ],
           );
@@ -640,7 +651,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 if (manualEntry) 'vpaOut': vpaOutController.text.trim(),
               });
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-              outcome.queued ? _queuedSnack('the dispatch of ticket ${data.ticketNo}') : _showSnack('Vehicle dispatched successfully!');
+              outcome.queued
+                  ? _queuedSnack('the dispatch of ticket {no}', {'no': data.ticketNo})
+                  : _showSnack('Vehicle dispatched successfully!');
               _ticketNoController.clear();
               _fetchDashboard();
               _ticketNoFocusNode.requestFocus();
@@ -652,7 +665,7 @@ class _DashboardPageState extends State<DashboardPage> {
           }
 
           return AlertDialog(
-            title: const Text('Dispatch Vehicle'),
+            title: Text(tr(context, 'Dispatch Vehicle')),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -667,9 +680,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 else if (!manualEntry) ...[
                   DropdownButtonFormField<DriverOption>(
                     value: selectedDriver,
-                    decoration: const InputDecoration(
-                      labelText: 'Assign Driver',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: tr(context, 'Assign Driver'),
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                     // On-duty drivers come first (server order); break / off duty are marked.
@@ -685,15 +698,15 @@ class _DashboardPageState extends State<DashboardPage> {
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: d.offDuty
-                                          ? AppColors.textSecondary
-                                          : (d.onBreak ? AppColors.warning : AppColors.success),
+                                          ? context.vf.textSecondary
+                                          : (d.onBreak ? context.vf.warning : context.vf.success),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   Flexible(
                                     child: Text('${d.name}  (${d.loadLabel})',
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(color: d.offDuty ? AppColors.textSecondary : null)),
+                                        style: TextStyle(color: d.offDuty ? context.vf.textSecondary : null)),
                                   ),
                                 ],
                               ),
@@ -704,14 +717,14 @@ class _DashboardPageState extends State<DashboardPage> {
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () => setDialogState(() => manualEntry = true),
-                    child: const Text('Enter Employee ID manually instead'),
+                    child: Text(tr(context, 'Enter Employee ID manually instead')),
                   ),
                 ] else
                   TextField(
                     controller: vpaOutController,
-                    decoration: const InputDecoration(
-                      labelText: 'Employee ID',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: tr(context, 'Employee ID'),
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                   ),
@@ -721,15 +734,15 @@ class _DashboardPageState extends State<DashboardPage> {
               TextButton.icon(
                 onPressed: dialogLoading ? null : () { Navigator.of(dialogContext).pop(); _undoStep(data, 'REQUESTED'); },
                 icon: const Icon(Icons.undo, size: 18),
-                label: const Text('Undo request'),
-                style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+                label: Text(tr(context, 'Undo request')),
+                style: TextButton.styleFrom(foregroundColor: context.vf.textSecondary),
               ),
-              TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: Text(tr(context, 'Cancel'))),
               ElevatedButton(
                 onPressed: dialogLoading ? null : onDispatch,
                 child: dialogLoading
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Dispatch'),
+                    : Text(tr(context, 'Dispatch')),
               ),
             ],
           );
@@ -753,7 +766,7 @@ class _DashboardPageState extends State<DashboardPage> {
               final outcome = await _send('arrive', data.parkingVehicleId!, 'Arrival of ticket ${data.ticketNo}');
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
               outcome.queued
-                  ? _queuedSnack('the arrival of ticket ${data.ticketNo}')
+                  ? _queuedSnack('the arrival of ticket {no}', {'no': data.ticketNo})
                   : _showSnack('Arrival acknowledged - waiting for guest handover.');
               _ticketNoController.clear();
               _fetchDashboard();
@@ -766,23 +779,23 @@ class _DashboardPageState extends State<DashboardPage> {
           }
 
           return AlertDialog(
-            title: const Text('Acknowledge Arrival'),
+            title: Text(tr(context, 'Acknowledge Arrival')),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.local_shipping, color: AppColors.live, size: 40),
+                Icon(Icons.local_shipping, color: context.vf.live, size: 40),
                 const SizedBox(height: 12),
-                const Text(
-                  'Has this vehicle physically arrived at the lobby?',
+                Text(
+                  tr(context, 'Has this vehicle physically arrived at the lobby?'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Ticket No: ${data.ticketNo} - confirming here just marks it as waiting for '
-                  'the guest; you\'ll still confirm the actual handover next.',
+                  tr(context, "Ticket No: {no} - confirming here just marks it as waiting for the guest; you'll still confirm the actual handover next.",
+                      {'no': data.ticketNo}),
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 12, color: context.vf.textSecondary),
                 ),
                 if (data.parkingVehicleId != null) ConditionPhotosStrip(parkingVehicleId: data.parkingVehicleId!),
                 if (data.driverLat != null) ...[
@@ -795,15 +808,15 @@ class _DashboardPageState extends State<DashboardPage> {
               TextButton.icon(
                 onPressed: dialogLoading ? null : () { Navigator.of(dialogContext).pop(); _undoStep(data, 'ONTHEWAY'); },
                 icon: const Icon(Icons.undo, size: 18),
-                label: const Text('Undo dispatch'),
-                style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+                label: Text(tr(context, 'Undo dispatch')),
+                style: TextButton.styleFrom(foregroundColor: context.vf.textSecondary),
               ),
-              TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: Text(tr(context, 'Cancel'))),
               ElevatedButton(
                 onPressed: dialogLoading ? null : onArrived,
                 child: dialogLoading
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Arrived'),
+                    : Text(tr(context, 'Arrived')),
               ),
             ],
           );
@@ -828,15 +841,15 @@ class _DashboardPageState extends State<DashboardPage> {
               final outcome = await _send('deliver', data.parkingVehicleId!, 'Handover of ticket ${data.ticketNo}');
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
               if (outcome.queued) {
-                _queuedSnack('the handover of ticket ${data.ticketNo}');
+                _queuedSnack('the handover of ticket {no}', {'no': data.ticketNo});
               } else if (mounted) {
                 // this.context: the page - the dialog's own context is gone after the pop above.
                 ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(
-                  content: Text('Ticket ${data.ticketNo} delivered'),
-                  backgroundColor: AppColors.success,
+                  content: Text(tr(this.context, 'Ticket {no} delivered', {'no': data.ticketNo})),
+                  backgroundColor: this.context.vf.success,
                   duration: const Duration(seconds: 12),
                   action: SnackBarAction(
-                    label: 'UNDO',
+                    label: tr(this.context, 'UNDO'),
                     textColor: AppColors.ink,
                     onPressed: () => _undoStep(data, 'DELIVERED'),
                   ),
@@ -853,19 +866,19 @@ class _DashboardPageState extends State<DashboardPage> {
           }
 
           return AlertDialog(
-            title: const Text('Confirm Delivery'),
+            title: Text(tr(context, 'Confirm Delivery')),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.directions_car, color: AppColors.success, size: 40),
+                Icon(Icons.directions_car, color: context.vf.success, size: 40),
                 const SizedBox(height: 12),
-                const Text(
-                  'Are you sure you want to mark this vehicle as delivered?',
+                Text(
+                  tr(context, 'Are you sure you want to mark this vehicle as delivered?'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
-                Text('Ticket No: ${data.ticketNo}', style: TextStyle(color: AppColors.textSecondary)),
+                Text(tr(context, 'Ticket No: {no}', {'no': data.ticketNo}), style: TextStyle(color: context.vf.textSecondary)),
                 const SizedBox(height: 8),
                 // Scan the tag on the key in hand - warns if it's from another car's hook.
                 OutlinedButton.icon(
@@ -877,11 +890,13 @@ class _DashboardPageState extends State<DashboardPage> {
                         },
                   icon: Icon(
                     keyChecked == null ? Icons.qr_code_scanner : (keyChecked! ? Icons.verified_rounded : Icons.warning_amber_rounded),
-                    color: keyChecked == null ? null : (keyChecked! ? AppColors.success : AppColors.danger),
+                    color: keyChecked == null ? null : (keyChecked! ? context.vf.success : context.vf.danger),
                   ),
                   label: Text(keyChecked == null
-                      ? 'Scan key tag'
-                      : (keyChecked! ? 'Key matches hook ${data.keyHolderNo}' : 'Key not matched - scan again')),
+                      ? tr(context, 'Scan key tag')
+                      : (keyChecked!
+                          ? tr(context, 'Key matches hook {hook}', {'hook': data.keyHolderNo})
+                          : tr(context, 'Key not matched - scan again'))),
                 ),
                 // Compare against how the car came in before handing it over.
                 if (data.parkingVehicleId != null) ConditionPhotosStrip(parkingVehicleId: data.parkingVehicleId!),
@@ -892,15 +907,15 @@ class _DashboardPageState extends State<DashboardPage> {
               TextButton.icon(
                 onPressed: dialogLoading ? null : () { Navigator.of(dialogContext).pop(); _undoStep(data, 'ARRIVED'); },
                 icon: const Icon(Icons.undo, size: 18),
-                label: const Text('Undo arrival'),
-                style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+                label: Text(tr(context, 'Undo arrival')),
+                style: TextButton.styleFrom(foregroundColor: context.vf.textSecondary),
               ),
-              TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: Text(tr(context, 'Cancel'))),
               ElevatedButton(
                 onPressed: dialogLoading ? null : onDelivered,
                 child: dialogLoading
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Delivered'),
+                    : Text(tr(context, 'Delivered')),
               ),
             ],
           );
@@ -915,7 +930,7 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          Text(tr(context, label), style: TextStyle(color: context.vf.textSecondary, fontSize: 13)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
         ],
       ),
@@ -931,7 +946,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     if (_isDriver) {
       return AppLayout(
-        title: 'Driver Desk',
+        title: tr(context, 'Driver Desk'),
         actions: [_parkedAction()],
         child: const DriverReceiveFlow(),
       );
@@ -939,17 +954,17 @@ class _DashboardPageState extends State<DashboardPage> {
     // Desk (scan + lists) and the live Board (Requested / On the way / At lobby with wait timers);
     // tapping a car on the Board opens the same dialog as scanning its ticket here.
     return AppLayout(
-      title: 'Valet Desk',
+      title: tr(context, 'Valet Desk'),
       actions: [_parkedAction()],
       child: DefaultTabController(
         length: 2,
         child: Column(
           children: [
             Material(
-              color: AppColors.card,
-              child: const TabBar(tabs: [
-                Tab(icon: Icon(Icons.qr_code_scanner, size: 20), text: 'Desk', iconMargin: EdgeInsets.only(bottom: 2)),
-                Tab(icon: Icon(Icons.view_agenda_outlined, size: 20), text: 'Board', iconMargin: EdgeInsets.only(bottom: 2)),
+              color: context.vf.card,
+              child: TabBar(tabs: [
+                Tab(icon: const Icon(Icons.qr_code_scanner, size: 20), text: tr(context, 'Desk'), iconMargin: const EdgeInsets.only(bottom: 2)),
+                Tab(icon: const Icon(Icons.view_agenda_outlined, size: 20), text: tr(context, 'Board'), iconMargin: const EdgeInsets.only(bottom: 2)),
               ]),
             ),
             Expanded(
@@ -1004,15 +1019,16 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Widget _buildStatStrip() {
     final d = _dashboard;
+    final vf = context.vf;
     final chips = <Widget>[
-      _statChip('Received', d?.receivedCount.toString() ?? '-', AppColors.live),
-      _statChip('Delivered', d?.deliveredCount.toString() ?? '-', AppColors.live),
-      _statChip('In Inventory', d?.currentInventory.toString() ?? '-', AppColors.primary),
-      _statChip('Complimentary', d?.complimentaryCount.toString() ?? '-', AppColors.success),
-      _statChip('Paid', d?.paidCount.toString() ?? '-', AppColors.warning),
+      _statChip('Received', d?.receivedCount.toString() ?? '-', vf.live),
+      _statChip('Delivered', d?.deliveredCount.toString() ?? '-', vf.live),
+      _statChip('In Inventory', d?.currentInventory.toString() ?? '-', Theme.of(context).colorScheme.primary),
+      _statChip('Complimentary', d?.complimentaryCount.toString() ?? '-', vf.success),
+      _statChip('Paid', d?.paidCount.toString() ?? '-', vf.warning),
       if (d != null && d.ticketsTotal > 0)
         _statChip('Tickets Free', '${d.ticketsRemaining}/${d.ticketsTotal}',
-            d.ticketsRemaining / d.ticketsTotal <= 0.15 ? AppColors.danger : AppColors.textSecondary),
+            d.ticketsRemaining / d.ticketsTotal <= 0.15 ? vf.danger : vf.textSecondary),
     ];
 
     return SizedBox(
@@ -1040,7 +1056,7 @@ class _DashboardPageState extends State<DashboardPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color)),
-          Text(label, style: TextStyle(fontSize: 11, color: color), overflow: TextOverflow.ellipsis),
+          Text(tr(context, label), style: TextStyle(fontSize: 11, color: color), overflow: TextOverflow.ellipsis),
         ],
       ),
     );
@@ -1050,15 +1066,15 @@ class _DashboardPageState extends State<DashboardPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.vf.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.vf.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _isSimplifiedDesk ? 'Scan Ticket' : 'Scan / New Vehicle Entry',
+            tr(context, _isSimplifiedDesk ? 'Scan Ticket' : 'Scan / New Vehicle Entry'),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
@@ -1068,11 +1084,11 @@ class _DashboardPageState extends State<DashboardPage> {
             enabled: !_loading,
             keyboardType: TextInputType.text,
             textInputAction: TextInputAction.done,
-            decoration: const InputDecoration(
-              labelText: 'Ticket Number',
-              hintText: 'Enter or scan ticket number',
-              prefixIcon: Icon(Icons.confirmation_number_outlined),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: tr(context, 'Ticket Number'),
+              hintText: tr(context, 'Enter or scan ticket number'),
+              prefixIcon: const Icon(Icons.confirmation_number_outlined),
+              border: const OutlineInputBorder(),
             ),
             onSubmitted: (_) => _lookupTicket(),
           ),
@@ -1085,7 +1101,7 @@ class _DashboardPageState extends State<DashboardPage> {
               icon: _loading
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.search),
-              label: Text(_loading ? 'Checking...' : 'Submit'),
+              label: Text(tr(context, _loading ? 'Checking...' : 'Submit')),
             ),
           ),
         ],
@@ -1097,29 +1113,29 @@ class _DashboardPageState extends State<DashboardPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.accentSoft,
+        color: context.vf.accentSoft,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.accentSoft),
+        border: Border.all(color: context.vf.accentSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('New Vehicle Entry', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Text(tr(context, 'New Vehicle Entry'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           TextField(
             controller: _vpaInController,
-            decoration: const InputDecoration(labelText: 'VPA-In *', border: OutlineInputBorder(), isDense: true),
+            decoration: InputDecoration(labelText: tr(context, 'VPA-In *'), border: const OutlineInputBorder(), isDense: true),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _plateNoController,
             decoration:
-                const InputDecoration(labelText: 'Plate Number *', border: OutlineInputBorder(), isDense: true),
+                InputDecoration(labelText: tr(context, 'Plate Number *'), border: const OutlineInputBorder(), isDense: true),
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<int>(
             value: _selectedServiceTypeId,
-            decoration: const InputDecoration(labelText: 'Service Type *', border: OutlineInputBorder(), isDense: true),
+            decoration: InputDecoration(labelText: tr(context, 'Service Type *'), border: const OutlineInputBorder(), isDense: true),
             items: _serviceTypesList
                 .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
                 .toList(),
@@ -1131,14 +1147,14 @@ class _DashboardPageState extends State<DashboardPage> {
               Expanded(
                 child: TextField(
                   controller: _vehicleMakeController,
-                  decoration: const InputDecoration(labelText: 'Brand', border: OutlineInputBorder(), isDense: true),
+                  decoration: InputDecoration(labelText: tr(context, 'Brand'), border: const OutlineInputBorder(), isDense: true),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: TextField(
                   controller: _vehicleModelController,
-                  decoration: const InputDecoration(labelText: 'Model', border: OutlineInputBorder(), isDense: true),
+                  decoration: InputDecoration(labelText: tr(context, 'Model'), border: const OutlineInputBorder(), isDense: true),
                 ),
               ),
             ],
@@ -1146,17 +1162,17 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(height: 10),
           TextField(
             controller: _vehicleColorController,
-            decoration: const InputDecoration(labelText: 'Color', border: OutlineInputBorder(), isDense: true),
+            decoration: InputDecoration(labelText: tr(context, 'Color'), border: const OutlineInputBorder(), isDense: true),
           ),
           const SizedBox(height: 14),
-          const Text('Parking slot', style: TextStyle(fontWeight: FontWeight.w600)),
+          Text(tr(context, 'Parking slot'), style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           SlotPicker(bayController: _bayNoController, onChanged: (slot) => _entrySlot = slot),
           const SizedBox(height: 10),
           TextField(
             controller: _commentsController,
             maxLines: 2,
-            decoration: const InputDecoration(labelText: 'Comments', border: OutlineInputBorder(), isDense: true),
+            decoration: InputDecoration(labelText: tr(context, 'Comments'), border: const OutlineInputBorder(), isDense: true),
           ),
           const SizedBox(height: 14),
           Row(
@@ -1164,14 +1180,14 @@ class _DashboardPageState extends State<DashboardPage> {
               Expanded(
                 child: OutlinedButton(
                   onPressed: _loading ? null : _resetEntryForm,
-                  child: const Text('Clear'),
+                  child: Text(tr(context, 'Clear')),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton(
                   onPressed: _loading ? null : _saveEntry,
-                  child: Text(_loading ? 'Saving...' : 'Save Entry'),
+                  child: Text(tr(context, _loading ? 'Saving...' : 'Save Entry')),
                 ),
               ),
             ],
@@ -1188,8 +1204,8 @@ class _DashboardPageState extends State<DashboardPage> {
     final start = DateTime.tryParse(isoTime);
     if (start == null) return '';
     final diff = DateTime.now().difference(start);
-    if (diff.inHours >= 1) return '${diff.inHours}h ${diff.inMinutes % 60}m';
-    return '${diff.inMinutes}m';
+    if (diff.inHours >= 1) return tr(context, '{h}h {m}m', {'h': diff.inHours, 'm': diff.inMinutes % 60});
+    return tr(context, '{m}m', {'m': diff.inMinutes});
   }
 
   // Received rows inside the Requested card. Violet = awaiting a slot, grey = parked; the
@@ -1197,16 +1213,16 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _statusChip(String label, Color color) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
-        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w700)),
+        child: Text(tr(context, label), style: TextStyle(color: AppTheme.contrastOn(color), fontSize: 10.5, fontWeight: FontWeight.w700)),
       );
 
-  static const Color _requestedColor = AppColors.primary;
-  static const Color _awaitingSlotColor = AppColors.live;
-  static const Color _parkedColor = AppColors.textSecondary;
+  Color get _requestedColor => Theme.of(context).colorScheme.primary;
+  Color get _awaitingSlotColor => context.vf.live;
+  Color get _parkedColor => context.vf.textSecondary;
 
   List<Widget> _receivedTiles() {
     String? slotOf(TicketStatusResponse p) =>
-        p.parkingLocation ?? (p.bayNo != null && p.bayNo!.isNotEmpty ? 'Bay ${p.bayNo}' : null);
+        p.parkingLocation ?? (p.bayNo != null && p.bayNo!.isNotEmpty ? tr(context, 'Bay {bay}', {'bay': p.bayNo}) : null);
     // Awaiting a slot first - someone has to act on those.
     final ordered = [..._parked]..sort((a, b) => (slotOf(a) == null ? 0 : 1) - (slotOf(b) == null ? 0 : 1));
     return ordered.take(_parkedPreview).map((p) {
@@ -1214,15 +1230,15 @@ class _DashboardPageState extends State<DashboardPage> {
       final slot = slotOf(p);
       final color = slot == null ? _awaitingSlotColor : _parkedColor;
       return Container(
-        decoration: BoxDecoration(border: Border(left: BorderSide(color: color, width: 3))),
+        decoration: BoxDecoration(border: BorderDirectional(start: BorderSide(color: color, width: 3))),
         child: ListTile(
           dense: true,
           leading: Icon(slot == null ? Icons.hourglass_top : Icons.local_parking, size: 20, color: color),
-          title: Text('Ticket ${p.ticketNo} · ${p.plateNo ?? '-'}'),
+          title: Text('${tr(context, 'Ticket {no}', {'no': p.ticketNo})} · ${p.plateNo ?? '-'}'),
           subtitle: Text([
             if (car.isNotEmpty) car,
             if (slot != null) slot,
-            'received ${_parkedFor(p.parkingInTime)} ago',
+            tr(context, 'received {time} ago', {'time': _parkedFor(p.parkingInTime)}),
           ].join(' · ')),
           trailing: _statusChip(slot == null ? 'Awaiting slot' : 'Parked', color),
           // Same as scanning the ticket: no slot yet -> record where it's parked, else request.
@@ -1235,20 +1251,22 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildVehicleList(String title, List<Map<String, dynamic>> items, {required bool isOnTheWay}) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.vf.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.vf.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(14, isOnTheWay ? 14 : 6, 4, isOnTheWay ? 14 : 0),
+            padding: EdgeInsetsDirectional.fromSTEB(14, isOnTheWay ? 14 : 6, 4, isOnTheWay ? 14 : 0),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
-                      isOnTheWay ? '$title (${items.length})' : '$title (${items.length}) Â· Received (${_parked.length})',
+                      isOnTheWay
+                          ? '${tr(context, title)} (${items.length})'
+                          : '${tr(context, title)} (${items.length}) · ${tr(context, 'Received')} (${_parked.length})',
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                 ),
                 if (!isOnTheWay && _parked.length > _parkedPreview)
@@ -1256,7 +1274,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     onPressed: () => Navigator.of(context)
                         .push(MaterialPageRoute(builder: (_) => const ParkingOccupancyPage()))
                         .then((_) => _fetchDashboard()),
-                    child: const Text('All received'),
+                    child: Text(tr(context, 'All received')),
                   )
                 else if (!isOnTheWay)
                   const SizedBox(height: 40),
@@ -1265,9 +1283,9 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           if (items.isEmpty && (isOnTheWay || _parked.isEmpty))
             Padding(
-              padding: const EdgeInsets.only(bottom: 16, left: 14),
-              child: Text(isOnTheWay ? 'No ${title.toLowerCase()} vehicles' : 'No requested or received vehicles',
-                  style: TextStyle(color: AppColors.textSecondary)),
+              padding: const EdgeInsetsDirectional.only(bottom: 16, start: 14),
+              child: Text(tr(context, isOnTheWay ? 'No vehicles on the way' : 'No requested or received vehicles'),
+                  style: TextStyle(color: context.vf.textSecondary)),
             )
           else ...[
             ...items.map((v) {
@@ -1276,14 +1294,14 @@ class _DashboardPageState extends State<DashboardPage> {
               return ListTile(
                 dense: true,
                 leading: const Icon(Icons.directions_car, size: 20),
-                title: Text('Ticket $ticketNo · ${v['plateNo'] ?? '-'}'),
+                title: Text('${tr(context, 'Ticket {no}', {'no': ticketNo})} · ${v['plateNo'] ?? '-'}'),
                 subtitle: Text(isOnTheWay
-                    ? (status == 'ARRIVED' ? 'Arrived' : 'On the way')
-                    : 'Requested at ${v['requestedTime'] ?? '-'}'),
+                    ? tr(context, status == 'ARRIVED' ? 'Arrived' : 'On the way')
+                    : tr(context, 'Requested at {time}', {'time': v['requestedTime'] ?? '-'})),
                 trailing: isOnTheWay && status == 'ARRIVED'
                     ? Chip(
-                        label: const Text('Arrived', style: TextStyle(fontSize: 11)),
-                        backgroundColor: AppColors.successSoft,
+                        label: Text(tr(context, 'Arrived'), style: const TextStyle(fontSize: 11)),
+                        backgroundColor: context.vf.successSoft,
                         padding: EdgeInsets.zero,
                         visualDensity: VisualDensity.compact,
                       )

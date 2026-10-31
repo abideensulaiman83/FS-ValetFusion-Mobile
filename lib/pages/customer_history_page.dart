@@ -66,7 +66,7 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.page,
+      backgroundColor: context.vf.page,
       appBar: AppBar(title: Text(tr(context, 'My Parking History'))),
       body: SafeArea(
         child: _loading
@@ -82,7 +82,7 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
                               SizedBox(
                                 height: 400,
                                 child: Center(
-                                  child: Text(tr(context, 'No parking history yet'), style: TextStyle(color: AppColors.textSecondary)),
+                                  child: Text(tr(context, 'No parking history yet'), style: TextStyle(color: context.vf.textSecondary)),
                                 ),
                               ),
                             ],
@@ -109,15 +109,15 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
   Widget _buildStatsGrid() {
     final rating = _averageRating;
     final stats = <_StatTile>[
-      _StatTile(label: tr(context, 'Total Visits'), value: '$_totalVisits', icon: Icons.directions_car_filled, color: AppColors.primary),
-      _StatTile(label: tr(context, 'This Month'), value: '$_visitsThisMonth', icon: Icons.calendar_month, color: AppColors.live),
+      _StatTile(label: tr(context, 'Total Visits'), value: '$_totalVisits', icon: Icons.directions_car_filled, color: Theme.of(context).colorScheme.primary),
+      _StatTile(label: tr(context, 'This Month'), value: '$_visitsThisMonth', icon: Icons.calendar_month, color: context.vf.live),
       _StatTile(
         label: tr(context, 'Avg Rating'),
         value: rating != null ? rating.toStringAsFixed(1) : '-',
         icon: Icons.star_rounded,
-        color: AppColors.warning,
+        color: context.vf.warning,
       ),
-      _StatTile(label: tr(context, 'Total Spent'), value: tr(context, 'AED {amount}', {'amount': _totalSpent.toStringAsFixed(0)}), icon: Icons.payments_outlined, color: AppColors.success),
+      _StatTile(label: tr(context, 'Total Spent'), value: tr(context, 'AED {amount}', {'amount': _totalSpent.toStringAsFixed(0)}), icon: Icons.payments_outlined, color: context.vf.success),
     ];
     return GridView.count(
       crossAxisCount: 2,
@@ -134,9 +134,9 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.vf.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.vf.line),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 3))],
       ),
       child: Row(
@@ -154,7 +154,7 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(stat.value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
-                Text(stat.label, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                Text(stat.label, style: TextStyle(fontSize: 11, color: context.vf.textSecondary)),
               ],
             ),
           ),
@@ -166,14 +166,14 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
   Widget _buildRow(CustomerHistoryEntry entry) {
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.line)),
+      decoration: BoxDecoration(color: context.vf.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: context.vf.line)),
       child: Row(
         children: [
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: AppColors.accentSoft, shape: BoxShape.circle),
-            child: Icon(Icons.directions_car, color: AppColors.primary, size: 22),
+            decoration: BoxDecoration(color: context.vf.accentSoft, shape: BoxShape.circle),
+            child: Icon(Icons.directions_car, color: Theme.of(context).colorScheme.primary, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -183,10 +183,10 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
                 Text(tr(context, 'Ticket {no}', {'no': entry.ticketNo}), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                 Text(
                   '${entry.vehicleColor ?? ''} ${entry.vehicleMake ?? ''} · ${entry.plateNo ?? '-'}'.trim(),
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 12, color: context.vf.textSecondary),
                 ),
                 if (entry.deliveredTime != null)
-                  Text(entry.deliveredTime!.split('T').first, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                  Text(entry.deliveredTime!.split('T').first, style: TextStyle(fontSize: 11, color: context.vf.textSecondary)),
               ],
             ),
           ),
@@ -195,7 +195,7 @@ class _CustomerHistoryPageState extends State<CustomerHistoryPage> {
               children: List.generate(5, (i) => Icon(
                     i < entry.rating! ? Icons.star : Icons.star_border,
                     size: 13,
-                    color: AppColors.warning,
+                    color: context.vf.warning,
                   )),
             )
           else

@@ -2,6 +2,7 @@
 // 10-minute token that only works on /auth/change-password. The page collects the new password
 // and hands the full login response back to the caller, which finishes the sign-in as usual.
 import 'package:flutter/material.dart';
+import '../l10n/app_strings.dart';
 import '../services/authentication_service.dart';
 import '../theme/app_theme.dart';
 
@@ -23,6 +24,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   bool _loading = false;
   String _error = '';
 
+  // Keys are the English labels, shown through tr().
   static final _rules = <String, bool Function(String)>{
     'At least 10 characters': (p) => p.length >= 10,
     'An upper-case letter': (p) => RegExp(r'[A-Z]').hasMatch(p),
@@ -60,7 +62,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Choose your password')),
+      appBar: AppBar(title: Text(tr(context, 'Choose your password'))),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -68,7 +70,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'The password you signed in with was set for you. Pick one only you know - you have 10 minutes before you need to sign in again.',
+                tr(context,
+                    'The password you signed in with was set for you. Pick one only you know - you have 10 minutes before you need to sign in again.'),
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 20),
@@ -90,10 +93,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 enabled: !_loading,
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  labelText: 'New password',
+                  labelText: tr(context, 'New password'),
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(_show ? Icons.visibility_off : Icons.visibility),
+                    tooltip: tr(context, _show ? 'Hide password' : 'Show password'),
                     onPressed: () => setState(() => _show = !_show),
                   ),
                 ),
@@ -104,9 +108,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(children: [
-                    Icon(Icons.check, size: 18, color: ok ? AppColors.success : theme.disabledColor),
+                    Icon(Icons.check, size: 18, color: ok ? context.vf.success : theme.disabledColor),
                     const SizedBox(width: 8),
-                    Text(r.key, style: TextStyle(color: ok ? AppColors.success : theme.textTheme.bodySmall?.color)),
+                    Text(tr(context, r.key), style: TextStyle(color: ok ? context.vf.success : theme.textTheme.bodySmall?.color)),
                   ]),
                 );
               }),
@@ -117,9 +121,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 enabled: !_loading,
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  labelText: 'Repeat new password',
+                  labelText: tr(context, 'Repeat new password'),
                   border: const OutlineInputBorder(),
-                  errorText: _confirm.text.isNotEmpty && _confirm.text != _next.text ? 'Passwords do not match' : null,
+                  errorText: _confirm.text.isNotEmpty && _confirm.text != _next.text ? tr(context, 'Passwords do not match') : null,
                 ),
               ),
               const SizedBox(height: 24),
@@ -129,7 +133,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   onPressed: _canSubmit ? _submit : null,
                   child: _loading
                       ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                      : const Text('Save and continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      : Text(tr(context, 'Save and continue'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],

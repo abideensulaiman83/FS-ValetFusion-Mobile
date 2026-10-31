@@ -6,6 +6,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/valet_service.dart';
+import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 
 class WashRequestsSection extends StatefulWidget {
@@ -57,7 +58,7 @@ class _WashRequestsSectionState extends State<WashRequestsSection> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: AppColors.danger,
+          backgroundColor: context.vf.danger,
         ));
       }
     } finally {
@@ -71,15 +72,16 @@ class _WashRequestsSectionState extends State<WashRequestsSection> {
       return const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Center(child: CircularProgressIndicator()));
     }
     if (_requests.isEmpty) return const SizedBox.shrink();
+    final vf = context.vf;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            Icon(Icons.local_car_wash, color: AppColors.success, size: 18),
+            Icon(Icons.local_car_wash, color: vf.success, size: 18),
             const SizedBox(width: 6),
-            Text('Wash Requests (${_requests.length})', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+            Text(tr(context, 'Wash Requests ({n})', {'n': _requests.length}), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: vf.textPrimary)),
           ],
         ),
         const SizedBox(height: 10),
@@ -95,12 +97,13 @@ class _WashRequestsSectionState extends State<WashRequestsSection> {
   Widget _buildCard(TicketStatusResponse r) {
     final isActing = r.parkingVehicleId != null && _acting.contains(r.parkingVehicleId);
     final inProgress = r.washStatus == 'IN_PROGRESS';
+    final vf = context.vf;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.successSoft,
+        color: vf.successSoft,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.successSoft),
+        border: Border.all(color: vf.successSoft),
       ),
       child: Row(
         children: [
@@ -108,9 +111,9 @@ class _WashRequestsSectionState extends State<WashRequestsSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Ticket ${r.ticketNo} · Bay ${r.bayNo ?? '-'}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                Text(tr(context, 'Ticket {no} · Bay {bay}', {'no': r.ticketNo, 'bay': r.bayNo ?? '-'}), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                 Text('${r.vehicleColor ?? ''} ${r.vehicleMake ?? ''} · ${r.plateNo ?? ''}'.trim(),
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    style: TextStyle(fontSize: 12, color: vf.textSecondary)),
               ],
             ),
           ),
@@ -119,13 +122,13 @@ class _WashRequestsSectionState extends State<WashRequestsSection> {
           else if (!inProgress)
             OutlinedButton(
               onPressed: () => _updateStatus(r, 'IN_PROGRESS'),
-              child: const Text('Start'),
+              child: Text(tr(context, 'Start')),
             )
           else
             ElevatedButton(
               onPressed: () => _updateStatus(r, 'DONE'),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
-              child: const Text('Done'),
+              style: ElevatedButton.styleFrom(backgroundColor: vf.success, foregroundColor: vf.onColor),
+              child: Text(tr(context, 'Done')),
             ),
         ],
       ),

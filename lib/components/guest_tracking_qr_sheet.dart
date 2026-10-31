@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import '../l10n/app_strings.dart';
 import '../services/authentication_service.dart';
 import '../services/valet_service.dart';
 import '../theme/app_theme.dart';
@@ -44,12 +45,12 @@ class GuestTrackingQr {
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          padding: const EdgeInsetsDirectional.fromSTEB(24, 0, 24, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Ticket $ticketNo',
+                tr(sheetContext, 'Ticket {no}', {'no': ticketNo}),
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -59,34 +60,34 @@ class GuestTrackingQr {
                 const SizedBox(height: 2),
                 Text(
                   vehicleText,
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: sheetContext.vf.textSecondary),
                 ),
               ],
               const SizedBox(height: 6),
               Text(
-                'Ask the guest to scan this to follow their car',
+                tr(sheetContext, 'Ask the guest to scan this to follow their car'),
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: sheetContext.vf.textSecondary),
               ),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.card,
+                  color: Colors.white, // the QR needs a white quiet zone in both themes
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.line),
+                  border: Border.all(color: sheetContext.vf.line),
                 ),
                 child: QrImageView(
                   data: url,
                   size: 240,
-                  backgroundColor: Colors.white,
+                  backgroundColor: Colors.white, // QR codes scan best dark-on-white
                 ),
               ),
               const SizedBox(height: 12),
               SelectableText(
                 url,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 12, color: sheetContext.vf.textSecondary),
               ),
               const SizedBox(height: 16),
               Row(
@@ -97,19 +98,19 @@ class GuestTrackingQr {
                         await Clipboard.setData(ClipboardData(text: url));
                         if (sheetContext.mounted) {
                           ScaffoldMessenger.of(sheetContext).showSnackBar(
-                            const SnackBar(content: Text('Link copied')),
+                            SnackBar(content: Text(tr(sheetContext, 'Link copied'))),
                           );
                         }
                       },
                       icon: const Icon(Icons.copy, size: 18),
-                      label: const Text('Copy link'),
+                      label: Text(tr(sheetContext, 'Copy link')),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () => Navigator.of(sheetContext).pop(),
-                      child: const Text('Done'),
+                      child: Text(tr(sheetContext, 'Done')),
                     ),
                   ),
                 ],

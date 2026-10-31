@@ -147,21 +147,21 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: AppColors.accentSoft,
+          color: context.vf.accentSoft,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.accentSoft),
+          border: Border.all(color: context.vf.accentSoft),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.place_outlined, size: 15, color: AppColors.primary),
+            Icon(Icons.place_outlined, size: 15, color: Theme.of(context).colorScheme.primary),
             const SizedBox(width: 5),
             if (_detectingLocation)
               const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
             else
-              Text(label, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.primary)),
+              Text(label, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary)),
             const SizedBox(width: 4),
-            Icon(Icons.expand_more, size: 16, color: AppColors.primary),
+            Icon(Icons.expand_more, size: 16, color: Theme.of(context).colorScheme.primary),
           ],
         ),
       ),
@@ -202,7 +202,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? AppColors.danger : AppColors.success,
+      backgroundColor: error ? context.vf.danger : context.vf.success,
     ));
   }
 
@@ -244,7 +244,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     if (lower.contains('not found') || lower.contains('not used') || lower.contains('free')) {
       _showFriendlyTicketDialog(
         icon: Icons.confirmation_number_outlined,
-        color: AppColors.primary,
+        color: Theme.of(context).colorScheme.primary,
         title: "We couldn't find that ticket",
         message: "Double check the number, or make sure you've picked the right property above.",
       );
@@ -297,7 +297,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               const SizedBox(height: 16),
               Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
-              Text(message, textAlign: TextAlign.center, style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary, height: 1.4)),
+              Text(message, textAlign: TextAlign.center, style: TextStyle(fontSize: 13.5, color: context.vf.textSecondary, height: 1.4)),
               const SizedBox(height: 22),
               SizedBox(
                 width: double.infinity,
@@ -347,7 +347,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                       onPressed: () => setDialogState(() => selected = starIndex),
                       icon: Icon(
                         starIndex <= selected ? Icons.star : Icons.star_border,
-                        color: AppColors.warning,
+                        color: context.vf.warning,
                         size: 32,
                       ),
                     );
@@ -420,11 +420,11 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       'DONE': tr(context, 'Wash complete'),
     };
     final colors = {
-      'REQUESTED': AppColors.warning,
-      'IN_PROGRESS': AppColors.primary,
-      'DONE': AppColors.success,
+      'REQUESTED': context.vf.warning,
+      'IN_PROGRESS': Theme.of(context).colorScheme.primary,
+      'DONE': context.vf.success,
     };
-    final color = colors[washStatus] ?? AppColors.textSecondary;
+    final color = colors[washStatus] ?? context.vf.textSecondary;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -580,7 +580,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                         });
                       }
                     },
-              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+              style: TextButton.styleFrom(foregroundColor: context.vf.danger),
               child: Text(deleting ? tr(context, 'Deleting...') : tr(context, 'Delete account')),
             ),
           ],
@@ -632,15 +632,15 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   Color _statusColor(String? status) {
     switch (status) {
       case 'RECEIVED':
-        return AppColors.primary;
+        return Theme.of(context).colorScheme.primary;
       case 'REQUESTED':
       case 'ONTHEWAY':
-        return AppColors.warning;
+        return context.vf.warning;
       case 'ARRIVED':
       case 'DELIVERED':
-        return AppColors.success;
+        return context.vf.success;
       default:
-        return AppColors.textSecondary;
+        return context.vf.textSecondary;
     }
   }
 
@@ -654,7 +654,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         await _logout();
       },
       child: Scaffold(
-        backgroundColor: AppColors.page,
+        backgroundColor: context.vf.page,
         appBar: AppBar(
           title: Text(tr(context, 'My Valet')),
           actions: [
@@ -679,8 +679,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 PopupMenuItem(
                   value: 'delete',
                   child: ListTile(
-                    leading: Icon(Icons.person_remove_outlined, color: AppColors.danger),
-                    title: Text(tr(context, 'Delete my account'), style: TextStyle(color: AppColors.danger)),
+                    leading: Icon(Icons.person_remove_outlined, color: context.vf.danger),
+                    title: Text(tr(context, 'Delete my account'), style: TextStyle(color: context.vf.danger)),
                     dense: true,
                   ),
                 ),
@@ -699,7 +699,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Align(alignment: Alignment.centerLeft, child: _buildLocationBar()),
+                  Align(alignment: AlignmentDirectional.centerStart, child: _buildLocationBar()),
                   const SizedBox(height: 12),
                   if (_status != null) ...[
                     _buildStatusCard(_status!),
@@ -730,7 +730,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.vf.card,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4))],
       ),
@@ -739,7 +739,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         children: [
           Text(tr(context, 'Track Your Vehicle'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text(tr(context, 'Enter or scan your ticket number to see live status.'), style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          Text(tr(context, 'Enter or scan your ticket number to see live status.'), style: TextStyle(color: context.vf.textSecondary, fontSize: 13)),
           const SizedBox(height: 16),
           TextField(
             controller: _ticketNoController,
@@ -766,7 +766,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 child: ElevatedButton(
                   onPressed: _loading ? null : _lookup,
                   child: _loading
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                       : Text(tr(context, 'Check Status')),
                 ),
               ),
@@ -783,20 +783,20 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [AppColors.warningSoft, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            colors: [context.vf.warningSoft, context.vf.card],
+            begin: AlignmentDirectional.topStart,
+            end: AlignmentDirectional.bottomEnd,
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.warningSoft),
+          border: Border.all(color: context.vf.warningSoft),
         ),
         child: Column(
           children: [
             Container(
               width: 56,
               height: 56,
-              decoration: BoxDecoration(color: AppColors.warningSoft, shape: BoxShape.circle),
-              child: Icon(Icons.info_outline_rounded, color: AppColors.warning, size: 28),
+              decoration: BoxDecoration(color: context.vf.warningSoft, shape: BoxShape.circle),
+              child: Icon(Icons.info_outline_rounded, color: context.vf.warning, size: 28),
             ),
             const SizedBox(height: 14),
             Text(tr(context, "This ticket hasn't been used yet"), style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700)),
@@ -804,7 +804,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
             Text(
               tr(context, 'No vehicle has been checked in against this ticket at {place} yet.', {'place': _selectedLocation?.name ?? tr(context, 'this property')}),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+              style: TextStyle(fontSize: 13, color: context.vf.textSecondary, height: 1.4),
             ),
           ],
         ),
@@ -819,9 +819,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [color.withValues(alpha: 0.12), Colors.white],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+              colors: [color.withValues(alpha: 0.12), context.vf.card],
+              begin: AlignmentDirectional.topStart,
+              end: AlignmentDirectional.bottomEnd,
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: color.withValues(alpha: 0.35)),
@@ -849,7 +849,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 const SizedBox(height: 14),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(color: context.vf.card, borderRadius: BorderRadius.circular(10)),
                   child: Text(
                       [
                         [data.vehicleColor, data.vehicleMake, data.vehicleModel]
@@ -857,25 +857,25 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                             .join(' '),
                         data.plateNo,
                       ].where((s) => s != null && s.isNotEmpty).join(' · '),
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                      style: TextStyle(color: context.vf.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
                 ),
               ],
               if (data.parkingLocation != null && (data.status == 'RECEIVED' || data.status == 'REQUESTED')) ...[
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.local_parking, size: 18, color: AppColors.textSecondary),
+                    Icon(Icons.local_parking, size: 18, color: context.vf.textSecondary),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(tr(context, 'Parked at {place}', {'place': data.parkingLocation}),
-                          style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                          style: TextStyle(color: context.vf.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
                     ),
                   ],
                 ),
               ],
               if (data.paymentMethod != null && data.paymentMethod!.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Text(tr(context, 'Payment: {method}', {'method': data.paymentMethod}), style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                Text(tr(context, 'Payment: {method}', {'method': data.paymentMethod}), style: TextStyle(color: context.vf.textSecondary, fontSize: 13)),
               ],
               if (data.status == 'RECEIVED') ...[
                 const SizedBox(height: 16),
@@ -965,14 +965,14 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Center(
-                  child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.line, borderRadius: BorderRadius.circular(2))),
+                  child: Container(width: 40, height: 4, decoration: BoxDecoration(color: context.vf.line, borderRadius: BorderRadius.circular(2))),
                 ),
                 const SizedBox(height: 16),
                 Text(tr(context, 'Which property are you at?'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text(
                   tr(context, 'Picking a property looks up tickets there instead of your home property.'),
-                  style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 12.5, color: context.vf.textSecondary),
                 ),
                 const SizedBox(height: 14),
                 OutlinedButton.icon(
@@ -986,13 +986,13 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                   const SizedBox(height: 8),
                   Text(
                     "Couldn't detect a property nearby - please pick one below.",
-                    style: TextStyle(fontSize: 12, color: AppColors.warning),
+                    style: TextStyle(fontSize: 12, color: context.vf.warning),
                   ),
                 ],
                 const SizedBox(height: 10),
                 Expanded(
                   child: widget.locations.isEmpty
-                      ? Center(child: Text(tr(context, 'No properties available.'), style: TextStyle(color: AppColors.textSecondary)))
+                      ? Center(child: Text(tr(context, 'No properties available.'), style: TextStyle(color: context.vf.textSecondary)))
                       : ListView.builder(
                           controller: scrollController,
                           itemCount: widget.locations.length,
@@ -1004,7 +1004,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                               onTap: () => Navigator.of(context).pop(_LocationPickResult(isHome ? null : loc)),
                               leading: Icon(
                                 isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-                                color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                                color: isSelected ? Theme.of(context).colorScheme.primary : context.vf.textSecondary,
                               ),
                               title: Text(loc.name),
                               subtitle: isHome ? Text(tr(context, 'Your property'), style: TextStyle(fontSize: 12)) : null,

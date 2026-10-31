@@ -4,6 +4,7 @@
 // answers it: on time, +5/+10/+15/+20 minutes (the guest's ETA moves by that much), or arrived.
 import 'package:flutter/material.dart';
 import '../services/valet_service.dart';
+import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 
 class EtaCheckInChoice {
@@ -35,35 +36,36 @@ class _EtaCheckInDialog extends StatelessWidget {
     final car = [d.vehicleColor, d.vehicleMake, d.vehicleModel].where((s) => s != null && s.isNotEmpty).join(' ');
     final eta = d.etaMinutes;
     final theme = Theme.of(context);
+    final vf = context.vf;
 
     return PopScope(
       canPop: false,
       child: AlertDialog(
-        icon: Icon(Icons.timer_outlined, size: 36, color: AppColors.warning),
-        title: const Text('Still on the way?'),
+        icon: Icon(Icons.timer_outlined, size: 36, color: vf.warning),
+        title: Text(tr(context, 'Still on the way?')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Ticket ${d.ticketNo}${d.plateNo != null ? ' · ${d.plateNo}' : ''}',
+              tr(context, 'Ticket {no}', {'no': '${d.ticketNo}${d.plateNo != null ? ' · ${d.plateNo}' : ''}'}),
               textAlign: TextAlign.center,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             if (car.isNotEmpty)
-              Text(car, textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary)),
+              Text(car, textAlign: TextAlign.center, style: TextStyle(color: vf.textSecondary)),
             const SizedBox(height: 10),
             Text(
               eta == null
-                  ? 'The guest is waiting for this car.'
+                  ? tr(context, 'The guest is waiting for this car.')
                   : eta <= 0
-                      ? 'The guest was told the car would be there by now.'
-                      : 'The guest expects the car in about $eta min.',
+                      ? tr(context, 'The guest was told the car would be there by now.')
+                      : tr(context, 'The guest expects the car in about {n} min.', {'n': eta}),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 18),
-            Text('Need more time?', style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+            Text(tr(context, 'Need more time?'), style: TextStyle(fontSize: 12, color: vf.textSecondary, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -73,8 +75,8 @@ class _EtaCheckInDialog extends StatelessWidget {
                       onPressed: () => Navigator.of(context).pop(EtaCheckInChoice.extend(m)),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        foregroundColor: AppColors.warning,
-                        side: BorderSide(color: AppColors.warning),
+                        foregroundColor: vf.warning,
+                        side: BorderSide(color: vf.warning),
                       ),
                       child: Text('+$m', style: const TextStyle(fontWeight: FontWeight.w700)),
                     ),
@@ -84,19 +86,19 @@ class _EtaCheckInDialog extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Text('minutes', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+            Text(tr(context, 'minutes'), textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: vf.textSecondary)),
             const SizedBox(height: 14),
             ElevatedButton.icon(
               onPressed: () => Navigator.of(context).pop(const EtaCheckInChoice.extend(0)),
               icon: const Icon(Icons.thumb_up_alt_outlined),
-              label: const Text('Yes, on time'),
+              label: Text(tr(context, 'Yes, on time')),
               style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
             ),
             const SizedBox(height: 8),
             TextButton.icon(
               onPressed: () => Navigator.of(context).pop(const EtaCheckInChoice.arrived()),
               icon: const Icon(Icons.flag_outlined),
-              label: const Text("I've arrived with the car"),
+              label: Text(tr(context, "I've arrived with the car")),
             ),
           ],
         ),

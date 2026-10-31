@@ -8,6 +8,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/valet_service.dart';
+import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 import 'pending_sync_banner.dart';
 
@@ -145,11 +146,11 @@ class _DeskBoardState extends State<DeskBoard> {
           if (!_loaded)
             const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator()))
           else ...[
-            _lane('Requested', 'REQUESTED', requested, brightness, 'No cars waiting for a driver'),
+            _lane(tr(context, 'Requested'), 'REQUESTED', requested, brightness, tr(context, 'No cars waiting for a driver')),
             const SizedBox(height: 16),
-            _lane('On the way', 'ONTHEWAY', onTheWay, brightness, 'No cars on the way'),
+            _lane(tr(context, 'On the way'), 'ONTHEWAY', onTheWay, brightness, tr(context, 'No cars on the way')),
             const SizedBox(height: 16),
-            _lane('At lobby', 'ARRIVED', atLobby, brightness, 'No cars waiting at the lobby'),
+            _lane(tr(context, 'At lobby'), 'ARRIVED', atLobby, brightness, tr(context, 'No cars waiting at the lobby')),
           ],
         ],
       ),
@@ -160,37 +161,41 @@ class _DeskBoardState extends State<DeskBoard> {
     final stale = _error != null;
     final last = _lastOk;
     final ago = last == null ? null : DateTime.now().difference(last).inSeconds;
+    final vf = context.vf;
     return Row(
       children: [
-        Icon(stale ? Icons.cloud_off_outlined : Icons.sensors, size: 16, color: stale ? AppColors.warning : AppColors.success),
+        Icon(stale ? Icons.cloud_off_outlined : Icons.sensors, size: 16, color: stale ? vf.warning : vf.success),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
             stale
-                ? (last == null ? 'Board unavailable - $_error' : 'Not updating - last update ${ago}s ago')
-                : 'Live · updates every 10 s',
-            style: TextStyle(fontSize: 12, color: stale ? AppColors.warning : AppColors.textSecondary),
+                ? (last == null
+                    ? tr(context, 'Board unavailable - {error}', {'error': _error})
+                    : tr(context, 'Not updating - last update {n}s ago', {'n': ago}))
+                : tr(context, 'Live · updates every 10 s'),
+            style: TextStyle(fontSize: 12, color: stale ? vf.warning : vf.textSecondary),
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        Text('${_cars.length} waiting', style: AppTheme.mono(size: 12, color: AppColors.textSecondary)),
+        Text(tr(context, '{n} waiting', {'n': _cars.length}), style: AppTheme.mono(size: 12, color: vf.textSecondary)),
       ],
     );
   }
 
   Widget _lane(String title, String status, List<_BoardCar> cars, Brightness b, String empty) {
     final color = ticketStateColor(status, b);
+    final vf = context.vf;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: vf.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: vf.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+            padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 14, 8),
             child: Row(
               children: [
                 Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
@@ -203,8 +208,8 @@ class _DeskBoardState extends State<DeskBoard> {
           ),
           if (cars.isEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-              child: Text(empty, style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              padding: const EdgeInsetsDirectional.fromSTEB(14, 0, 14, 14),
+              child: Text(empty, style: TextStyle(color: vf.textSecondary, fontSize: 13)),
             )
           else
             ...cars.map((c) => _row(c, b)),
@@ -217,27 +222,28 @@ class _DeskBoardState extends State<DeskBoard> {
     final wait = _since(c.requestedAt);
     final band = waitBandColor(wait, b);
     final car = [c.color, c.make].where((s) => s != null && s.isNotEmpty).join(' ');
+    final vf = context.vf;
     final String detail;
     switch (c.status) {
       case 'ONTHEWAY':
         detail = [
           if (c.driver != null && c.driver!.isNotEmpty) c.driver!,
-          if (c.dispatchedAt != null) 'out ${_fmt(_since(c.dispatchedAt))}',
+          if (c.dispatchedAt != null) tr(context, 'out {time}', {'time': _fmt(_since(c.dispatchedAt))}),
         ].join(' · ');
         break;
       case 'ARRIVED':
-        detail = c.arrivedAt != null ? 'at lobby ${_fmt(_since(c.arrivedAt))}' : 'at lobby';
+        detail = c.arrivedAt != null ? tr(context, 'at lobby {time}', {'time': _fmt(_since(c.arrivedAt))}) : tr(context, 'at lobby');
         break;
       default:
-        detail = c.bay != null && c.bay!.isNotEmpty ? 'Bay ${c.bay}' : 'awaiting a driver';
+        detail = c.bay != null && c.bay!.isNotEmpty ? tr(context, 'Bay {bay}', {'bay': c.bay}) : tr(context, 'awaiting a driver');
     }
     return InkWell(
       onTap: () => _open(c),
       child: Container(
         decoration: BoxDecoration(
-          border: Border(left: BorderSide(color: band, width: 4), top: BorderSide(color: AppColors.line)),
+          border: BorderDirectional(start: BorderSide(color: band, width: 4), top: BorderSide(color: vf.line)),
         ),
-        padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
+        padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 14, 10),
         child: Row(
           children: [
             Expanded(
@@ -246,7 +252,7 @@ class _DeskBoardState extends State<DeskBoard> {
                 children: [
                   Row(
                     children: [
-                      Text(c.ticketNo, style: AppTheme.mono(size: 15, weight: FontWeight.w700, color: AppColors.textPrimary)),
+                      Text(c.ticketNo, style: AppTheme.mono(size: 15, weight: FontWeight.w700, color: vf.textPrimary)),
                       const SizedBox(width: 8),
                       if (c.plateNo != null && c.plateNo!.isNotEmpty)
                         Container(
@@ -263,7 +269,7 @@ class _DeskBoardState extends State<DeskBoard> {
                   const SizedBox(height: 3),
                   Text(
                     [if (car.isNotEmpty) car, if (detail.isNotEmpty) detail].join(' · '),
-                    style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 12.5, color: vf.textSecondary),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -274,11 +280,11 @@ class _DeskBoardState extends State<DeskBoard> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(c.requestedAt == null ? '-' : _fmt(wait), style: AppTheme.numeral(size: 26, color: band)),
-                Text('guest wait', style: TextStyle(fontSize: 10.5, color: AppColors.textSecondary)),
+                Text(tr(context, 'guest wait'), style: TextStyle(fontSize: 10.5, color: vf.textSecondary)),
               ],
             ),
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            Icon(Icons.chevron_right, color: vf.textSecondary),
           ],
         ),
       ),
