@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#0F1319</color>
+    <!-- Brand navy behind the launch icon, so opening the app flows into the dark splash page -->
+    <color name="launch_background">#0F1319</color>
 </resources>
