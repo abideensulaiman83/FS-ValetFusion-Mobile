@@ -563,7 +563,7 @@ class ValetService {
     final response = await http
         .get(Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/where'), headers: headers)
         .timeout(timeout);
-    if (response.statusCode != 200) throw ValetApiException(_errorMessage(response));
+    if (response.statusCode != 200) throw apiErrorFrom(response);
     return VehicleWhere.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
@@ -572,7 +572,7 @@ class ValetService {
     final headers = await _headers();
     final response =
         await http.get(Uri.parse('$apiBaseUrl/v1/driver-shift/me'), headers: headers).timeout(timeout);
-    if (response.statusCode != 200) throw ValetApiException(_errorMessage(response));
+    if (response.statusCode != 200) throw apiErrorFrom(response);
     return DriverShift.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
@@ -582,7 +582,7 @@ class ValetService {
     final response = await http
         .post(Uri.parse('$apiBaseUrl/v1/driver-shift/me'), headers: headers, body: jsonEncode({'state': state}))
         .timeout(timeout);
-    if (response.statusCode != 200) throw ValetApiException(_errorMessage(response));
+    if (response.statusCode != 200) throw apiErrorFrom(response);
     return DriverShift.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
