@@ -284,7 +284,9 @@ class AuthenticationService {
     try {
       return await _localAuth.authenticate(
         localizedReason: reason,
-        options: const AuthenticationOptions(biometricOnly: true, stickyAuth: true),
+        // local_auth 3: flat parameters; persistAcrossBackgrounding replaces stickyAuth.
+        biometricOnly: true,
+        persistAcrossBackgrounding: true,
       );
     } catch (_) {
       return false;

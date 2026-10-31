@@ -46,3 +46,6 @@ app.*.map.json
 
 # Gradle build output from the android/ project
 /android/build/
+
+# FVM Version Cache
+.fvm/

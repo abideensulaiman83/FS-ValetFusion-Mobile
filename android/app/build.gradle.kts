@@ -29,21 +29,21 @@ android {
     ndkVersion = "26.1.10909125"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
         // flutter_local_notifications uses java.time APIs that need desugaring below API 26.
         isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
         // Permanent once published on Play (and registered in Firebase) - never change it.
         applicationId = "com.focalsoft.fsvalet.fs_valetfusion"
         // 23 (Android 6): required by firebase_messaging.
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = 36
         // From pubspec.yaml "version: x.y.z+N" - bump N for every Play upload.
         versionCode = flutter.versionCode
