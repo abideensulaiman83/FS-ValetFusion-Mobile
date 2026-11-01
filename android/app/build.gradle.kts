@@ -35,10 +35,6 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-    }
-
     defaultConfig {
         // Permanent once published on Play (and registered in Firebase) - never change it.
         applicationId = "com.focalsoft.fsvalet.fs_valetfusion"
@@ -113,4 +109,11 @@ if (googleServicesFile.exists()) {
     apply(plugin = "com.google.firebase.crashlytics")
 } else {
     logger.warn("Firebase: ${googleServicesFile.path} not found - building '$requestedFlavor' without push/crash reporting")
+}
+
+// Kotlin 2.3+ (needed by firebase-auth 25) only takes the JVM target through compilerOptions.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
 }
