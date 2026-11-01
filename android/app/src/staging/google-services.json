@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "462776854489",
+    "project_id": "valetfusion",
+    "storage_bucket": "valetfusion.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:462776854489:android:df2ed0e1089135746adbc8",
+        "android_client_info": {
+          "package_name": "com.focalsoft.fsvalet.fs_valetfusion"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhIxWDhF3md4McHZW-0wHUMS12RQz0-bQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:462776854489:android:01b9a52ea1770ba16adbc8",
+        "android_client_info": {
+          "package_name": "com.focalsoft.fsvalet.fs_valetfusion.staging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhIxWDhF3md4McHZW-0wHUMS12RQz0-bQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

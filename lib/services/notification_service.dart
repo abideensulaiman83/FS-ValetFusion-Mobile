@@ -21,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'authentication_service.dart';
+import 'live_alerts.dart';
 import 'secure_store.dart';
 
 /// One alert, from either path. [type] matches the backend's push types:
@@ -220,6 +221,8 @@ class NotificationService {
   /// this phone. No-op until Firebase is configured.
   Future<void> registerDevice() async {
     if (!_pushEnabled) return;
+    // Bell alerts arrive live through Firestore (needs the same Firebase setup as push).
+    LiveAlerts.instance.start();
     await requestPermissions();
     try {
       await FirebaseMessaging.instance.requestPermission();
@@ -234,6 +237,7 @@ class NotificationService {
   /// this phone doesn't receive the previous user's alerts.
   Future<void> unregisterDevice() async {
     if (!_pushEnabled) return;
+    await LiveAlerts.instance.stop();
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null) return;

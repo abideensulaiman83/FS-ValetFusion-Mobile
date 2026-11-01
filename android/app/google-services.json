@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "533316883903",
-    "project_id": "limousine-service-3f79c",
-    "storage_bucket": "limousine-service-3f79c.firebasestorage.app"
+    "project_number": "462776854489",
+    "project_id": "valetfusion",
+    "storage_bucket": "valetfusion.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:533316883903:android:51b305c07d28d231207d0a",
+        "mobilesdk_app_id": "1:462776854489:android:df2ed0e1089135746adbc8",
         "android_client_info": {
           "package_name": "com.focalsoft.fsvalet.fs_valetfusion"
         }
@@ -15,10 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDGWC98ZnQ_39JXmN8eofyqhGNuAOAJtT4"
-        },
-        {
-          "current_key": "AIzaSyANt_gnlDVeMz57tafOOVab_atz37J98SM"
+          "current_key": "AIzaSyDhIxWDhF3md4McHZW-0wHUMS12RQz0-bQ"
         }
       ],
       "services": {
@@ -29,18 +26,15 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:533316883903:android:28acf0de90ee9cfb207d0a",
+        "mobilesdk_app_id": "1:462776854489:android:01b9a52ea1770ba16adbc8",
         "android_client_info": {
-          "package_name": "com.focalsoft.limousine"
+          "package_name": "com.focalsoft.fsvalet.fs_valetfusion.staging"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDGWC98ZnQ_39JXmN8eofyqhGNuAOAJtT4"
-        },
-        {
-          "current_key": "AIzaSyANt_gnlDVeMz57tafOOVab_atz37J98SM"
+          "current_key": "AIzaSyDhIxWDhF3md4McHZW-0wHUMS12RQz0-bQ"
         }
       ],
       "services": {
