@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Push Notifications capability: without it iOS never issues an APNs token, so Firebase
+	     Cloud Messaging has no address for this iPhone. Xcode switches it to "production" when
+	     the archive is exported for TestFlight / the App Store. -->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>
