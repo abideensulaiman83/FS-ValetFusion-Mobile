@@ -466,7 +466,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
           'parkingVehicleId': data.parkingVehicleId,
           if (slot != null) 'slotId': slot.slotId,
           if (slot == null) 'bayNo': _bayNoController.text.trim(),
-          if (keyHolder != null) 'keyHolderNo': keyHolder,
+          'keyHolderNo': ?keyHolder,
         },
         label: queueLabel,
       );
