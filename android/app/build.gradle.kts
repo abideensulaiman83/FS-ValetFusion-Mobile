@@ -26,7 +26,7 @@ android {
     // flutter.ndkVersion (26.3.11579264) resolves to a broken/incomplete NDK install on this
     // machine (empty toolchain/llvm/prebuilt bin dir - CMAKE_C_COMPILER not set). Pinned to
     // 26.1.10909125, which is fully present, until the SDK manager's 26.3 download is repaired.
-    ndkVersion = "26.1.10909125"
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -89,6 +89,8 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    implementation("com.google.android.material:material:1.14.0")
+
 }
 
 // Push notifications (FCM) switch on only once the Firebase project's google-services.json is

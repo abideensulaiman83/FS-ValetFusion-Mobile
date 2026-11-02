@@ -11,11 +11,11 @@ class ProtectedRoute extends StatefulWidget {
   final String redirectTo;
 
   const ProtectedRoute({
-    Key? key,
+    super.key,
     required this.child,
     this.allowedRoles,
     this.redirectTo = '/dashboard',
-  }) : super(key: key);
+  });
 
   @override
   State<ProtectedRoute> createState() => _ProtectedRouteState();

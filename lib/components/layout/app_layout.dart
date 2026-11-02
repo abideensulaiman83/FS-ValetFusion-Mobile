@@ -257,7 +257,7 @@ class _DrawerHeader extends StatelessWidget {
                     height: 40,
                     alignment: AlignmentDirectional.centerStart,
                     child: Image.network(logo, height: 40, fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Image.asset('assets/icon/app_icon.png', width: 36, height: 36)),
+                        errorBuilder: (_, _, _) => Image.asset('assets/icon/app_icon.png', width: 36, height: 36)),
                   )
                 : Row(children: [
                     ClipRRect(borderRadius: BorderRadius.circular(9), child: Image.asset('assets/icon/app_icon.png', width: 34, height: 34)),
