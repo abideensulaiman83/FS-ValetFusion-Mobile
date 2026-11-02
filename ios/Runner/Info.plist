@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -22,8 +24,48 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Valet Fusion uses the camera to scan ticket barcodes and to photograph a car so its plate, colour, make and model are filled in automatically.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Sign in to Valet Fusion with Face ID instead of typing your password.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>While you are delivering a car, your location keeps updating for the guest even if you switch apps. Sharing stops when the car is handed over.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Drivers share their location while bringing a car to the lobby so the guest can follow it on a map and see an arrival time. Guests use it to pick the nearest property.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Valet Fusion lets you choose an existing photo of a car to fill in its plate and details.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -41,26 +83,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>Valet Fusion uses the camera to scan ticket barcodes and to photograph a car so its plate, colour, make and model are filled in automatically.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Valet Fusion lets you choose an existing photo of a car to fill in its plate and details.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Drivers share their location while bringing a car to the lobby so the guest can follow it on a map and see an arrival time. Guests use it to pick the nearest property.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>While you are delivering a car, your location keeps updating for the guest even if you switch apps. Sharing stops when the car is handed over.</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Sign in to Valet Fusion with Face ID instead of typing your password.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
-		<string>remote-notification</string>
-	</array>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 </dict>
 </plist>

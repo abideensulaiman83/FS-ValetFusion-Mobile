@@ -341,7 +341,7 @@ class _ConditionPhotosStripState extends State<ConditionPhotosStrip> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: photos.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                separatorBuilder: (_, _) => const SizedBox(width: 6),
                 itemBuilder: (context, i) => InkWell(
                   onTap: () => _openFull(context, photos[i]),
                   child: ClipRRect(borderRadius: BorderRadius.circular(6), child: _PhotoThumb(url: photos[i].url, size: 64)),

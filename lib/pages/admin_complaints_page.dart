@@ -158,7 +158,7 @@ class _AdminComplaintsPageState extends State<AdminComplaintsPage> {
                   : ListView.separated(
                       padding: const EdgeInsets.all(12),
                       itemCount: _complaints.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
                         final c = _complaints[index];
                         return Container(

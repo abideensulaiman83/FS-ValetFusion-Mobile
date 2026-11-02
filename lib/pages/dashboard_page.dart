@@ -477,9 +477,9 @@ class _DashboardPageState extends State<DashboardPage> {
               final outcome = await _send('request', data.parkingVehicleId!, 'Request for ticket ${data.ticketNo}', {
                 'requestedRemarks': 'Vehicle Requested',
                 'parkingCharge': parkingCharge,
-                if (selectedShopId != null) 'shopId': selectedShopId,
+                'shopId': ?selectedShopId,
                 'shopRemarks': shopRemarksController.text.trim(),
-                if (paymentMethod != null) 'paymentMethod': paymentMethod,
+                'paymentMethod': ?paymentMethod,
               });
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
               outcome.queued
@@ -551,7 +551,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     )
                   else
                     DropdownButtonFormField<int?>(
-                      value: selectedShopId,
+                      initialValue: selectedShopId,
                       decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
                       items: [
                         DropdownMenuItem<int?>(value: null, child: Text(tr(context, '-- Select Outlet --'))),
@@ -582,7 +582,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
-                    value: paymentMethod,
+                    initialValue: paymentMethod,
                     decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
                     items: [
                       DropdownMenuItem(value: null, child: Text(tr(context, '-- Select Payment Method --'))),
@@ -679,7 +679,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   const Center(child: CircularProgressIndicator())
                 else if (!manualEntry) ...[
                   DropdownButtonFormField<DriverOption>(
-                    value: selectedDriver,
+                    initialValue: selectedDriver,
                     decoration: InputDecoration(
                       labelText: tr(context, 'Assign Driver'),
                       border: const OutlineInputBorder(),
@@ -1036,7 +1036,7 @@ class _DashboardPageState extends State<DashboardPage> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: chips.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, i) => chips[i],
       ),
     );
@@ -1134,7 +1134,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<int>(
-            value: _selectedServiceTypeId,
+            initialValue: _selectedServiceTypeId,
             decoration: InputDecoration(labelText: tr(context, 'Service Type *'), border: const OutlineInputBorder(), isDense: true),
             items: _serviceTypesList
                 .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
@@ -1237,7 +1237,7 @@ class _DashboardPageState extends State<DashboardPage> {
           title: Text('${tr(context, 'Ticket {no}', {'no': p.ticketNo})} · ${p.plateNo ?? '-'}'),
           subtitle: Text([
             if (car.isNotEmpty) car,
-            if (slot != null) slot,
+            ?slot,
             tr(context, 'received {time} ago', {'time': _parkedFor(p.parkingInTime)}),
           ].join(' · ')),
           trailing: _statusChip(slot == null ? 'Awaiting slot' : 'Parked', color),

@@ -150,7 +150,7 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                                 horizontal: 16,
                               ),
                               itemCount: filtered.length,
-                              separatorBuilder: (_, __) =>
+                              separatorBuilder: (_, _) =>
                                   const SizedBox(height: 8),
                               itemBuilder: (context, i) =>
                                   _buildRow(filtered[i]),
