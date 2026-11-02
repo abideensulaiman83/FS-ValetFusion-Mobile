@@ -140,18 +140,18 @@ class SupervisorService {
   Future<SupervisorVisit> checkIn(int locationId, {double? lat, double? lng, double? accuracyM}) async =>
       SupervisorVisit.fromJson(await _post('/check-in', {
         'locationId': locationId,
-        if (lat != null) 'lat': lat,
-        if (lng != null) 'lng': lng,
-        if (accuracyM != null) 'accuracyM': accuracyM,
+        'lat': ?lat,
+        'lng': ?lng,
+        'accuracyM': ?accuracyM,
       }));
 
   Future<SupervisorVisit> ping(double lat, double lng, double? accuracyM) async =>
-      SupervisorVisit.fromJson(await _post('/ping', {'lat': lat, 'lng': lng, if (accuracyM != null) 'accuracyM': accuracyM}));
+      SupervisorVisit.fromJson(await _post('/ping', {'lat': lat, 'lng': lng, 'accuracyM': ?accuracyM}));
 
   Future<SupervisorVisit> checkOut({double? lat, double? lng, required Map<String, bool> checklist, String? notes}) async =>
       SupervisorVisit.fromJson(await _post('/check-out', {
-        if (lat != null) 'lat': lat,
-        if (lng != null) 'lng': lng,
+        'lat': ?lat,
+        'lng': ?lng,
         'checklistJson': jsonEncode(checklist),
         if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
       }));

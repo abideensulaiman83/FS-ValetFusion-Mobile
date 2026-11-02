@@ -654,15 +654,15 @@ class ValetService {
           headers: headers,
           body: jsonEncode({
             'ticketNo': ticketNo,
-            if (vpaIn != null) 'vpaIn': vpaIn,
+            'vpaIn': ?vpaIn,
             'plateNo': plateNo ?? '',
-            if (bayNo != null) 'bayNo': bayNo,
-            if (vehicleMake != null) 'vehicleMake': vehicleMake,
-            if (vehicleModel != null) 'vehicleModel': vehicleModel,
-            if (vehicleColor != null) 'vehicleColor': vehicleColor,
-            if (serviceType != null) 'serviceType': serviceType,
-            if (requestedRemarks != null) 'requestedRemarks': requestedRemarks,
-            if (keyHolderNo != null) 'keyHolderNo': keyHolderNo,
+            'bayNo': ?bayNo,
+            'vehicleMake': ?vehicleMake,
+            'vehicleModel': ?vehicleModel,
+            'vehicleColor': ?vehicleColor,
+            'serviceType': ?serviceType,
+            'requestedRemarks': ?requestedRemarks,
+            'keyHolderNo': ?keyHolderNo,
           }),
         )
         .timeout(timeout);
@@ -706,7 +706,7 @@ class ValetService {
           Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/park-details'),
           headers: headers,
           body: jsonEncode({
-            if (slotId != null) 'slotId': slotId,
+            'slotId': ?slotId,
             if (bayNo != null && bayNo.isNotEmpty) 'bayNo': bayNo,
             if (keyHolderNo != null && keyHolderNo.isNotEmpty) 'keyHolderNo': keyHolderNo,
           }),
@@ -795,9 +795,9 @@ class ValetService {
           body: jsonEncode({
             'requestedRemarks': requestedRemarks,
             'parkingCharge': parkingCharge,
-            if (shopId != null) 'shopId': shopId,
-            if (shopRemarks != null) 'shopRemarks': shopRemarks,
-            if (paymentMethod != null) 'paymentMethod': paymentMethod,
+            'shopId': ?shopId,
+            'shopRemarks': ?shopRemarks,
+            'paymentMethod': ?paymentMethod,
           }),
         )
         .timeout(timeout);
@@ -816,8 +816,8 @@ class ValetService {
           Uri.parse('$apiBaseUrl/v1/parking-vehicles/$parkingVehicleId/dispatch'),
           headers: headers,
           body: jsonEncode({
-            if (vpaOut != null) 'vpaOut': vpaOut,
-            if (driverId != null) 'driverId': driverId,
+            'vpaOut': ?vpaOut,
+            'driverId': ?driverId,
           }),
         )
         .timeout(timeout);

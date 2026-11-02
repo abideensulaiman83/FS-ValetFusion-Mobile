@@ -324,7 +324,7 @@ class AuthenticationService {
       final payload = {
         'username': username,
         'password': password,
-        if (locationCode != null) 'locationCode': locationCode,
+        'locationCode': ?locationCode,
       };
 
       final response = await http
@@ -514,9 +514,9 @@ class AuthenticationService {
           'companyCode': companyCode,
           'mobile': mobile,
           'password': password,
-          if (firstName != null) 'firstName': firstName,
-          if (lastName != null) 'lastName': lastName,
-          if (email != null) 'email': email,
+          'firstName': ?firstName,
+          'lastName': ?lastName,
+          'email': ?email,
         }),
       )
           .timeout(timeout);

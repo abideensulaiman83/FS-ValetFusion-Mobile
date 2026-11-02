@@ -173,7 +173,7 @@ class ComplaintService {
         .post(
           Uri.parse('$apiBaseUrl/v1/complaints/$id/close'),
           headers: headers,
-          body: jsonEncode({if (resolutionNotes != null) 'resolutionNotes': resolutionNotes}),
+          body: jsonEncode({'resolutionNotes': ?resolutionNotes}),
         )
         .timeout(timeout);
     if (response.statusCode != 200) {

@@ -144,9 +144,9 @@ class OfflineQueue {
   }) =>
       _add('park_details', {
         'parkingVehicleId': parkingVehicleId,
-        if (slotId != null) 'slotId': slotId,
-        if (bayNo != null) 'bayNo': bayNo,
-        if (keyHolderNo != null) 'keyHolderNo': keyHolderNo,
+        'slotId': ?slotId,
+        'bayNo': ?bayNo,
+        'keyHolderNo': ?keyHolderNo,
         'idempotencyKey': idempotencyKey ?? newIdempotencyKey(),
       }, 'Parking location for ticket $ticketNo');
 
