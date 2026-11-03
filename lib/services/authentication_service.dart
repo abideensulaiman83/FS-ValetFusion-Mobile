@@ -631,7 +631,9 @@ class AuthenticationService {
     if (roles.contains('SUPERVISOR')) return '/supervisor/home';
     const deskRoles = ['DRIVER', 'GATE_SCANNER', 'KEY_CONTROLLER', 'LOBBY', 'VALET_STAFF'];
     if (roles.contains('SECURITY') && !roles.any(deskRoles.contains)) return '/security/parking';
-    if (roles.isNotEmpty) return '/dashboard';
+    if (roles.any(deskRoles.contains)) return '/dashboard';
+    // Operations head, report viewer, partner admin, shop validator: their work is on the web.
+    if (roles.isNotEmpty) return '/web-console';
     return '/';
   }
 
