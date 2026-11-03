@@ -96,6 +96,7 @@ class _AppLayoutState extends State<AppLayout> {
     }
     if (has('SECURITY')) items.add(const _MenuEntry('Parking setup', Icons.local_parking_rounded, '/security/parking'));
     if (has('DRIVER')) items.add(const _MenuEntry('My activity', Icons.bar_chart_rounded, '/driver/activity'));
+    if (items.isEmpty && !has('CUSTOMER')) items.add(const _MenuEntry('Web console', Icons.desktop_windows_rounded, '/web-console'));
     return items;
   }
 

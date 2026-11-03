@@ -46,6 +46,10 @@ const Map<String, String> arAdmin = {
   'Operational Report': 'التقرير التشغيلي',
   "Today's throughput, inventory & payment mix": 'حركة اليوم والمخزون وتوزيع طرق الدفع',
   'Advanced reports': 'التقارير المتقدمة',
+  // Home for roles that work in the web console
+  'Your reports and dashboards are in the web console': 'تقاريرك ولوحات المتابعة الخاصة بك موجودة في لوحة التحكم على الويب',
+  'Alerts still reach you here - tap the bell to see them.': 'تصلك التنبيهات هنا أيضاً - اضغط على الجرس لعرضها.',
+  'Web console': 'لوحة التحكم على الويب',
   'Report Builder, Excel/PDF exports - opens the web console': 'منشئ التقارير والتصدير إلى Excel/PDF - يفتح لوحة الويب',
   'Received': 'مستلمة',
   'In Inventory': 'في المخزون',
