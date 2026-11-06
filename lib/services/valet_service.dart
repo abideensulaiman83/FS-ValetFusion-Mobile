@@ -53,19 +53,24 @@ class ServiceType {
   }
 }
 
-/// Per-company desk options (GET /v1/desk-settings). Every flag defaults to off, which is also
-/// what the desk uses when the call fails.
+/// Per-company desk options (GET /v1/desk-settings). The show* flags default to off and the
+/// allow* flags to on (also when missing from the response); the same defaults apply when the
+/// call fails.
 class DeskSettings {
   final bool showReceivedInRequested; // list received/parked cars under "Requested"
   final bool showSlotPicker; // free-slot picker instead of a typed Bay No
   final bool showServiceType; // Service Type field on the entry form (else the server's default)
   final int? defaultServiceTypeId;
+  final bool allowShopUserRequest; // shop logins may request cars (web only - parsed, unused here)
+  final bool allowOutletOnRequest; // desk may pick an outlet (shop validation) when requesting
 
   const DeskSettings({
     this.showReceivedInRequested = false,
     this.showSlotPicker = false,
     this.showServiceType = false,
     this.defaultServiceTypeId,
+    this.allowShopUserRequest = true,
+    this.allowOutletOnRequest = true,
   });
 
   factory DeskSettings.fromJson(Map<String, dynamic> json) => DeskSettings(
@@ -73,6 +78,8 @@ class DeskSettings {
         showSlotPicker: json['showSlotPicker'] == true,
         showServiceType: json['showServiceType'] == true,
         defaultServiceTypeId: (json['defaultServiceTypeId'] as num?)?.toInt(),
+        allowShopUserRequest: json['allowShopUserRequest'] != false,
+        allowOutletOnRequest: json['allowOutletOnRequest'] != false,
       );
 
   /// The type to preselect: the server's default, else "Standard", else the first one.

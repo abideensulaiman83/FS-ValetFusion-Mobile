@@ -220,7 +220,5 @@ const Map<String, String> arDesk = {
   'Bay No *': 'رقم الموقف *',
   'Type the Bay No': 'اكتب رقم الموقف',
   'No requested vehicles': 'لا توجد مركبات مطلوبة',
-  'None - remove shop validation': 'بدون - إلغاء اعتماد المتجر',
-  'Shop validation removed - the full charge applies.': 'تم إلغاء اعتماد المتجر - تُطبَّق الرسوم الكاملة.',
   'Vehicle requested - charge {amount}': 'تم طلب المركبة - الرسوم {amount}',
 };

@@ -53,7 +53,7 @@ class _DashboardPageState extends State<DashboardPage> {
   bool _isDriver = false;
   bool _rolesLoaded = false;
   late final Future<void> _rolesReady;
-  DeskSettings _settings = const DeskSettings(); // company desk options, all off until loaded
+  DeskSettings _settings = const DeskSettings(); // company desk options, defaults until loaded
 
   bool _loading = false;
   DashboardDetails? _dashboard;
@@ -477,27 +477,23 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // ── Request dialog (RECEIVED -> REQUESTED) ──────────────────────────────
-  // Picking an outlet shows that shop's charge (often 0). The desk can also change or clear a
-  // shop that already validated the ticket (old receipt) - clearing brings the full charge back,
-  // and that is what gets saved.
+  // A ticket a shop already validated shows only "Validated at <shop>" and its charge - the desk
+  // cannot change it and the request sends no shop fields (the server keeps the validation and
+  // prices it). Otherwise, when the company allows it, picking an outlet shows that shop's
+  // charge (often 0); None keeps the normal charge.
   Future<void> _openRequestDialog(TicketStatusResponse data) async {
-    final int? validatedShopId = data.shopId;
-    int? selectedShopId = validatedShopId;
+    final bool validated = data.shopId != null;
+    final bool outletPicker = !validated && _settings.allowOutletOnRequest;
+    int? selectedShopId;
     double parkingCharge = data.parkingCharge ?? 0;
-    // Full (no shop) charge - the server keeps it in originalParkingCharge once a shop validated.
-    final fullCharge = data.originalParkingCharge ?? data.parkingCharge ?? 0;
+    final fullCharge = data.parkingCharge ?? 0;
     String? paymentMethod;
-    final shopRemarksController = TextEditingController(text: data.shopRemarks ?? '');
+    final shopRemarksController = TextEditingController();
     bool dialogLoading = false;
     bool previewing = false;
     int previewSeq = 0; // only the latest outlet change may set the charge
     String? keyHolder = data.keyHolderNo;
-    // The validated shop stays pickable even if the shop list didn't load or no longer has it.
-    final shops = [
-      ..._shopsList,
-      if (validatedShopId != null && !_shopsList.any((s) => s.id == validatedShopId))
-        Shop(id: validatedShopId, shopName: data.shopName ?? tr(context, 'Shop')),
-    ];
+    final shops = _shopsList;
 
     await showDialog<void>(
       context: context,
@@ -517,8 +513,6 @@ class _DashboardPageState extends State<DashboardPage> {
               previewing = false;
               if (shopId == null) {
                 setCharge(fullCharge);
-              } else if (shopId == validatedShopId) {
-                setCharge(data.parkingCharge ?? 0);
               } else {
                 previewing = data.parkingVehicleId != null;
               }
@@ -555,11 +549,12 @@ class _DashboardPageState extends State<DashboardPage> {
               final outcome = await _send('request', data.parkingVehicleId!, 'Request for ticket ${data.ticketNo}', {
                 'requestedRemarks': 'Vehicle Requested',
                 'parkingCharge': parkingCharge,
-                'shopId': ?selectedShopId,
-                'shopRemarks': selectedShopId == null ? '' : shopRemarksController.text.trim(),
+                // Shop fields only when the desk could pick an outlet - never for a validated ticket.
+                if (outletPicker) ...{
+                  'shopId': ?selectedShopId,
+                  'shopRemarks': selectedShopId == null ? '' : shopRemarksController.text.trim(),
+                },
                 'paymentMethod': ?paymentMethod,
-                // The desk removed the shop validation already on the ticket.
-                if (validatedShopId != null && selectedShopId == null) 'clearShop': true,
               });
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
               if (outcome.queued) {
@@ -580,7 +575,6 @@ class _DashboardPageState extends State<DashboardPage> {
             }
           }
 
-          final showingValidation = validatedShopId != null && selectedShopId == validatedShopId;
           return AlertDialog(
             title: Text(tr(context, 'Payment Details')),
             content: SingleChildScrollView(
@@ -610,10 +604,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(tr(context, 'Outlet'), style: const TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 6),
-                  if (showingValidation) ...[
+                  if (validated) ...[
+                    const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -635,29 +627,25 @@ class _DashboardPageState extends State<DashboardPage> {
                         ],
                       ),
                     ),
+                  ],
+                  if (outletPicker) ...[
                     const SizedBox(height: 8),
-                  ],
-                  // Keyed on the selection so a reset (failed preview, cleared shop) shows.
-                  DropdownButtonFormField<int?>(
-                    key: ValueKey('outlet-$selectedShopId'),
-                    initialValue: selectedShopId,
-                    isExpanded: true,
-                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
-                    items: [
-                      DropdownMenuItem<int?>(
-                        value: null,
-                        child: Text(tr(context, validatedShopId != null ? 'None - remove shop validation' : '-- Select Outlet --')),
-                      ),
-                      ...shops.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.shopName))),
-                    ],
-                    onChanged: dialogLoading ? null : onOutletChange,
-                  ),
-                  if (validatedShopId != null && selectedShopId == null) ...[
+                    Text(tr(context, 'Outlet'), style: const TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
-                    Text(tr(context, 'Shop validation removed - the full charge applies.'),
-                        style: TextStyle(fontSize: 12, color: context.vf.warning)),
+                    // Keyed on the selection so a reset (failed preview) shows.
+                    DropdownButtonFormField<int?>(
+                      key: ValueKey('outlet-$selectedShopId'),
+                      initialValue: selectedShopId,
+                      isExpanded: true,
+                      decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                      items: [
+                        DropdownMenuItem<int?>(value: null, child: Text(tr(context, '-- Select Outlet --'))),
+                        ...shops.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.shopName))),
+                      ],
+                      onChanged: dialogLoading ? null : onOutletChange,
+                    ),
                   ],
-                  if (selectedShopId != null) ...[
+                  if (outletPicker && selectedShopId != null) ...[
                     const SizedBox(height: 12),
                     TextField(
                       controller: shopRemarksController,
