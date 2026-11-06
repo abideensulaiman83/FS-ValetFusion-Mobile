@@ -50,7 +50,8 @@ class QueuedAction {
 class SendOutcome {
   final bool queued; // true: no signal, saved on the phone for later
   final String? message; // the server's message when it was sent now
-  const SendOutcome._(this.queued, this.message);
+  final double? charge; // request only: the parking charge the server saved
+  const SendOutcome._(this.queued, this.message, [this.charge]);
 }
 
 class OfflineQueue {
@@ -124,8 +125,8 @@ class OfflineQueue {
       return const SendOutcome._(true, null);
     }
     try {
-      final message = await _sendPayload(type, p);
-      return SendOutcome._(false, message);
+      final (message, charge) = await _sendPayload(type, p);
+      return SendOutcome._(false, message, charge);
     } catch (e) {
       if (!isNetworkError(e)) rethrow;
       await _add(type, p, label);
@@ -213,32 +214,34 @@ class OfflineQueue {
     await _sendPayload(a.type, a.payload);
   }
 
-  /// Returns the server's message where the endpoint has one.
-  Future<String?> _sendPayload(String type, Map<String, dynamic> p) async {
+  /// Returns the server's message where the endpoint has one, and for a request the charge the
+  /// server saved.
+  Future<(String?, double?)> _sendPayload(String type, Map<String, dynamic> p) async {
     final id = p['parkingVehicleId'] as int;
     final key = p['idempotencyKey'] as String?;
     switch (type) {
       case 'park_details':
-        return _service.recordParkDetails(
+        return (await _service.recordParkDetails(
           parkingVehicleId: id,
           slotId: p['slotId'] as int?,
           bayNo: p['bayNo'] as String?,
           keyHolderNo: p['keyHolderNo'] as String?,
           idempotencyKey: key,
-        );
+        ), null);
       case 'eta_checkin':
-        return _service.etaCheckIn(parkingVehicleId: id, extendMinutes: p['extendMinutes'] as int);
+        return (await _service.etaCheckIn(parkingVehicleId: id, extendMinutes: p['extendMinutes'] as int), null);
       case 'request':
-        await _service.requestVehicle(
+        final charge = await _service.requestVehicle(
           parkingVehicleId: id,
           requestedRemarks: p['requestedRemarks'] as String? ?? 'Vehicle Requested',
           parkingCharge: (p['parkingCharge'] as num?)?.toDouble() ?? 0,
           shopId: p['shopId'] as int?,
           shopRemarks: p['shopRemarks'] as String?,
           paymentMethod: p['paymentMethod'] as String?,
+          clearShop: p['clearShop'] == true,
           idempotencyKey: key,
         );
-        return null;
+        return (null, charge);
       case 'dispatch':
         await _service.dispatchVehicle(
           parkingVehicleId: id,
@@ -246,22 +249,22 @@ class OfflineQueue {
           vpaOut: p['vpaOut'] as String?,
           idempotencyKey: key,
         );
-        return null;
+        return (null, null);
       case 'arrive':
         await _service.arriveVehicle(id, idempotencyKey: key);
-        return null;
+        return (null, null);
       case 'deliver':
         await _service.deliverVehicle(id, idempotencyKey: key);
-        return null;
+        return (null, null);
       case 'key_holder':
         await _service.assignKeyHolder(
           parkingVehicleId: id,
           keyHolderNo: p['keyHolderNo'] as String,
           idempotencyKey: key,
         );
-        return null;
+        return (null, null);
     }
-    return null;
+    return (null, null);
   }
 
   void _cleanupFile(QueuedAction a) {
