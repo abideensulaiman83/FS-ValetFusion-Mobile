@@ -114,9 +114,15 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _loadRoles() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userStr = prefs.getString(AuthenticationService.userKey);
-    final roles = userStr == null ? <String>[] : List<String>.from(jsonDecode(userStr)['roles'] ?? []);
+    // Never throw: ticket lookups await this future, so a corrupt stored user must fall back to no roles.
+    var roles = <String>[];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userStr = prefs.getString(AuthenticationService.userKey);
+      if (userStr != null) roles = List<String>.from(jsonDecode(userStr)['roles'] ?? []);
+    } catch (_) {
+      roles = <String>[];
+    }
     if (!mounted) return;
     setState(() {
       _isSimplifiedDesk = roles.contains('LOBBY') || roles.contains('KEY_CONTROLLER');
@@ -1407,7 +1413,8 @@ class _DashboardPageState extends State<DashboardPage> {
               // Where the car is, next to ticket and plate, so the runner knows where to go.
               final bayNo = v['bayNo']?.toString().trim() ?? '';
               final location = v['parkingLocation']?.toString().trim() ?? '';
-              final bay = location.isNotEmpty ? location : (bayNo.isNotEmpty ? tr(context, 'Bay {bay}', {'bay': bayNo}) : null);
+              // Same rule as the backend/web: typed bay number first, slot label as fallback.
+              final bay = bayNo.isNotEmpty ? tr(context, 'Bay {bay}', {'bay': bayNo}) : (location.isNotEmpty ? location : null);
               return ListTile(
                 dense: true,
                 leading: const Icon(Icons.directions_car, size: 20),
