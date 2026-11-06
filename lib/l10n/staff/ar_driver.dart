@@ -53,6 +53,8 @@ const Map<String, String> arDriver = {
   'Please enter the Plate Number (or take a photo first)': 'يرجى إدخال رقم اللوحة (أو التقاط صورة أولًا)',
   'Vehicle linked to ticket {no} - park it in the slot shown below.':
       'تم ربط المركبة بالتذكرة {no} - اصففها في الموقف المعروض أدناه.',
+  'Vehicle linked to ticket {no} - park it and enter the Bay No below.':
+      'تم ربط المركبة بالتذكرة {no} - اصففها وأدخل رقم الموقف أدناه.',
   'Park the Car': 'صفّ السيارة',
   'plate unknown': 'اللوحة غير معروفة',
   'Key Holder Number (optional)': 'رقم حامل المفتاح (اختياري)',

@@ -289,6 +289,16 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
   String? _ocrProblem;
   bool _submitting = false;
   AvailableSlot? _chosenSlot;
+  // Company setting showSlotPicker (GET /v1/desk-settings): off = a typed Bay No only.
+  bool _showSlotPicker = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _valetService.fetchDeskSettings().then((s) {
+      if (mounted) setState(() => _showSlotPicker = s.showSlotPicker);
+    });
+  }
 
   @override
   void dispose() {
@@ -419,7 +429,12 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
         requestedRemarks: 'Received by driver (OCR-assisted)',
       );
       if (!mounted) return;
-      _showSnack(tr(context, 'Vehicle linked to ticket {no} - park it in the slot shown below.', {'no': ticketNo}));
+      _showSnack(tr(
+          context,
+          _showSlotPicker
+              ? 'Vehicle linked to ticket {no} - park it in the slot shown below.'
+              : 'Vehicle linked to ticket {no} - park it and enter the Bay No below.',
+          {'no': ticketNo}));
       final vehicleText = [
         _vehicleColorController.text.trim(),
         _brandController.text.trim(),
@@ -449,9 +464,9 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
   Future<void> _submitParkDetails() async {
     final data = _lastLookup;
     if (data == null || data.parkingVehicleId == null) return;
-    final slot = _chosenSlot;
+    final slot = _showSlotPicker ? _chosenSlot : null;
     if (slot == null && _bayNoController.text.trim().isEmpty) {
-      _showSnack(tr(context, 'Pick a slot or type the bay where you parked'), error: true);
+      _showSnack(tr(context, _showSlotPicker ? 'Pick a slot or type the bay where you parked' : 'Type the Bay No'), error: true);
       return;
     }
 
@@ -816,11 +831,22 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
           Text('${tr(context, 'Ticket {no}', {'no': data.ticketNo})} · ${data.plateNo ?? tr(context, 'plate unknown')}${car.isEmpty ? '' : ' · $car'}',
               style: TextStyle(color: context.vf.textSecondary, fontSize: 13)),
           const SizedBox(height: 14),
-          SlotPicker(
-            key: _slotPickerKey,
-            bayController: _bayNoController,
-            onChanged: (slot) => _chosenSlot = slot,
-          ),
+          if (_showSlotPicker)
+            SlotPicker(
+              key: _slotPickerKey,
+              bayController: _bayNoController,
+              onChanged: (slot) => _chosenSlot = slot,
+            )
+          else
+            TextField(
+              controller: _bayNoController,
+              decoration: InputDecoration(
+                labelText: tr(context, 'Bay No *'),
+                hintText: tr(context, 'e.g. B2-14'),
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
           const SizedBox(height: 10),
           TextField(
             controller: _keyHolderNoController,
