@@ -14,7 +14,7 @@ Checklist for whoever builds and uploads a store release. The app is one Flutter
 Never change either ID after the first upload - it becomes a different app.
 
 ## Before every release
-
+ 
 1. Bump `version:` in `pubspec.yaml` - `1.0.0+1` → `1.0.1+2`. The number after `+` must go up for
    every Play / App Store upload.
 2. Replace the placeholder icon if the official logo is ready: put a 1024×1024 PNG (no
