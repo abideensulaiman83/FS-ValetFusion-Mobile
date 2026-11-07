@@ -22,7 +22,8 @@ if (hasUploadKey) {
 android {
     namespace = "com.focalsoft.fsvalet.fs_valetfusion"
     // Google Play requires new apps and updates to target a recent API level; 36 = Android 16.
-    compileSdk = 36
+    // flutter.compileSdkVersion
+    compileSdk = 37
     // flutter.ndkVersion (26.3.11579264) resolves to a broken/incomplete NDK install on this
     // machine (empty toolchain/llvm/prebuilt bin dir - CMAKE_C_COMPILER not set). Pinned to
     // 26.1.10909125, which is fully present, until the SDK manager's 26.3 download is repaired.
@@ -40,7 +41,7 @@ android {
         applicationId = "com.focalsoft.fsvalet.fs_valetfusion"
         // 23 (Android 6): required by firebase_messaging.
         minSdk = flutter.minSdkVersion
-        targetSdk = 36
+        targetSdk = flutter.targetSdkVersion
         // From pubspec.yaml "version: x.y.z+N" - bump N for every Play upload.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -59,7 +60,18 @@ android {
 
     buildTypes {
         release {
+            optimization {
+                enable = true // Enables code and resource optimizations.
+            }
+            isMinifyEnabled = true
+
+            isShrinkResources = true
+
             signingConfig = if (hasUploadKey) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
+
+            proguardFiles(
+                // Default file with automatically generated optimization rules.
+                getDefaultProguardFile("proguard-android-optimize.txt"),"proguard-rules.pro")
         }
     }
 
