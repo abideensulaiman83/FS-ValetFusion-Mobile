@@ -47,13 +47,18 @@ class _DashboardPageState extends State<DashboardPage> {
   final _ticketNoController = TextEditingController();
   final _ticketNoFocusNode = FocusNode();
 
-  bool _isSimplifiedDesk = false; // LOBBY or KEY_CONTROLLER
+  // LOBBY or KEY_CONTROLLER. Starts true so those roles never see the full entry form flash up
+  // while the roles are still being read; the full desk turns it off in _loadRoles.
+  bool _isSimplifiedDesk = true;
   bool _isDriver = false;
   bool _rolesLoaded = false;
+  late final Future<void> _rolesReady;
+  DeskSettings _settings = const DeskSettings(); // company desk options, defaults until loaded
 
   bool _loading = false;
   DashboardDetails? _dashboard;
-  // Received and still parked - the step before Requested, listed alongside it.
+  // Received and still parked - the step before Requested, listed alongside it only when the
+  // company turned on showReceivedInRequested.
   List<TicketStatusResponse> _parked = [];
   List<Shop> _shopsList = [];
   List<ServiceType> _serviceTypesList = [];
@@ -73,9 +78,10 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    _loadRoles();
+    _rolesReady = _loadRoles();
     _fetchDashboard();
     _fetchLookups();
+    _loadDeskSettings();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _ticketNoFocusNode.requestFocus();
       _openLinkedTicket();
@@ -108,10 +114,16 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _loadRoles() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userStr = prefs.getString(AuthenticationService.userKey);
-    if (userStr == null) return;
-    final roles = List<String>.from(jsonDecode(userStr)['roles'] ?? []);
+    // Never throw: ticket lookups await this future, so a corrupt stored user must fall back to no roles.
+    var roles = <String>[];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userStr = prefs.getString(AuthenticationService.userKey);
+      if (userStr != null) roles = List<String>.from(jsonDecode(userStr)['roles'] ?? []);
+    } catch (_) {
+      roles = <String>[];
+    }
+    if (!mounted) return;
     setState(() {
       _isSimplifiedDesk = roles.contains('LOBBY') || roles.contains('KEY_CONTROLLER');
       _isDriver = roles.contains('DRIVER') || roles.contains('GATE_SCANNER');
@@ -126,6 +138,10 @@ class _DashboardPageState extends State<DashboardPage> {
       if (mounted) setState(() => _dashboard = data);
     } catch (_) {
       // Non-fatal - the stat strip just stays empty; the scan flow doesn't depend on it.
+    }
+    if (!_settings.showReceivedInRequested) {
+      if (mounted && _parked.isNotEmpty) setState(() => _parked = []);
+      return;
     }
     try {
       final parked = await _valetService.fetchByStatus('RECEIVED');
@@ -145,10 +161,22 @@ class _DashboardPageState extends State<DashboardPage> {
       if (mounted) {
         setState(() {
           _serviceTypesList = types;
-          if (types.isNotEmpty) _selectedServiceTypeId = types.first.id;
+          _selectedServiceTypeId = _settings.defaultTypeIn(types);
         });
       }
     } catch (_) {}
+  }
+
+  // Never fails - fetchDeskSettings falls back to all-off. Re-reads the received list when the
+  // company shows it under Requested.
+  Future<void> _loadDeskSettings() async {
+    final settings = await _valetService.fetchDeskSettings();
+    if (!mounted) return;
+    setState(() {
+      _settings = settings;
+      _selectedServiceTypeId = settings.defaultTypeIn(_serviceTypesList);
+    });
+    if (settings.showReceivedInRequested) _fetchDashboard();
   }
 
   // [message] is an English key (translated here, after the mounted check) or a server message
@@ -212,7 +240,7 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() {
       _showEntryForm = false;
       _entrySlot = null;
-      if (_serviceTypesList.isNotEmpty) _selectedServiceTypeId = _serviceTypesList.first.id;
+      _selectedServiceTypeId = _settings.defaultTypeIn(_serviceTypesList);
     });
   }
 
@@ -222,6 +250,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     setState(() => _loading = true);
     try {
+      await _rolesReady;
       final data = await _valetService.checkTicketStatus(ticketNo);
 
       if (data.ticketFree) {
@@ -269,27 +298,28 @@ class _DashboardPageState extends State<DashboardPage> {
     if (ticketNo.isEmpty) missing.add(tr(context, 'Ticket Number'));
     if (_vpaInController.text.trim().isEmpty) missing.add(tr(context, 'VPA-In'));
     if (_plateNoController.text.trim().isEmpty) missing.add(tr(context, 'Plate Number'));
-    if (_selectedServiceTypeId == null) missing.add(tr(context, 'Service Type'));
+    // Hidden Service Type: nothing is sent and the server applies its default (Standard).
+    if (_settings.showServiceType && _selectedServiceTypeId == null) missing.add(tr(context, 'Service Type'));
 
     if (missing.isNotEmpty) {
       _showSnack('Please fill: {fields}', args: {'fields': missing.join(', ')}, error: true);
       return;
     }
 
+    final slot = _settings.showSlotPicker ? _entrySlot : null;
     setState(() => _loading = true);
     try {
       await _valetService.receiveVehicle(
         ticketNo: ticketNo,
         vpaIn: _vpaInController.text.trim(),
         plateNo: _plateNoController.text.trim(),
-        bayNo: _entrySlot != null || _bayNoController.text.trim().isEmpty ? null : _bayNoController.text.trim(),
+        bayNo: slot != null || _bayNoController.text.trim().isEmpty ? null : _bayNoController.text.trim(),
         vehicleMake: _vehicleMakeController.text.trim().isEmpty ? null : _vehicleMakeController.text.trim(),
         vehicleModel: _vehicleModelController.text.trim().isEmpty ? null : _vehicleModelController.text.trim(),
         vehicleColor: _vehicleColorController.text.trim().isEmpty ? null : _vehicleColorController.text.trim(),
-        serviceType: _selectedServiceTypeId,
+        serviceType: _settings.showServiceType ? _selectedServiceTypeId : null,
         requestedRemarks: _commentsController.text.trim().isEmpty ? null : _commentsController.text.trim(),
       );
-      final slot = _entrySlot;
       if (slot != null) {
         // Claim the chosen slot for the car we just received.
         try {
@@ -334,13 +364,15 @@ class _DashboardPageState extends State<DashboardPage> {
       );
 
   // ── Park sheet (RECEIVED, no slot yet) ─────────────────────────────────
-  // The Key Controller (or desk) records where the car was parked: the nearest free slot is
-  // pre-selected, or they pick another / type a bay.
+  // The Key Controller (or desk) records where the car was parked: a typed Bay No by default, or -
+  // when the company turned on showSlotPicker - the nearest free slot pre-selected (pick another
+  // or type a bay).
   Future<void> _openParkSheet(TicketStatusResponse data) async {
     if (data.parkingVehicleId == null) return;
     final bayController = TextEditingController();
     final keyController = TextEditingController(text: data.keyHolderNo ?? '');
     final pickerKey = GlobalKey<SlotPickerState>();
+    final usePicker = _settings.showSlotPicker;
     AvailableSlot? slot;
     bool saving = false;
     final car = [data.vehicleColor, data.vehicleMake, data.vehicleModel].where((s) => s != null && s.isNotEmpty).join(' ');
@@ -351,8 +383,9 @@ class _DashboardPageState extends State<DashboardPage> {
       showDragHandle: true,
       builder: (sheetContext) => StatefulBuilder(builder: (context, setSheetState) {
         Future<void> save() async {
+          if (!usePicker) slot = null;
           if (slot == null && bayController.text.trim().isEmpty) {
-            _showSnack('Pick a slot or type the bay', error: true);
+            _showSnack(usePicker ? 'Pick a slot or type the bay' : 'Type the Bay No', error: true);
             return;
           }
           setSheetState(() => saving = true);
@@ -391,7 +424,20 @@ class _DashboardPageState extends State<DashboardPage> {
                 Text('${tr(context, 'Ticket {no}', {'no': data.ticketNo})} · ${data.plateNo ?? '-'}${car.isEmpty ? '' : ' · $car'}',
                     style: TextStyle(color: context.vf.textSecondary)),
                 const SizedBox(height: 16),
-                SlotPicker(key: pickerKey, bayController: bayController, onChanged: (s) => slot = s),
+                if (usePicker)
+                  SlotPicker(key: pickerKey, bayController: bayController, onChanged: (s) => slot = s)
+                else
+                  TextField(
+                    controller: bayController,
+                    autofocus: true,
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      labelText: tr(context, 'Bay No *'),
+                      hintText: tr(context, 'e.g. B2-14'),
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: keyController,
@@ -431,38 +477,64 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // ── Request dialog (RECEIVED -> REQUESTED) ──────────────────────────────
+  // A ticket a shop already validated shows only "Validated at <shop>" and its charge - the desk
+  // cannot change it and the request sends no shop fields (the server keeps the validation and
+  // prices it). Otherwise, when the company allows it, picking an outlet shows that shop's
+  // charge (often 0); None keeps the normal charge.
   Future<void> _openRequestDialog(TicketStatusResponse data) async {
-    int? selectedShopId = data.shopId;
-    final bool isShopValidated = data.shopId != null;
+    final bool validated = data.shopId != null;
+    final bool outletPicker = !validated && _settings.allowOutletOnRequest;
+    int? selectedShopId;
     double parkingCharge = data.parkingCharge ?? 0;
-    final originalCharge = data.originalParkingCharge ?? data.parkingCharge ?? 0;
+    final fullCharge = data.parkingCharge ?? 0;
     String? paymentMethod;
-    final shopRemarksController = TextEditingController(text: data.shopRemarks ?? '');
+    final shopRemarksController = TextEditingController();
     bool dialogLoading = false;
+    bool previewing = false;
+    int previewSeq = 0; // only the latest outlet change may set the charge
     String? keyHolder = data.keyHolderNo;
+    final shops = _shopsList;
 
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
         return StatefulBuilder(builder: (context, setDialogState) {
+          // A different amount can change what the guest pays with - ask again.
+          void setCharge(double charge) {
+            if (charge != parkingCharge) paymentMethod = null;
+            parkingCharge = charge;
+          }
+
           Future<void> onOutletChange(int? shopId) async {
-            setDialogState(() => selectedShopId = shopId);
-            if (shopId == null || data.parkingVehicleId == null) {
-              setDialogState(() => parkingCharge = originalCharge);
-              return;
-            }
+            final seq = ++previewSeq;
+            setDialogState(() {
+              selectedShopId = shopId;
+              previewing = false;
+              if (shopId == null) {
+                setCharge(fullCharge);
+              } else {
+                previewing = data.parkingVehicleId != null;
+              }
+            });
+            if (!previewing) return;
             try {
               final charge = await _valetService.previewShopCharge(
                 parkingVehicleId: data.parkingVehicleId!,
-                shopId: shopId,
+                shopId: shopId!,
               );
-              setDialogState(() => parkingCharge = charge);
+              if (seq != previewSeq || !context.mounted) return; // a newer change won
+              setDialogState(() {
+                setCharge(charge);
+                previewing = false;
+              });
             } catch (e) {
+              if (seq != previewSeq || !context.mounted) return;
               _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
               setDialogState(() {
                 selectedShopId = null;
-                parkingCharge = originalCharge;
+                setCharge(fullCharge);
+                previewing = false;
               });
             }
           }
@@ -477,21 +549,29 @@ class _DashboardPageState extends State<DashboardPage> {
               final outcome = await _send('request', data.parkingVehicleId!, 'Request for ticket ${data.ticketNo}', {
                 'requestedRemarks': 'Vehicle Requested',
                 'parkingCharge': parkingCharge,
-                'shopId': ?selectedShopId,
-                'shopRemarks': shopRemarksController.text.trim(),
+                // Shop fields only when the desk could pick an outlet - never for a validated ticket.
+                if (outletPicker) ...{
+                  'shopId': ?selectedShopId,
+                  'shopRemarks': selectedShopId == null ? '' : shopRemarksController.text.trim(),
+                },
                 'paymentMethod': ?paymentMethod,
               });
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-              outcome.queued
-                  ? _queuedSnack('the request for ticket {no}', {'no': data.ticketNo})
-                  : _showSnack('Vehicle requested successfully!');
+              if (outcome.queued) {
+                _queuedSnack('the request for ticket {no}', {'no': data.ticketNo});
+              } else if (outcome.charge != null) {
+                // The server re-prices the ticket - show what was actually saved.
+                _showSnack('Vehicle requested - charge {amount}', args: {'amount': outcome.charge!.toStringAsFixed(2)});
+              } else {
+                _showSnack('Vehicle requested successfully!');
+              }
               _ticketNoController.clear();
               _fetchDashboard();
               _ticketNoFocusNode.requestFocus();
             } catch (e) {
               _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
             } finally {
-              setDialogState(() => dialogLoading = false);
+              if (context.mounted) setDialogState(() => dialogLoading = false);
             }
           }
 
@@ -504,7 +584,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 children: [
                   _kv('Ticket No', data.ticketNo),
                   _kv('Plate No', data.plateNo ?? '-'),
-                  _kv('Parking Charge', parkingCharge.toStringAsFixed(2)),
+                  _kv('Parking Charge', previewing ? '...' : parkingCharge.toStringAsFixed(2)),
                   Row(
                     children: [
                       Text(tr(context, 'Key hook'), style: TextStyle(color: context.vf.textSecondary, fontSize: 13)),
@@ -524,10 +604,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(tr(context, 'Outlet'), style: const TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 6),
-                  if (isShopValidated)
+                  if (validated) ...[
+                    const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -548,18 +626,26 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                         ],
                       ),
-                    )
-                  else
+                    ),
+                  ],
+                  if (outletPicker) ...[
+                    const SizedBox(height: 8),
+                    Text(tr(context, 'Outlet'), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    // Keyed on the selection so a reset (failed preview) shows.
                     DropdownButtonFormField<int?>(
+                      key: ValueKey('outlet-$selectedShopId'),
                       initialValue: selectedShopId,
+                      isExpanded: true,
                       decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
                       items: [
                         DropdownMenuItem<int?>(value: null, child: Text(tr(context, '-- Select Outlet --'))),
-                        ..._shopsList.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.shopName))),
+                        ...shops.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.shopName))),
                       ],
-                      onChanged: onOutletChange,
+                      onChanged: dialogLoading ? null : onOutletChange,
                     ),
-                  if (!isShopValidated && selectedShopId != null) ...[
+                  ],
+                  if (outletPicker && selectedShopId != null) ...[
                     const SizedBox(height: 12),
                     TextField(
                       controller: shopRemarksController,
@@ -581,7 +667,9 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ),
                   const SizedBox(height: 6),
+                  // Keyed too: a charge change clears the method, and Card only exists above 0.
                   DropdownButtonFormField<String>(
+                    key: ValueKey('payment-$paymentMethod-${parkingCharge > 0}'),
                     initialValue: paymentMethod,
                     decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
                     items: [
@@ -597,7 +685,8 @@ class _DashboardPageState extends State<DashboardPage> {
             actions: [
               TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: Text(tr(context, 'Cancel'))),
               ElevatedButton(
-                onPressed: dialogLoading ? null : onRequest,
+                // No request while a shop charge is still being worked out.
+                onPressed: dialogLoading || previewing ? null : onRequest,
                 child: dialogLoading
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                     : Text(tr(context, 'Request')),
@@ -999,7 +1088,7 @@ class _DashboardPageState extends State<DashboardPage> {
             const PendingSyncBanner(),
             if (_rolesLoaded) _buildStatStrip(),
             const SizedBox(height: 16),
-            if (_isSimplifiedDesk) ...[
+            if (_rolesLoaded && _isSimplifiedDesk) ...[
               const WashRequestsSection(),
             ],
             _buildScanCard(),
@@ -1133,15 +1222,19 @@ class _DashboardPageState extends State<DashboardPage> {
                 InputDecoration(labelText: tr(context, 'Plate Number *'), border: const OutlineInputBorder(), isDense: true),
           ),
           const SizedBox(height: 10),
-          DropdownButtonFormField<int>(
-            initialValue: _selectedServiceTypeId,
-            decoration: InputDecoration(labelText: tr(context, 'Service Type *'), border: const OutlineInputBorder(), isDense: true),
-            items: _serviceTypesList
-                .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
-                .toList(),
-            onChanged: (v) => setState(() => _selectedServiceTypeId = v),
-          ),
-          const SizedBox(height: 10),
+          if (_settings.showServiceType) ...[
+            DropdownButtonFormField<int>(
+              // Keyed so the default chosen after the lookups/settings load actually shows.
+              key: ValueKey('service-type-$_selectedServiceTypeId-${_serviceTypesList.length}'),
+              initialValue: _serviceTypesList.any((s) => s.id == _selectedServiceTypeId) ? _selectedServiceTypeId : null,
+              decoration: InputDecoration(labelText: tr(context, 'Service Type *'), border: const OutlineInputBorder(), isDense: true),
+              items: _serviceTypesList
+                  .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedServiceTypeId = v),
+            ),
+            const SizedBox(height: 10),
+          ],
           Row(
             children: [
               Expanded(
@@ -1164,10 +1257,18 @@ class _DashboardPageState extends State<DashboardPage> {
             controller: _vehicleColorController,
             decoration: InputDecoration(labelText: tr(context, 'Color'), border: const OutlineInputBorder(), isDense: true),
           ),
-          const SizedBox(height: 14),
-          Text(tr(context, 'Parking slot'), style: const TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          SlotPicker(bayController: _bayNoController, onChanged: (slot) => _entrySlot = slot),
+          if (_settings.showSlotPicker) ...[
+            const SizedBox(height: 14),
+            Text(tr(context, 'Parking slot'), style: const TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            SlotPicker(bayController: _bayNoController, onChanged: (slot) => _entrySlot = slot),
+          ] else ...[
+            const SizedBox(height: 10),
+            TextField(
+              controller: _bayNoController,
+              decoration: InputDecoration(labelText: tr(context, 'Bay No'), border: const OutlineInputBorder(), isDense: true),
+            ),
+          ],
           const SizedBox(height: 10),
           TextField(
             controller: _commentsController,
@@ -1249,6 +1350,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildVehicleList(String title, List<Map<String, dynamic>> items, {required bool isOnTheWay}) {
+    // Received/parked cars join the Requested card only when the company setting is on.
+    final withReceived = !isOnTheWay && _settings.showReceivedInRequested;
     return Container(
       decoration: BoxDecoration(
         color: context.vf.card,
@@ -1264,12 +1367,12 @@ class _DashboardPageState extends State<DashboardPage> {
               children: [
                 Expanded(
                   child: Text(
-                      isOnTheWay
-                          ? '${tr(context, title)} (${items.length})'
-                          : '${tr(context, title)} (${items.length}) · ${tr(context, 'Received')} (${_parked.length})',
+                      withReceived
+                          ? '${tr(context, title)} (${items.length}) · ${tr(context, 'Received')} (${_parked.length})'
+                          : '${tr(context, title)} (${items.length})',
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                 ),
-                if (!isOnTheWay && _parked.length > _parkedPreview)
+                if (withReceived && _parked.length > _parkedPreview)
                   TextButton(
                     onPressed: () => Navigator.of(context)
                         .push(MaterialPageRoute(builder: (_) => const ParkingOccupancyPage()))
@@ -1281,23 +1384,32 @@ class _DashboardPageState extends State<DashboardPage> {
               ],
             ),
           ),
-          if (items.isEmpty && (isOnTheWay || _parked.isEmpty))
+          if (items.isEmpty && (!withReceived || _parked.isEmpty))
             Padding(
               padding: const EdgeInsetsDirectional.only(bottom: 16, start: 14),
-              child: Text(tr(context, isOnTheWay ? 'No vehicles on the way' : 'No requested or received vehicles'),
+              child: Text(
+                  tr(context,
+                      isOnTheWay
+                          ? 'No vehicles on the way'
+                          : (withReceived ? 'No requested or received vehicles' : 'No requested vehicles')),
                   style: TextStyle(color: context.vf.textSecondary)),
             )
           else ...[
             ...items.map((v) {
               final ticketNo = v['ticketNo']?.toString() ?? '';
               final status = v['status']?.toString();
+              // Where the car is, next to ticket and plate, so the runner knows where to go.
+              final bayNo = v['bayNo']?.toString().trim() ?? '';
+              final location = v['parkingLocation']?.toString().trim() ?? '';
+              // Same rule as the backend/web: typed bay number first, slot label as fallback.
+              final bay = bayNo.isNotEmpty ? tr(context, 'Bay {bay}', {'bay': bayNo}) : (location.isNotEmpty ? location : null);
               return ListTile(
                 dense: true,
                 leading: const Icon(Icons.directions_car, size: 20),
                 title: Text('${tr(context, 'Ticket {no}', {'no': ticketNo})} · ${v['plateNo'] ?? '-'}'),
                 subtitle: Text(isOnTheWay
                     ? tr(context, status == 'ARRIVED' ? 'Arrived' : 'On the way')
-                    : tr(context, 'Requested at {time}', {'time': v['requestedTime'] ?? '-'})),
+                    : [tr(context, 'Requested at {time}', {'time': v['requestedTime'] ?? '-'}), ?bay].join(' · ')),
                 trailing: isOnTheWay && status == 'ARRIVED'
                     ? Chip(
                         label: Text(tr(context, 'Arrived'), style: const TextStyle(fontSize: 11)),
@@ -1311,7 +1423,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 onTap: () => _tapListItem(ticketNo),
               );
             }),
-            if (!isOnTheWay) ..._receivedTiles(),
+            if (withReceived) ..._receivedTiles(),
           ],
         ],
       ),

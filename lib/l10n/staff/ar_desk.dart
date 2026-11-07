@@ -215,4 +215,10 @@ const Map<String, String> arDesk = {
   'Park here': 'اصفّ هنا',
   'Choose another ({n} free)': 'اختر موقفاً آخر ({n} متاح)',
   'Type bay instead': 'اكتب رقم الموقف بدلاً من ذلك',
+  // Company desk settings (Bay No text box, received list, shop validation removal)
+  'Bay No': 'رقم الموقف',
+  'Bay No *': 'رقم الموقف *',
+  'Type the Bay No': 'اكتب رقم الموقف',
+  'No requested vehicles': 'لا توجد مركبات مطلوبة',
+  'Vehicle requested - charge {amount}': 'تم طلب المركبة - الرسوم {amount}',
 };

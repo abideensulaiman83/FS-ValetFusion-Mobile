@@ -37,11 +37,60 @@ class Shop {
 class ServiceType {
   final int id;
   final String name;
+  final String? code;
+  final bool isDefault;
 
-  ServiceType({required this.id, required this.name});
+  ServiceType({required this.id, required this.name, this.code, this.isDefault = false});
 
+  // ServiceTypeDto sends serviceTypeName / serviceTypeCode; the older keys are kept as fallbacks.
   factory ServiceType.fromJson(Map<String, dynamic> json) {
-    return ServiceType(id: json['id'] ?? 0, name: json['serviceName'] ?? json['name'] ?? '');
+    return ServiceType(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      name: json['serviceTypeName'] ?? json['serviceName'] ?? json['name'] ?? '',
+      code: json['serviceTypeCode'] as String?,
+      isDefault: json['isDefault'] == true || json['defaultType'] == true,
+    );
+  }
+}
+
+/// Per-company desk options (GET /v1/desk-settings). The show* flags default to off and the
+/// allow* flags to on (also when missing from the response); the same defaults apply when the
+/// call fails.
+class DeskSettings {
+  final bool showReceivedInRequested; // list received/parked cars under "Requested"
+  final bool showSlotPicker; // free-slot picker instead of a typed Bay No
+  final bool showServiceType; // Service Type field on the entry form (else the server's default)
+  final int? defaultServiceTypeId;
+  final bool allowShopUserRequest; // shop logins may request cars (web only - parsed, unused here)
+  final bool allowOutletOnRequest; // desk may pick an outlet (shop validation) when requesting
+
+  const DeskSettings({
+    this.showReceivedInRequested = false,
+    this.showSlotPicker = false,
+    this.showServiceType = false,
+    this.defaultServiceTypeId,
+    this.allowShopUserRequest = true,
+    this.allowOutletOnRequest = true,
+  });
+
+  factory DeskSettings.fromJson(Map<String, dynamic> json) => DeskSettings(
+        showReceivedInRequested: json['showReceivedInRequested'] == true,
+        showSlotPicker: json['showSlotPicker'] == true,
+        showServiceType: json['showServiceType'] == true,
+        defaultServiceTypeId: (json['defaultServiceTypeId'] as num?)?.toInt(),
+        allowShopUserRequest: json['allowShopUserRequest'] != false,
+        allowOutletOnRequest: json['allowOutletOnRequest'] != false,
+      );
+
+  /// The type to preselect: the server's default, else "Standard", else the first one.
+  int? defaultTypeIn(List<ServiceType> types) {
+    if (types.isEmpty) return null;
+    final byId = types.where((t) => t.id == defaultServiceTypeId).firstOrNull;
+    final flagged = types.where((t) => t.isDefault).firstOrNull;
+    final standard = types
+        .where((t) => t.name.trim().toLowerCase() == 'standard' || (t.code ?? '').trim().toUpperCase() == 'STANDARD')
+        .firstOrNull;
+    return (byId ?? flagged ?? standard ?? types.first).id;
   }
 }
 
@@ -776,14 +825,17 @@ class ValetService {
     throw apiErrorFrom(response);
   }
 
-  /// Mirrors VehicleRequestDTO.
-  Future<void> requestVehicle({
+  /// Mirrors VehicleRequestDTO. Returns the charge the server actually saved (it re-prices the
+  /// ticket), or null when the response has none. clearShop: the desk removed a shop validation
+  /// that was already on the ticket (old receipt), so the full charge applies again.
+  Future<double?> requestVehicle({
     required int parkingVehicleId,
     required String requestedRemarks,
     required double parkingCharge,
     int? shopId,
     String? shopRemarks,
     String? paymentMethod, // 'CASH' or 'CARD' - set when the customer app requests a payable pickup
+    bool clearShop = false,
     String? companyCode,
     String? idempotencyKey,
   }) async {
@@ -798,12 +850,19 @@ class ValetService {
             'shopId': ?shopId,
             'shopRemarks': ?shopRemarks,
             'paymentMethod': ?paymentMethod,
+            if (clearShop) 'clearShop': true,
           }),
         )
         .timeout(timeout);
 
     if (response.statusCode != 200) {
       throw apiErrorFrom(response);
+    }
+    try {
+      final body = jsonDecode(response.body);
+      return body is Map ? (body['parkingCharge'] as num?)?.toDouble() : null;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -1066,6 +1125,19 @@ class ValetService {
       return data.map((e) => Shop.fromJson(e)).toList();
     }
     throw apiErrorFrom(response);
+  }
+
+  /// Company desk options - never throws; any failure gives the all-off defaults.
+  Future<DeskSettings> fetchDeskSettings() async {
+    try {
+      final headers = await _headers();
+      final response = await http.get(Uri.parse('$apiBaseUrl/v1/desk-settings'), headers: headers).timeout(timeout);
+      if (response.statusCode != 200) return const DeskSettings();
+      final body = jsonDecode(response.body);
+      return body is Map<String, dynamic> ? DeskSettings.fromJson(body) : const DeskSettings();
+    } catch (_) {
+      return const DeskSettings();
+    }
   }
 
   Future<List<ServiceType>> fetchServiceTypes() async {
