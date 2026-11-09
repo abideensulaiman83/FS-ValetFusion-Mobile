@@ -53,6 +53,7 @@ class _DashboardPageState extends State<DashboardPage> {
   // while the roles are still being read; the full desk turns it off in _loadRoles.
   bool _isSimplifiedDesk = true;
   bool _isDriver = false;
+  bool _canMarkDamage = false; // Key Controller / staff yes, Lobby no (client rule)
   bool _rolesLoaded = false;
   late final Future<void> _rolesReady;
   DeskSettings _settings = const DeskSettings(); // company desk options, defaults until loaded
@@ -129,6 +130,7 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() {
       _isSimplifiedDesk = roles.contains('LOBBY') || roles.contains('KEY_CONTROLLER');
       _isDriver = roles.contains('DRIVER') || roles.contains('GATE_SCANNER');
+      _canMarkDamage = rolesCanMarkDamage(roles);
       _rolesLoaded = true;
     });
     _openLinkedTicket();
@@ -608,8 +610,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ],
                   ),
-                  // Key controller / lobby can record existing damage on a parked car here too.
-                  DamageMarkingButton(parkingVehicleId: data.parkingVehicleId, ticketNo: data.ticketNo, subtitle: data.plateNo),
+                  // Key controller can record existing damage on a parked car here too (not Lobby).
+                  if (_canMarkDamage)
+                    DamageMarkingButton(parkingVehicleId: data.parkingVehicleId, ticketNo: data.ticketNo, subtitle: data.plateNo),
                   if (validated) ...[
                     const SizedBox(height: 8),
                     Container(

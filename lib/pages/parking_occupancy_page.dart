@@ -24,11 +24,15 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
   bool _loading = true;
   String? _error;
   String _search = '';
+  bool _canMarkDamage = false; // Key Controller / staff yes, Lobby no (client rule)
 
   @override
   void initState() {
     super.initState();
     _load();
+    canMarkDeskDamage().then((v) {
+      if (mounted) setState(() => _canMarkDamage = v);
+    });
   }
 
   Future<void> _load() async {
@@ -249,8 +253,8 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                 ],
               ),
             ),
-            // Key controller / lobby: mark existing damage on this parked car (Premium).
-            if (p.parkingVehicleId != null)
+            // Key controller (not Lobby): mark existing damage on this parked car (Premium).
+            if (_canMarkDamage && p.parkingVehicleId != null)
               IconButton(
                 tooltip: tr(context, 'Damage marking'),
                 visualDensity: VisualDensity.compact,

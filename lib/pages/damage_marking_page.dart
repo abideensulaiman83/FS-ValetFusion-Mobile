@@ -1,15 +1,37 @@
 // lib/pages/damage_marking_page.dart
 //
-// Desk-side damage marking for a car that is already received/parked: the key controller or
-// lobby opens it from the request dialog or a row of the Received vehicles list and gets the
+// Desk-side damage marking for a car that is already received/parked: the key controller opens
+// it from the request dialog or a row of the Received vehicles list and gets the
 // same editor the driver has at check-in (DamageMarkingCard - same /v1/vehicle-damages API).
 // Marks already on the ticket load first and stay read-only. Premium (DAMAGE_MARKING): the card
 // itself shows the "Part of Premium" state on a Free plan.
+// Client rule: damage marking is the Key Controller's (control desk) job, not the Lobby user's -
+// see canMarkDeskDamage(); the backend refuses vehicle-damage writes from LOBBY as well.
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../components/damage/damage_marking_card.dart';
 import '../components/premium.dart';
 import '../l10n/app_strings.dart';
+import '../services/authentication_service.dart';
 import '../services/plan_service.dart';
+
+/// Whether the given roles may mark damage from the desk: Key Controller, admins and valet
+/// staff/drivers yes; a Lobby-only user no.
+bool rolesCanMarkDamage(List<String> roles) => !roles.contains('LOBBY') || roles.contains('KEY_CONTROLLER');
+
+/// Reads the signed-in user's roles and applies [rolesCanMarkDamage]. False when unreadable.
+Future<bool> canMarkDeskDamage() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final userStr = prefs.getString(AuthenticationService.userKey);
+    if (userStr == null) return false;
+    final roles = List<String>.from((jsonDecode(userStr) as Map<String, dynamic>)['roles'] ?? const []);
+    return rolesCanMarkDamage(roles);
+  } catch (_) {
+    return false;
+  }
+}
 
 /// Opens the damage marking editor for one received car.
 Future<void> openDamageMarking(BuildContext context, {required int parkingVehicleId, required String ticketNo, String? subtitle}) {
