@@ -17,6 +17,7 @@ import '../components/condition_photos.dart';
 import '../components/driver_shift_card.dart';
 import '../components/key_tag.dart';
 import '../components/damage/damage_marking_card.dart';
+import '../components/master_suggest_field.dart';
 import '../components/pending_sync_banner.dart';
 import 'find_my_car_page.dart';
 import '../services/offline_queue.dart';
@@ -291,12 +292,19 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
   AvailableSlot? _chosenSlot;
   // Company setting showSlotPicker (GET /v1/desk-settings): off = a typed Bay No only.
   bool _showSlotPicker = false;
+  // Company setting showGuestQrOnReceive: pop the guest tracking QR after receiving (default on).
+  bool _showGuestQr = true;
 
   @override
   void initState() {
     super.initState();
     _valetService.fetchDeskSettings().then((s) {
-      if (mounted) setState(() => _showSlotPicker = s.showSlotPicker);
+      if (mounted) {
+        setState(() {
+          _showSlotPicker = s.showSlotPicker;
+          _showGuestQr = s.showGuestQrOnReceive;
+        });
+      }
     });
   }
 
@@ -453,7 +461,7 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             .catchError((_) => null);
       }
       // The guest is still standing there - let them scan straight to this car's live status.
-      if (mounted) await GuestTrackingQr.show(context, ticketNo: ticketNo, vehicleText: vehicleText);
+      if (mounted && _showGuestQr) await GuestTrackingQr.show(context, ticketNo: ticketNo, vehicleText: vehicleText);
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
     } finally {
@@ -774,18 +782,18 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             decoration: field('Plate *'),
           ),
           const SizedBox(height: 10),
-          TextField(
+          MasterSuggestField(
             controller: _vehicleColorController,
-            textCapitalization: TextCapitalization.words,
+            load: _valetService.fetchVehicleColorNames,
             decoration: field('Color'),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: MasterSuggestField(
                   controller: _brandController,
-                  textCapitalization: TextCapitalization.words,
+                  load: _valetService.fetchVehicleMakeNames,
                   decoration: field('Brand'),
                 ),
               ),

@@ -24,11 +24,13 @@ import '../components/pending_sync_banner.dart';
 import '../components/slot_picker.dart';
 import '../components/undo_step_dialog.dart';
 import '../components/wash_requests_section.dart';
+import '../components/master_suggest_field.dart';
 import '../services/authentication_service.dart';
 import '../services/offline_queue.dart';
 import '../services/desk_links.dart';
 import '../services/valet_service.dart';
 import 'condition_compare_page.dart';
+import 'damage_marking_page.dart';
 import 'driver_receive_page.dart';
 import 'parking_occupancy_page.dart';
 import '../theme/app_theme.dart';
@@ -346,7 +348,9 @@ class _DashboardPageState extends State<DashboardPage> {
       _resetEntryForm();
       _fetchDashboard();
       // Guest is still at the stand - let them scan straight to this car's live status.
-      if (mounted) await GuestTrackingQr.show(context, ticketNo: ticketNo, vehicleText: vehicleText);
+      if (mounted && _settings.showGuestQrOnReceive) {
+        await GuestTrackingQr.show(context, ticketNo: ticketNo, vehicleText: vehicleText);
+      }
       _ticketNoFocusNode.requestFocus();
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
@@ -604,6 +608,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ],
                   ),
+                  // Key controller / lobby can record existing damage on a parked car here too.
+                  DamageMarkingButton(parkingVehicleId: data.parkingVehicleId, ticketNo: data.ticketNo, subtitle: data.plateNo),
                   if (validated) ...[
                     const SizedBox(height: 8),
                     Container(
@@ -1238,8 +1244,9 @@ class _DashboardPageState extends State<DashboardPage> {
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: MasterSuggestField(
                   controller: _vehicleMakeController,
+                  load: _valetService.fetchVehicleMakeNames,
                   decoration: InputDecoration(labelText: tr(context, 'Brand'), border: const OutlineInputBorder(), isDense: true),
                 ),
               ),
@@ -1253,8 +1260,9 @@ class _DashboardPageState extends State<DashboardPage> {
             ],
           ),
           const SizedBox(height: 10),
-          TextField(
+          MasterSuggestField(
             controller: _vehicleColorController,
+            load: _valetService.fetchVehicleColorNames,
             decoration: InputDecoration(labelText: tr(context, 'Color'), border: const OutlineInputBorder(), isDense: true),
           ),
           if (_settings.showSlotPicker) ...[

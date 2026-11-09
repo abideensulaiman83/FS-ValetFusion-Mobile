@@ -75,7 +75,7 @@ class _AppLayoutState extends State<AppLayout> {
 
   String roleLabel(BuildContext context) {
     const names = {
-      'SUPER_ADMIN': 'Super admin', 'LOCATION_ADMIN': 'Company admin', 'KEY_CONTROLLER': 'Location manager', 'LOBBY': 'Cashier',
+      'SUPER_ADMIN': 'Super admin', 'LOCATION_ADMIN': 'Company admin', 'KEY_CONTROLLER': 'Key Controller', 'LOBBY': 'Cashier',
       'VALET_STAFF': 'Valet desk', 'DRIVER': 'Valet', 'GATE_SCANNER': 'Gate scanner', 'SUPERVISOR': 'Supervisor',
       'OPERATIONS_HEAD': 'Division head', 'SECURITY': 'Security', 'REPORT_VIEWER': 'Reports', 'CUSTOMER': 'Guest',
     };

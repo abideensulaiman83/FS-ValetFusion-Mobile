@@ -9,6 +9,7 @@ import '../components/guest_tracking_qr_sheet.dart';
 import '../l10n/app_strings.dart';
 import '../services/valet_service.dart';
 import '../theme/app_theme.dart';
+import 'damage_marking_page.dart';
 
 class ParkingOccupancyPage extends StatefulWidget {
   const ParkingOccupancyPage({super.key});
@@ -248,6 +249,19 @@ class _ParkingOccupancyPageState extends State<ParkingOccupancyPage> {
                 ],
               ),
             ),
+            // Key controller / lobby: mark existing damage on this parked car (Premium).
+            if (p.parkingVehicleId != null)
+              IconButton(
+                tooltip: tr(context, 'Damage marking'),
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.car_crash_outlined, color: context.vf.textSecondary),
+                onPressed: () => openDamageMarking(
+                  context,
+                  parkingVehicleId: p.parkingVehicleId!,
+                  ticketNo: p.ticketNo,
+                  subtitle: p.plateNo,
+                ),
+              ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [

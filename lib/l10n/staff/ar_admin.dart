@@ -7,7 +7,7 @@ const Map<String, String> arAdmin = {
   // Drawer
   'Super admin': 'مشرف عام',
   'Company admin': 'مسؤول الشركة',
-  'Location manager': 'مدير الموقع',
+  'Key Controller': 'مراقب المفاتيح',
   'Cashier': 'أمين الصندوق',
   'Valet desk': 'مكتب صف السيارات',
   'Driver desk': 'مكتب السائق',
