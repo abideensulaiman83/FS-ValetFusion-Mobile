@@ -482,8 +482,9 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
   List<Widget> _revenue(Map<String, dynamic> d) {
     final vf = context.vf;
     final t = _map(d['totals']);
-    // Complimentary may come back as a count (whole number) or an amount.
+    // complimentary = fee waived (AED); complimentaryCount = how many tickets.
     final comp = t['complimentary'];
+    final compCount = t['complimentaryCount'];
     return [
       _kpis([
         _Kpi('Vehicles', _count(t['vehicles']), Icons.directions_car_filled_outlined, vf.live),
@@ -491,7 +492,8 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
         _Kpi('Total collection', _money(t['totalCollection']), Icons.payments_outlined, vf.success),
         _Kpi('Cash', _money(t['cash']), Icons.money_rounded, vf.success),
         _Kpi('Card', _money(t['card']), Icons.credit_card_rounded, vf.live),
-        _Kpi('Complimentary', comp is int ? _count(comp) : _money(comp), Icons.card_giftcard_outlined, vf.warning),
+        _Kpi(compCount == null ? 'Complimentary' : '${tr(context, 'Complimentary')} (${_count(compCount)})', _money(comp),
+            Icons.card_giftcard_outlined, vf.warning),
       ]),
       _table('Transactions', _rows(d['rows']), const [
         _Col('plateNo', 'Plate'),
