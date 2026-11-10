@@ -15,6 +15,7 @@ import 'staff/ar_desk.dart';
 import 'staff/ar_premium.dart';
 import 'staff/ar_driver.dart';
 import 'staff/ar_parking.dart';
+import 'staff/ar_reports.dart';
 
 class LocaleController {
   LocaleController._();
@@ -44,7 +45,7 @@ String tr(BuildContext context, String en, [Map<String, Object?> args = const {}
   return text;
 }
 
-const List<Map<String, String>> _arMaps = [_ar, arDesk, arDriver, arParking, arAdmin, arPremium, arCustomer];
+const List<Map<String, String>> _arMaps = [_ar, arDesk, arDriver, arParking, arAdmin, arPremium, arCustomer, arReports];
 
 String? _lookupAr(String en) {
   for (final m in _arMaps) {

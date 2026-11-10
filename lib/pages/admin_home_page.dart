@@ -19,6 +19,7 @@ import 'driver_activity_page.dart';
 import 'privacy_policy_page.dart';
 import 'parking_occupancy_page.dart';
 import 'parking_setup_page.dart';
+import 'reports_page.dart';
 import '../theme/app_theme.dart';
 
 class AdminHomePage extends StatefulWidget {
@@ -109,7 +110,16 @@ class _AdminHomePageState extends State<AdminHomePage> {
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DriverActivityPage())),
                   ),
                   const SizedBox(height: 10),
-                  // Premium: the Report Builder and exports live in the web console.
+                  // The web console's daily reports, in the app, with PDF / Excel export.
+                  _moduleTile(
+                    icon: Icons.assessment_outlined,
+                    color: context.vf.success,
+                    title: tr(context, 'Company reports'),
+                    subtitle: tr(context, 'Overview, daily summary, revenue, peak times, validations, staff - PDF/Excel'),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportsPage())),
+                  ),
+                  const SizedBox(height: 10),
+                  // Premium: the Report Builder lives in the web console.
                   _moduleTile(
                     icon: Icons.insights_rounded,
                     color: context.vf.brass,
