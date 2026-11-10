@@ -91,6 +91,7 @@ const Map<String, String> arDesk = {
   'Dispatch Vehicle': 'إرسال سائق للمركبة',
   'Assign Driver': 'تعيين سائق',
   'Enter Employee ID manually instead': 'أدخل رقم الموظف يدوياً بدلاً من ذلك',
+  'Choose from driver list': 'اختر من قائمة السائقين',
   'Employee ID': 'رقم الموظف',
   'Undo request': 'تراجع عن الطلب',
   'Dispatch': 'إرسال',
@@ -105,6 +106,13 @@ const Map<String, String> arDesk = {
   'Undo dispatch': 'تراجع عن الإرسال',
   'Arrived': 'وصلت',
   'Arrival acknowledged - waiting for guest handover.': 'تم تأكيد الوصول - بانتظار التسليم للضيف.',
+  // Arrived in Lobby button (On the way list / Board lane)
+  'Arrived in Lobby': 'وصلت إلى الردهة',
+  'Ticket {no}: arrived in lobby - waiting for guest handover.': 'التذكرة {no}: وصلت إلى الردهة - بانتظار التسليم للضيف.',
+  'Ticket {no} could not be found.': 'تعذّر العثور على التذكرة {no}.',
+  // Desk entry form - Brand / Colour picked from the master lists only
+  'Pick a name from the list': 'اختر اسماً من القائمة',
+  'Pick {fields} from the list - typed text is not accepted.': 'اختر {fields} من القائمة - لا يُقبل النص المكتوب.',
   // Delivery dialog
   'Confirm Delivery': 'تأكيد التسليم',
   'Are you sure you want to mark this vehicle as delivered?': 'هل أنت متأكد من تحديد هذه المركبة كمُسلَّمة؟',
