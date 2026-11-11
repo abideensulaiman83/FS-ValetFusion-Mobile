@@ -119,6 +119,12 @@ class TicketStatusResponse {
   final String? deliveredTime;
   final double? parkingCharge;
   final double? originalParkingCharge;
+  // SHOP_VALIDATOR callers only: what the guest pays with the caller's own outlet, whether any
+  // outlet validated the ticket (and which), and what applies if the caller requests the car now.
+  final double? shopCharge;
+  final bool? shopValidated;
+  final String? validatedShopName;
+  final double? applicableCharge;
   final String? vpaIn;
   final String? vpaOut;
   final String? receiveRemarks;
@@ -168,6 +174,10 @@ class TicketStatusResponse {
     this.deliveredTime,
     this.parkingCharge,
     this.originalParkingCharge,
+    this.shopCharge,
+    this.shopValidated,
+    this.validatedShopName,
+    this.applicableCharge,
     this.vpaIn,
     this.vpaOut,
     this.receiveRemarks,
@@ -219,6 +229,10 @@ class TicketStatusResponse {
       deliveredTime: json['deliveredTime'],
       parkingCharge: (json['parkingCharge'] as num?)?.toDouble(),
       originalParkingCharge: (json['originalParkingCharge'] as num?)?.toDouble(),
+      shopCharge: (json['shopCharge'] as num?)?.toDouble(),
+      shopValidated: json['shopValidated'] as bool?,
+      validatedShopName: json['validatedShopName'] as String?,
+      applicableCharge: (json['applicableCharge'] as num?)?.toDouble(),
       vpaIn: json['vpaIn'],
       vpaOut: json['vpaOut'],
       receiveRemarks: json['receiveRemarks'],

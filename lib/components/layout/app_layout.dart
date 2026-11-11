@@ -78,6 +78,7 @@ class _AppLayoutState extends State<AppLayout> {
       'SUPER_ADMIN': 'Super admin', 'LOCATION_ADMIN': 'Company admin', 'KEY_CONTROLLER': 'Key Controller', 'LOBBY': 'Cashier',
       'VALET_STAFF': 'Valet desk', 'DRIVER': 'Valet', 'GATE_SCANNER': 'Gate scanner', 'SUPERVISOR': 'Supervisor',
       'OPERATIONS_HEAD': 'Division head', 'SECURITY': 'Security', 'REPORT_VIEWER': 'Reports', 'CUSTOMER': 'Guest',
+      'SHOP_VALIDATOR': 'Outlet',
     };
     final known = roles.where(names.containsKey).map((r) => tr(context, names[r]!)).toList();
     return known.isEmpty ? tr(context, 'Staff') : known.join(' · ');
@@ -96,7 +97,12 @@ class _AppLayoutState extends State<AppLayout> {
     }
     if (has('SECURITY')) items.add(const _MenuEntry('Parking setup', Icons.local_parking_rounded, '/security/parking'));
     if (has('DRIVER')) items.add(const _MenuEntry('My activity', Icons.bar_chart_rounded, '/driver/activity'));
-    if (items.isEmpty && !has('CUSTOMER')) items.add(const _MenuEntry('Web console', Icons.desktop_windows_rounded, '/web-console'));
+    // Roles with no app screen (operations head, report viewer, partner admin) get the web
+    // console; an outlet login on its own has its ticket screen instead.
+    final noAppScreen = items.isEmpty && !has('CUSTOMER');
+    final outletOnly = roles.isNotEmpty && roles.every((r) => r == 'SHOP_VALIDATOR');
+    if (has('SHOP_VALIDATOR')) items.add(const _MenuEntry('Validate tickets', Icons.storefront_rounded, '/shop/home'));
+    if (noAppScreen && !outletOnly) items.add(const _MenuEntry('Web console', Icons.desktop_windows_rounded, '/web-console'));
     return items;
   }
 
