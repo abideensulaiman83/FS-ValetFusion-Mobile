@@ -373,7 +373,10 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
   }
 
   Future<void> _captureAndRecognize() async {
-    final picked = await _imagePicker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    // Resized on the phone: the full camera photo (3-6 MB) took 10-30 s to upload to the OCR
+    // server on mobile data; 1920 px keeps the plate sharp at ~10x smaller (server reads in ~1.5 s).
+    final picked = await _imagePicker.pickImage(
+        source: ImageSource.camera, maxWidth: 1920, maxHeight: 1920, imageQuality: 80);
     if (picked == null) return;
 
     final file = File(picked.path);
