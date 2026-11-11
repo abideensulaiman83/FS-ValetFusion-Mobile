@@ -63,6 +63,7 @@ class DeskSettings {
   final int? defaultServiceTypeId;
   final bool allowShopUserRequest; // shop logins may request cars (web only - parsed, unused here)
   final bool allowOutletOnRequest; // desk may pick an outlet (shop validation) when requesting
+  final bool showGuestQrOnReceive; // pop the guest tracking QR right after a car is received
 
   const DeskSettings({
     this.showReceivedInRequested = false,
@@ -71,6 +72,7 @@ class DeskSettings {
     this.defaultServiceTypeId,
     this.allowShopUserRequest = true,
     this.allowOutletOnRequest = true,
+    this.showGuestQrOnReceive = true,
   });
 
   factory DeskSettings.fromJson(Map<String, dynamic> json) => DeskSettings(
@@ -80,6 +82,7 @@ class DeskSettings {
         defaultServiceTypeId: (json['defaultServiceTypeId'] as num?)?.toInt(),
         allowShopUserRequest: json['allowShopUserRequest'] != false,
         allowOutletOnRequest: json['allowOutletOnRequest'] != false,
+        showGuestQrOnReceive: json['showGuestQrOnReceive'] != false,
       );
 
   /// The type to preselect: the server's default, else "Standard", else the first one.
@@ -116,6 +119,12 @@ class TicketStatusResponse {
   final String? deliveredTime;
   final double? parkingCharge;
   final double? originalParkingCharge;
+  // SHOP_VALIDATOR callers only: what the guest pays with the caller's own outlet, whether any
+  // outlet validated the ticket (and which), and what applies if the caller requests the car now.
+  final double? shopCharge;
+  final bool? shopValidated;
+  final String? validatedShopName;
+  final double? applicableCharge;
   final String? vpaIn;
   final String? vpaOut;
   final String? receiveRemarks;
@@ -165,6 +174,10 @@ class TicketStatusResponse {
     this.deliveredTime,
     this.parkingCharge,
     this.originalParkingCharge,
+    this.shopCharge,
+    this.shopValidated,
+    this.validatedShopName,
+    this.applicableCharge,
     this.vpaIn,
     this.vpaOut,
     this.receiveRemarks,
@@ -216,6 +229,10 @@ class TicketStatusResponse {
       deliveredTime: json['deliveredTime'],
       parkingCharge: (json['parkingCharge'] as num?)?.toDouble(),
       originalParkingCharge: (json['originalParkingCharge'] as num?)?.toDouble(),
+      shopCharge: (json['shopCharge'] as num?)?.toDouble(),
+      shopValidated: json['shopValidated'] as bool?,
+      validatedShopName: json['validatedShopName'] as String?,
+      applicableCharge: (json['applicableCharge'] as num?)?.toDouble(),
       vpaIn: json['vpaIn'],
       vpaOut: json['vpaOut'],
       receiveRemarks: json['receiveRemarks'],
@@ -1125,6 +1142,42 @@ class ValetService {
       return data.map((e) => Shop.fromJson(e)).toList();
     }
     throw apiErrorFrom(response);
+  }
+
+  // Vehicle make / colour masters for the entry forms' suggestions, cached per sign-in (keyed on
+  // the token so another login refetches). A failure is not cached - the next form tries again.
+  static final Map<String, (String, List<String>)> _masterCache = {};
+
+  /// Active vehicle make names (GET /api/vehicle-makes) - never throws; empty on any failure.
+  Future<List<String>> fetchVehicleMakeNames() => _masterNames('vehicle-makes');
+
+  /// Active vehicle colour names (GET /api/vehicle-colors) - never throws; empty on any failure.
+  Future<List<String>> fetchVehicleColorNames() => _masterNames('vehicle-colors');
+
+  Future<List<String>> _masterNames(String path) async {
+    try {
+      final token = await SecureStore.token() ?? '';
+      final cached = _masterCache[path];
+      if (cached != null && cached.$1 == token) return cached.$2;
+      final headers = await _headers();
+      final response = await http.get(Uri.parse('$apiBaseUrl/$path'), headers: headers).timeout(timeout);
+      if (response.statusCode != 200) return const [];
+      final body = jsonDecode(response.body);
+      final List<dynamic> rows = body is List ? body : (body is Map && body['content'] is List ? body['content'] as List : const []);
+      final names = <String>{};
+      for (final r in rows) {
+        if (r is! Map) continue;
+        final status = (r['status'] ?? '').toString().trim().toUpperCase();
+        if (status == 'INACTIVE' || status == 'DELETED') continue;
+        final name = (r['name'] ?? '').toString().trim();
+        if (name.isNotEmpty) names.add(name);
+      }
+      final list = names.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      if (list.isNotEmpty) _masterCache[path] = (token, list);
+      return list;
+    } catch (_) {
+      return const [];
+    }
   }
 
   /// Company desk options - never throws; any failure gives the all-off defaults.

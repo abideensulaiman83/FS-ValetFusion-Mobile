@@ -4,7 +4,8 @@
 // guest is waiting for, in three lanes - Requested, On the way, At lobby - each with the guest's
 // running wait (since the request) coloured by the wait bands (green < 10 min, amber < 20, red
 // after). Refreshes every 10 s and on pull-to-refresh; tapping a car opens the same dialog as
-// scanning its ticket (dispatch / arrived / delivered, with their Undo links).
+// scanning its ticket (dispatch / delivered, with their Undo links). Cars on the way also get an
+// "Arrived in Lobby" button that marks the arrival without opening the handover.
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/valet_service.dart';
@@ -15,13 +16,17 @@ import 'pending_sync_banner.dart';
 class DeskBoard extends StatefulWidget {
   /// Opens the ticket's next-step dialog (the desk's own lookup flow).
   final Future<void> Function(String ticketNo) onOpen;
-  const DeskBoard({super.key, required this.onOpen});
+
+  /// Marks an on-the-way car as arrived in the lobby (the desk's arrive step, with its Undo).
+  final Future<void> Function(String ticketNo, int? parkingVehicleId, String? plateNo)? onArrive;
+  const DeskBoard({super.key, required this.onOpen, this.onArrive});
 
   @override
   State<DeskBoard> createState() => _DeskBoardState();
 }
 
 class _BoardCar {
+  final int? id; // parking vehicle id
   final String ticketNo;
   final String? plateNo;
   final String? make;
@@ -34,7 +39,8 @@ class _BoardCar {
   final String? bay;
 
   _BoardCar.fromJson(Map<String, dynamic> v, String fallbackStatus)
-      : ticketNo = v['ticketNo']?.toString() ?? '',
+      : id = (v['id'] as num?)?.toInt(),
+        ticketNo = v['ticketNo']?.toString() ?? '',
         plateNo = v['plateNo'] as String?,
         make = v['vehicleMake'] as String?,
         color = v['vehicleColor'] as String?,
@@ -58,6 +64,7 @@ class _DeskBoardState extends State<DeskBoard> {
   Timer? _poll;
   Timer? _tick;
   bool _opening = false;
+  final Set<String> _arriving = {}; // tickets with an "Arrived in Lobby" call in flight
 
   @override
   void initState() {
@@ -109,6 +116,18 @@ class _DeskBoardState extends State<DeskBoard> {
       await widget.onOpen(c.ticketNo);
     } finally {
       _opening = false;
+      _refresh();
+    }
+  }
+
+  Future<void> _arrive(_BoardCar c) async {
+    final onArrive = widget.onArrive;
+    if (onArrive == null || c.ticketNo.isEmpty || _arriving.contains(c.ticketNo)) return;
+    setState(() => _arriving.add(c.ticketNo));
+    try {
+      await onArrive(c.ticketNo, c.id, c.plateNo);
+    } finally {
+      if (mounted) setState(() => _arriving.remove(c.ticketNo));
       _refresh();
     }
   }
@@ -218,6 +237,25 @@ class _DeskBoardState extends State<DeskBoard> {
     );
   }
 
+  Widget _arrivedButton(_BoardCar c) {
+    final busy = _arriving.contains(c.ticketNo);
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: OutlinedButton.icon(
+        onPressed: busy ? null : () => _arrive(c),
+        style: OutlinedButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+        icon: busy
+            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+            : const Icon(Icons.where_to_vote_outlined, size: 16),
+        label: Text(tr(context, 'Arrived in Lobby')),
+      ),
+    );
+  }
+
   Widget _row(_BoardCar c, Brightness b) {
     final wait = _since(c.requestedAt);
     final band = waitBandColor(wait, b);
@@ -272,6 +310,10 @@ class _DeskBoardState extends State<DeskBoard> {
                     style: TextStyle(fontSize: 12.5, color: vf.textSecondary),
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if (c.status == 'ONTHEWAY' && widget.onArrive != null) ...[
+                    const SizedBox(height: 6),
+                    _arrivedButton(c),
+                  ],
                 ],
               ),
             ),

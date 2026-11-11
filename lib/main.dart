@@ -20,6 +20,7 @@ import 'pages/supervisor_home_page.dart';
 import 'pages/parking_setup_page.dart';
 import 'pages/notifications_inbox_page.dart';
 import 'pages/web_console_home_page.dart';
+import 'pages/shop_home_page.dart';
 import 'components/premium.dart';
 import 'services/app_update_service.dart';
 import 'services/notification_service.dart';
@@ -129,6 +130,7 @@ class MyApp extends StatelessWidget {
         '/customer/home': (context) => const CustomerHomePage(),
         '/supervisor/home': (context) => const SupervisorHomePage(),
         '/web-console': (context) => const WebConsoleHomePage(),
+        '/shop/home': (context) => const ShopHomePage(),
         '/security/parking': (context) => const ParkingSetupPage(isHome: true),
         '/privacy-policy': (context) => const PrivacyPolicyPage(),
         '/notifications': (context) => const NotificationsInboxPage(),

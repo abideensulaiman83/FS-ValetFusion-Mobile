@@ -2,8 +2,8 @@
 //
 // The real Valet Desk screen - ported from the web app's core workflow
 // (frontend/FS-ValetFusion/src/pages/DashboardPage.tsx): scan a ticket, then branch on its
-// status (FREE -> receive; RECEIVED -> request; REQUESTED -> dispatch; ONTHEWAY -> acknowledge
-// arrival; ARRIVED -> confirm delivery), against the same backend contract as the web and
+// status (FREE -> receive; RECEIVED -> request; REQUESTED -> dispatch; ONTHEWAY or ARRIVED ->
+// confirm delivery; "Arrived in Lobby" on the On the way list), against the same backend contract as the web and
 // desktop-Lobby flow (POST /v1/parking-vehicles/{id}/arrive, etc). Role-aware: LOBBY and
 // KEY_CONTROLLER get the simplified scan-only desk (no "receive a new vehicle" form), matching
 // isSimplifiedDesk on the web.
@@ -24,11 +24,13 @@ import '../components/pending_sync_banner.dart';
 import '../components/slot_picker.dart';
 import '../components/undo_step_dialog.dart';
 import '../components/wash_requests_section.dart';
+import '../components/master_suggest_field.dart';
 import '../services/authentication_service.dart';
 import '../services/offline_queue.dart';
 import '../services/desk_links.dart';
 import '../services/valet_service.dart';
 import 'condition_compare_page.dart';
+import 'damage_marking_page.dart';
 import 'driver_receive_page.dart';
 import 'parking_occupancy_page.dart';
 import '../theme/app_theme.dart';
@@ -51,6 +53,7 @@ class _DashboardPageState extends State<DashboardPage> {
   // while the roles are still being read; the full desk turns it off in _loadRoles.
   bool _isSimplifiedDesk = true;
   bool _isDriver = false;
+  bool _canMarkDamage = false; // Key Controller / staff yes, Lobby no (client rule)
   bool _rolesLoaded = false;
   late final Future<void> _rolesReady;
   DeskSettings _settings = const DeskSettings(); // company desk options, defaults until loaded
@@ -74,6 +77,10 @@ class _DashboardPageState extends State<DashboardPage> {
   final _commentsController = TextEditingController();
   int? _selectedServiceTypeId;
   AvailableSlot? _entrySlot; // slot picked in the entry form; null = typed bay / none
+  // Brand / Colour on the desk form must be picked from the masters (client rule) - see _saveEntry.
+  final _makeFieldKey = GlobalKey<MasterSuggestFieldState>();
+  final _colorFieldKey = GlobalKey<MasterSuggestFieldState>();
+  final Set<String> _arriving = {}; // tickets with an "Arrived in Lobby" call in flight
 
   @override
   void initState() {
@@ -127,6 +134,7 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() {
       _isSimplifiedDesk = roles.contains('LOBBY') || roles.contains('KEY_CONTROLLER');
       _isDriver = roles.contains('DRIVER') || roles.contains('GATE_SCANNER');
+      _canMarkDamage = rolesCanMarkDamage(roles);
       _rolesLoaded = true;
     });
     _openLinkedTicket();
@@ -275,9 +283,10 @@ class _DashboardPageState extends State<DashboardPage> {
         case 'REQUESTED':
           await _openDispatchDialog(data);
           break;
+        // Scanning a car that is still on the way goes straight to the handover (client request,
+        // ONTHEWAY -> DELIVERED is allowed by the backend); "Arrived in Lobby" on the On the way
+        // list marks the arrival on its own.
         case 'ONTHEWAY':
-          await _openArrivalDialog(data);
-          break;
         case 'ARRIVED':
           await _openDeliveryDialog(data);
           break;
@@ -305,6 +314,18 @@ class _DashboardPageState extends State<DashboardPage> {
       _showSnack('Please fill: {fields}', args: {'fields': missing.join(', ')}, error: true);
       return;
     }
+    // No free text for Brand / Colour here - only names from the master lists (when they loaded).
+    final notPicked = <String>[
+      if (!(_makeFieldKey.currentState?.isValid ?? true)) tr(context, 'Brand'),
+      if (!(_colorFieldKey.currentState?.isValid ?? true)) tr(context, 'Color'),
+    ];
+    if (notPicked.isNotEmpty) {
+      _showSnack('Pick {fields} from the list - typed text is not accepted.',
+          args: {'fields': notPicked.join(', ')}, error: true);
+      return;
+    }
+    _makeFieldKey.currentState?.normalise();
+    _colorFieldKey.currentState?.normalise();
 
     final slot = _settings.showSlotPicker ? _entrySlot : null;
     setState(() => _loading = true);
@@ -346,7 +367,9 @@ class _DashboardPageState extends State<DashboardPage> {
       _resetEntryForm();
       _fetchDashboard();
       // Guest is still at the stand - let them scan straight to this car's live status.
-      if (mounted) await GuestTrackingQr.show(context, ticketNo: ticketNo, vehicleText: vehicleText);
+      if (mounted && _settings.showGuestQrOnReceive) {
+        await GuestTrackingQr.show(context, ticketNo: ticketNo, vehicleText: vehicleText);
+      }
       _ticketNoFocusNode.requestFocus();
     } catch (e) {
       _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
@@ -604,6 +627,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ],
                   ),
+                  // Key controller can record existing damage on a parked car here too (not Lobby).
+                  if (_canMarkDamage)
+                    DamageMarkingButton(parkingVehicleId: data.parkingVehicleId, ticketNo: data.ticketNo, subtitle: data.plateNo),
                   if (validated) ...[
                     const SizedBox(height: 8),
                     Container(
@@ -699,15 +725,16 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // ── Dispatch dialog (REQUESTED -> ONTHEWAY) ─────────────────────────────
-  // Key Controller assigns any available Driver from the list, instead of typing a free-text
-  // employee ID - falls back to manual entry if no drivers are returned (e.g. none active yet).
+  // Key Controller types the driver's Employee ID (VPA) - the default, focused straight away (client
+  // request) - or switches to "Choose from driver list" to assign an available Driver instead. The
+  // list option only shows when drivers were returned.
   Future<void> _openDispatchDialog(TicketStatusResponse data) async {
     final vpaOutController = TextEditingController();
     bool dialogLoading = false;
     bool driversLoading = true;
     List<DriverOption> drivers = [];
     DriverOption? selectedDriver;
-    bool manualEntry = false;
+    bool manualEntry = true;
 
     try {
       drivers = await _valetService.fetchAvailableDrivers();
@@ -715,6 +742,7 @@ class _DashboardPageState extends State<DashboardPage> {
     } catch (_) {
       // Non-fatal - just falls back to manual entry below.
     }
+    if (!mounted) return;
 
     await showDialog<void>(
       context: context,
@@ -808,15 +836,29 @@ class _DashboardPageState extends State<DashboardPage> {
                     onPressed: () => setDialogState(() => manualEntry = true),
                     child: Text(tr(context, 'Enter Employee ID manually instead')),
                   ),
-                ] else
+                ] else ...[
                   TextField(
                     controller: vpaOutController,
+                    autofocus: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) {
+                      if (!dialogLoading) onDispatch();
+                    },
                     decoration: InputDecoration(
                       labelText: tr(context, 'Employee ID'),
                       border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                   ),
+                  if (drivers.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () => setDialogState(() => manualEntry = false),
+                      icon: const Icon(Icons.list_alt, size: 18),
+                      label: Text(tr(context, 'Choose from driver list')),
+                    ),
+                  ],
+                ],
               ],
             ),
             actions: [
@@ -840,84 +882,49 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  // ── Acknowledge Arrival dialog (ONTHEWAY -> ARRIVED) ────────────────────
-  Future<void> _openArrivalDialog(TicketStatusResponse data) async {
-    bool dialogLoading = false;
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          Future<void> onArrived() async {
-            setDialogState(() => dialogLoading = true);
-            try {
-              final outcome = await _send('arrive', data.parkingVehicleId!, 'Arrival of ticket ${data.ticketNo}');
-              if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-              outcome.queued
-                  ? _queuedSnack('the arrival of ticket {no}', {'no': data.ticketNo})
-                  : _showSnack('Arrival acknowledged - waiting for guest handover.');
-              _ticketNoController.clear();
-              _fetchDashboard();
-              _ticketNoFocusNode.requestFocus();
-            } catch (e) {
-              _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
-            } finally {
-              setDialogState(() => dialogLoading = false);
-            }
-          }
-
-          return AlertDialog(
-            title: Text(tr(context, 'Acknowledge Arrival')),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.local_shipping, color: context.vf.live, size: 40),
-                const SizedBox(height: 12),
-                Text(
-                  tr(context, 'Has this vehicle physically arrived at the lobby?'),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  tr(context, "Ticket No: {no} - confirming here just marks it as waiting for the guest; you'll still confirm the actual handover next.",
-                      {'no': data.ticketNo}),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: context.vf.textSecondary),
-                ),
-                if (data.parkingVehicleId != null) ConditionPhotosStrip(parkingVehicleId: data.parkingVehicleId!),
-                if (data.driverLat != null) ...[
-                  const SizedBox(height: 14),
-                  LiveTrackingCard(data: data),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton.icon(
-                onPressed: dialogLoading ? null : () { Navigator.of(dialogContext).pop(); _undoStep(data, 'ONTHEWAY'); },
-                icon: const Icon(Icons.undo, size: 18),
-                label: Text(tr(context, 'Undo dispatch')),
-                style: TextButton.styleFrom(foregroundColor: context.vf.textSecondary),
-              ),
-              TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: Text(tr(context, 'Cancel'))),
-              ElevatedButton(
-                onPressed: dialogLoading ? null : onArrived,
-                child: dialogLoading
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : Text(tr(context, 'Arrived')),
-              ),
-            ],
-          );
-        });
-      },
-    );
+  // ── Arrived in Lobby (ONTHEWAY -> ARRIVED) ──────────────────────────────
+  // The "Arrived in Lobby" button on an On the way row (desk list and Board lane): the same arrive
+  // step the old Acknowledge Arrival dialog sent, then a refresh. The snackbar's UNDO puts the car
+  // back on the way (same Undo last step dialog as before).
+  Future<void> _markArrived(String ticketNo, int? parkingVehicleId, {String? plateNo}) async {
+    if (ticketNo.isEmpty || _arriving.contains(ticketNo)) return;
+    setState(() => _arriving.add(ticketNo));
+    try {
+      final id = parkingVehicleId ?? (await _valetService.checkTicketStatus(ticketNo)).parkingVehicleId;
+      if (id == null) {
+        _showSnack('Ticket {no} could not be found.', args: {'no': ticketNo}, error: true);
+        return;
+      }
+      final outcome = await _send('arrive', id, 'Arrival of ticket $ticketNo');
+      if (outcome.queued) {
+        _queuedSnack('the arrival of ticket {no}', {'no': ticketNo});
+      } else if (mounted) {
+        final data = TicketStatusResponse(
+            ticketNo: ticketNo, ticketFree: false, message: '', parkingVehicleId: id, plateNo: plateNo, status: 'ARRIVED');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(tr(context, 'Ticket {no}: arrived in lobby - waiting for guest handover.', {'no': ticketNo})),
+          backgroundColor: context.vf.success,
+          duration: const Duration(seconds: 8),
+          action: SnackBarAction(
+            label: tr(context, 'UNDO'),
+            textColor: AppColors.ink,
+            onPressed: () => _undoStep(data, 'ARRIVED'),
+          ),
+        ));
+      }
+      await _fetchDashboard();
+    } catch (e) {
+      _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
+    } finally {
+      if (mounted) setState(() => _arriving.remove(ticketNo));
+    }
   }
 
   // ── Confirm Delivery dialog (ARRIVED, or ONTHEWAY direct -> DELIVERED) ──
   Future<void> _openDeliveryDialog(TicketStatusResponse data) async {
     bool dialogLoading = false;
     bool? keyChecked; // null: not scanned; true: tag matched; false: mismatch / no hook on record
+    final onTheWay = data.status == 'ONTHEWAY';
 
     await showDialog<void>(
       context: context,
@@ -990,13 +997,18 @@ class _DashboardPageState extends State<DashboardPage> {
                 // Compare against how the car came in before handing it over.
                 if (data.parkingVehicleId != null) ConditionPhotosStrip(parkingVehicleId: data.parkingVehicleId!),
                 ConditionCompareButton(data: data),
+                if (onTheWay && data.driverLat != null) ...[
+                  const SizedBox(height: 14),
+                  LiveTrackingCard(data: data),
+                ],
               ],
             ),
             actions: [
               TextButton.icon(
-                onPressed: dialogLoading ? null : () { Navigator.of(dialogContext).pop(); _undoStep(data, 'ARRIVED'); },
+                // Still on the way (scanned straight to handover): the step to undo is the dispatch.
+                onPressed: dialogLoading ? null : () { Navigator.of(dialogContext).pop(); _undoStep(data, onTheWay ? 'ONTHEWAY' : 'ARRIVED'); },
                 icon: const Icon(Icons.undo, size: 18),
-                label: Text(tr(context, 'Undo arrival')),
+                label: Text(tr(context, onTheWay ? 'Undo dispatch' : 'Undo arrival')),
                 style: TextButton.styleFrom(foregroundColor: context.vf.textSecondary),
               ),
               TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: Text(tr(context, 'Cancel'))),
@@ -1061,10 +1073,14 @@ class _DashboardPageState extends State<DashboardPage> {
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _buildDesk(),
-                  DeskBoard(onOpen: (ticketNo) async {
-                    await _tapListItem(ticketNo);
-                    _fetchDashboard();
-                  }),
+                  DeskBoard(
+                    onOpen: (ticketNo) async {
+                      await _tapListItem(ticketNo);
+                      _fetchDashboard();
+                    },
+                    onArrive: (ticketNo, parkingVehicleId, plateNo) =>
+                        _markArrived(ticketNo, parkingVehicleId, plateNo: plateNo),
+                  ),
                 ],
               ),
             ),
@@ -1238,8 +1254,11 @@ class _DashboardPageState extends State<DashboardPage> {
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: MasterSuggestField(
+                  key: _makeFieldKey,
+                  pickOnly: true,
                   controller: _vehicleMakeController,
+                  load: _valetService.fetchVehicleMakeNames,
                   decoration: InputDecoration(labelText: tr(context, 'Brand'), border: const OutlineInputBorder(), isDense: true),
                 ),
               ),
@@ -1253,8 +1272,11 @@ class _DashboardPageState extends State<DashboardPage> {
             ],
           ),
           const SizedBox(height: 10),
-          TextField(
+          MasterSuggestField(
+            key: _colorFieldKey,
+            pickOnly: true,
             controller: _vehicleColorController,
+            load: _valetService.fetchVehicleColorNames,
             decoration: InputDecoration(labelText: tr(context, 'Color'), border: const OutlineInputBorder(), isDense: true),
           ),
           if (_settings.showSlotPicker) ...[
@@ -1349,6 +1371,23 @@ class _DashboardPageState extends State<DashboardPage> {
     }).toList();
   }
 
+  // On the way row: mark the car as arrived without opening the handover (tapping the row does that).
+  Widget _arrivedInLobbyButton(String ticketNo, int? parkingVehicleId, String? plateNo) {
+    final busy = _arriving.contains(ticketNo);
+    return OutlinedButton.icon(
+      onPressed: busy ? null : () => _markArrived(ticketNo, parkingVehicleId, plateNo: plateNo),
+      style: OutlinedButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+      icon: busy
+          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+          : const Icon(Icons.where_to_vote_outlined, size: 16),
+      label: Text(tr(context, 'Arrived in Lobby')),
+    );
+  }
+
   Widget _buildVehicleList(String title, List<Map<String, dynamic>> items, {required bool isOnTheWay}) {
     // Received/parked cars join the Requested card only when the company setting is on.
     final withReceived = !isOnTheWay && _settings.showReceivedInRequested;
@@ -1418,7 +1457,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         visualDensity: VisualDensity.compact,
                       )
                     : isOnTheWay
-                        ? null
+                        ? _arrivedInLobbyButton(ticketNo, (v['id'] as num?)?.toInt(), v['plateNo']?.toString())
                         : _statusChip('Requested', _requestedColor),
                 onTap: () => _tapListItem(ticketNo),
               );

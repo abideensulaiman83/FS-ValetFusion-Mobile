@@ -624,7 +624,8 @@ class AuthenticationService {
   }
 
   /// Where a signed-in user lands. SECURITY (the client's car-park staff) only sets up the
-  /// valet parking slots, so they go straight to Parking Setup.
+  /// valet parking slots, so they go straight to Parking Setup. An outlet login (SHOP_VALIDATOR)
+  /// without a desk/admin role validates tickets and requests cars on its own screen.
   static String homeRouteFor(List<String> roles) {
     if (roles.contains('SUPER_ADMIN') || roles.contains('LOCATION_ADMIN')) return '/admin/home';
     if (roles.contains('CUSTOMER')) return '/customer/home';
@@ -632,7 +633,8 @@ class AuthenticationService {
     const deskRoles = ['DRIVER', 'GATE_SCANNER', 'KEY_CONTROLLER', 'LOBBY', 'VALET_STAFF'];
     if (roles.contains('SECURITY') && !roles.any(deskRoles.contains)) return '/security/parking';
     if (roles.any(deskRoles.contains)) return '/dashboard';
-    // Operations head, report viewer, partner admin, shop validator: their work is on the web.
+    if (roles.contains('SHOP_VALIDATOR')) return '/shop/home';
+    // Operations head, report viewer, partner admin: their work is on the web.
     if (roles.isNotEmpty) return '/web-console';
     return '/';
   }

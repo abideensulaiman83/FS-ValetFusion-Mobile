@@ -1,7 +1,7 @@
 // lib/l10n/app_strings.dart
 //
 // English / Arabic for the app: the guest-facing screens here (landing, guest sign-in, My Valet,
-// history, live tracking) and the staff screens in l10n/staff/ (desk, driver, parking, admin).
+// history, live tracking) and the staff screens in l10n/staff/ (desk, driver, parking, admin, shop).
 // Keys are the English text itself, so an untranslated string simply shows in English
 // instead of breaking. Placeholders use {name}. Arabic flips the layout right-to-left through
 // flutter_localizations (see MaterialApp in main.dart).
@@ -15,6 +15,8 @@ import 'staff/ar_desk.dart';
 import 'staff/ar_premium.dart';
 import 'staff/ar_driver.dart';
 import 'staff/ar_parking.dart';
+import 'staff/ar_reports.dart';
+import 'staff/ar_shop.dart';
 
 class LocaleController {
   LocaleController._();
@@ -44,7 +46,7 @@ String tr(BuildContext context, String en, [Map<String, Object?> args = const {}
   return text;
 }
 
-const List<Map<String, String>> _arMaps = [_ar, arDesk, arDriver, arParking, arAdmin, arPremium, arCustomer];
+const List<Map<String, String>> _arMaps = [_ar, arDesk, arDriver, arParking, arAdmin, arPremium, arCustomer, arReports, arShop];
 
 String? _lookupAr(String en) {
   for (final m in _arMaps) {

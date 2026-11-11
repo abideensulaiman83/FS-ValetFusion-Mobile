@@ -1,7 +1,7 @@
 // lib/pages/web_console_home_page.dart
 //
 // Home for roles whose work lives in the web console (Operations head, Report viewer, Partner
-// admin, Shop validator). They used to fall through to the Valet Desk, whose calls the server
+// admin; an outlet login has its own screen, shop_home_page.dart). They used to fall through to the Valet Desk, whose calls the server
 // refuses for them. Here they keep the bell (complaint and other alerts reach them live) and get
 // one tap to the console.
 import 'package:flutter/material.dart';
