@@ -6,7 +6,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import '../components/barcode_scanner_page.dart';
+import '../components/ticket_scan.dart';
 import '../components/confirm_dialog.dart';
 import '../components/live_tracking_card.dart';
 import '../services/authentication_service.dart';
@@ -207,13 +207,10 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   }
 
   Future<void> _scanTicket() async {
-    final scanned = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => BarcodeScannerPage(title: tr(context, 'Scan Your Ticket'))),
-    );
-    if (scanned != null && scanned.trim().isNotEmpty) {
-      _ticketNoController.text = scanned.trim();
-      await _lookup();
-    }
+    final ticketNo = await scanTicket(context, title: 'Scan Your Ticket');
+    if (ticketNo == null || !mounted) return;
+    _ticketNoController.text = ticketNo;
+    await _lookup();
   }
 
   Future<void> _lookup() async {

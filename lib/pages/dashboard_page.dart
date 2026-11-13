@@ -22,6 +22,7 @@ import '../components/layout/app_layout.dart';
 import '../components/live_tracking_card.dart';
 import '../components/pending_sync_banner.dart';
 import '../components/slot_picker.dart';
+import '../components/ticket_scan.dart';
 import '../components/undo_step_dialog.dart';
 import '../components/wash_requests_section.dart';
 import '../components/master_suggest_field.dart';
@@ -250,6 +251,14 @@ class _DashboardPageState extends State<DashboardPage> {
       _entrySlot = null;
       _selectedServiceTypeId = _settings.defaultTypeIn(_serviceTypesList);
     });
+  }
+
+  // Camera scan of the ticket QR / barcode - fills the field and runs the same lookup as Submit.
+  Future<void> _scanTicket() async {
+    final ticketNo = await scanTicket(context);
+    if (ticketNo == null || !mounted) return;
+    _ticketNoController.text = ticketNo;
+    await _lookupTicket();
   }
 
   Future<void> _lookupTicket() async {
@@ -1199,14 +1208,29 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            width: double.infinity,
             height: 44,
-            child: ElevatedButton.icon(
-              onPressed: _loading ? null : _lookupTicket,
-              icon: _loading
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.search),
-              label: Text(tr(context, _loading ? 'Checking...' : 'Submit')),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _loading ? null : _scanTicket,
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: Text(tr(context, 'Scan')),
+                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44)),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _loading ? null : _lookupTicket,
+                    icon: _loading
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.search),
+                    label: Text(tr(context, _loading ? 'Checking...' : 'Submit')),
+                    style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(44)),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

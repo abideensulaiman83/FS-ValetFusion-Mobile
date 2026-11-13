@@ -11,7 +11,7 @@
 // An outlet with Mobile Access switched off sees only that message. The server enforces every
 // rule again; its refusals (403 / 409 / 400) are shown as they come.
 import 'package:flutter/material.dart';
-import '../components/barcode_scanner_page.dart';
+import '../components/ticket_scan.dart';
 import '../components/confirm_dialog.dart';
 import '../components/layout/app_layout.dart';
 import '../l10n/app_strings.dart';
@@ -119,13 +119,10 @@ class _ShopHomePageState extends State<ShopHomePage> {
   }
 
   Future<void> _scanTicket() async {
-    final scanned = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const BarcodeScannerPage(title: 'Scan Ticket Barcode')),
-    );
-    if (scanned != null && scanned.trim().isNotEmpty) {
-      _ticketNoController.text = scanned.trim();
-      await _lookup();
-    }
+    final ticketNo = await scanTicket(context);
+    if (ticketNo == null || !mounted) return;
+    _ticketNoController.text = ticketNo;
+    await _lookup();
   }
 
   Future<void> _lookup() async {

@@ -12,7 +12,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../components/barcode_scanner_page.dart';
+import '../components/ticket_scan.dart';
 import '../components/condition_photos.dart';
 import '../components/driver_shift_card.dart';
 import '../components/key_tag.dart';
@@ -329,13 +329,10 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
   }
 
   Future<void> _scanTicketBarcode() async {
-    final scanned = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const BarcodeScannerPage(title: 'Scan Ticket Barcode')),
-    );
-    if (scanned != null && scanned.trim().isNotEmpty) {
-      _ticketNoController.text = scanned.trim();
-      await _lookup();
-    }
+    final ticketNo = await scanTicket(context);
+    if (ticketNo == null || !mounted) return;
+    _ticketNoController.text = ticketNo;
+    await _lookup();
   }
 
   void _clearVehicleFields() {
