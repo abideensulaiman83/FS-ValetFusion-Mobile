@@ -1,7 +1,8 @@
 // Tests for the English/Arabic layer (lib/l10n/app_strings.dart). They run without a device.
 // (Replaces Flutter's default counter template, which never matched this app.)
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:flutter_localizations/flutter_localizations.dart' hide GlobalMaterialLocalizations, GlobalCupertinoLocalizations;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fs_valetfusion/l10n/app_strings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,7 +12,7 @@ Widget _app(Widget child) => ValueListenableBuilder<Locale?>(
       builder: (context, locale, _) => MaterialApp(
         locale: locale ?? const Locale('en'),
         supportedLocales: const [Locale('en'), Locale('ar')],
-        localizationsDelegates: const [
+        localizationsDelegates: [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,

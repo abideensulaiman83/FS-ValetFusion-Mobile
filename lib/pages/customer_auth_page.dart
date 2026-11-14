@@ -4,7 +4,7 @@
 // to one tenant - shown as a searchable dropdown of active properties (name + code) rather than
 // a free-text code field the guest had to already know exactly. Login afterwards is just
 // mobile + password, same as any other role, reusing the normal /auth/login.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../services/authentication_service.dart';
 import 'customer_home_page.dart';
 import 'forgot_password_page.dart';

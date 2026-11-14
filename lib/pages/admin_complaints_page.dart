@@ -2,7 +2,7 @@
 //
 // Staff/admin side of the complaint desk (LOCATION_ADMIN / SUPER_ADMIN) - acknowledge, then
 // close with optional resolution notes. Reached from the AppLayout drawer.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../l10n/app_strings.dart';
 import '../services/complaint_service.dart';
 import '../theme/app_theme.dart';

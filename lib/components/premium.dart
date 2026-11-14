@@ -5,7 +5,7 @@
 // guardPremium() for entry points. Company admins are sent to the web console to upgrade; staff
 // are told to ask their company admin. The app never sells the upgrade itself.
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/environment.dart';

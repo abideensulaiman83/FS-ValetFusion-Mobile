@@ -2,7 +2,7 @@
 //
 // "Open this ticket on the desk" from anywhere (the notifications inbox today). The desk
 // (DashboardPage) listens and looks the ticket up as if it had been scanned.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class DeskLinks {
   DeskLinks._();

@@ -10,7 +10,7 @@
 //   applicable charge at the valet desk.
 // An outlet with Mobile Access switched off sees only that message. The server enforces every
 // rule again; its refusals (403 / 409 / 400) are shown as they come.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../components/ticket_scan.dart';
 import '../components/confirm_dialog.dart';
 import '../components/layout/app_layout.dart';

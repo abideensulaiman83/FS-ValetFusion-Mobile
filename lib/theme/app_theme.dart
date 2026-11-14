@@ -5,7 +5,7 @@
 // Condensed for numbers read at a glance, IBM Plex Mono for plates and tickets; ink surfaces;
 // a brass accent by default and the venue's own colour after login (plan B2); status colours
 // that never change. Light and dark themes; driver and desk screens use the always-dark one.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Neutral surfaces and the fixed palette. Pages use these names, never raw hex values.

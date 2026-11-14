@@ -7,7 +7,7 @@
 // flutter_localizations (see MaterialApp in main.dart).
 //
 // The Arabic below should be reviewed by a native speaker before a store release.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'staff/ar_admin.dart';
 import 'staff/ar_customer.dart';

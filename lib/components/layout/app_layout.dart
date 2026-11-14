@@ -5,7 +5,7 @@
 // drawer with the venue logo (or the ValetFusion mark), who is signed in, the company's plan
 // (Free / Premium / Premium until ...), the menu for their role - Premium entries starred - and
 // sign-out. Only routes that exist in main.dart are listed.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';

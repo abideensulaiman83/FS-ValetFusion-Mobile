@@ -4,7 +4,7 @@
 // admin; an outlet login has its own screen, shop_home_page.dart). They used to fall through to the Valet Desk, whose calls the server
 // refuses for them. Here they keep the bell (complaint and other alerts reach them live) and get
 // one tap to the console.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../components/confirm_dialog.dart';
 import '../components/notification_bell.dart';

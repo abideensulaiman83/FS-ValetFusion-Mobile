@@ -7,7 +7,7 @@
 // scanning its ticket (dispatch / delivered, with their Undo links). Cars on the way also get an
 // "Arrived in Lobby" button that marks the arrival without opening the handover.
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../services/valet_service.dart';
 import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';

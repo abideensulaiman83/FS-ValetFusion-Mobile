@@ -3,7 +3,7 @@
 // Staff sign-in (plan §2.8 / C5): ink background, the ValetFusion mark, one card. Keeps the
 // remembered-login and Face ID / fingerprint shortcut, and the first-login password change
 // (plan B1). Guests use CustomerAuthPage.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import '../services/authentication_service.dart';
 import '../theme/app_theme.dart';

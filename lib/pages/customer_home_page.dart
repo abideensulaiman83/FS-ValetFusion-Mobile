@@ -4,7 +4,7 @@
 // plain language, and request their car when it's ready to be requested. Polls the same
 // ticket-status endpoint staff use, just role-gated to the guest's own JWT (CUSTOMER role).
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:geolocator/geolocator.dart';
 import '../components/ticket_scan.dart';
 import '../components/confirm_dialog.dart';

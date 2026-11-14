@@ -6,7 +6,7 @@
 // condition-photo endpoint (POST /v1/parking-vehicles/{id}/photos, same angles); a photo counts
 // as a check-out photo when it was taken after the car was requested / dispatched. Premium
 // (DAMAGE_MARKING), like the check-in photos.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../components/condition_photos.dart';

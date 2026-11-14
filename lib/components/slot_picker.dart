@@ -4,7 +4,7 @@
 // floor -> area -> slot order the property set up) and pre-selects the first one, so the driver
 // just drives there. They can pick another slot, or type a bay by hand when the property has no
 // layout configured (or the suggested spot is physically blocked).
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../services/valet_service.dart';
 import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';

@@ -3,7 +3,7 @@
 // Customer's own "My Parking History" - a small dashboard (visit count, avg rating, total spent)
 // over the same list of every visit ever linked to their account, computed client-side from the
 // list already fetched (no separate stats endpoint needed).
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../services/valet_service.dart';
 import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';

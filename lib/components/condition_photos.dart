@@ -6,7 +6,7 @@
 // Photos are resized on the phone (1600 px, ~70% JPEG) before upload - a few hundred KB each.
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:image_picker/image_picker.dart';
 import '../l10n/app_strings.dart';
 import '../services/offline_queue.dart';

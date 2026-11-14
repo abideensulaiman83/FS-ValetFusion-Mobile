@@ -4,7 +4,7 @@
 // (polled every 20s, since there's no push-notification infra wired up yet) so it can be picked
 // up and marked done. Shared between both roles' screens rather than duplicated.
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../services/valet_service.dart';
 import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';

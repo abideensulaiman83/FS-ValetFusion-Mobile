@@ -4,7 +4,7 @@
 // bare ticket-scan desk as line staff, which buried everything an admin actually needs behind no
 // navigation at all. This is a real console: live Insights (today's operational snapshot),
 // Operations (the modules an admin acts on day to day), and Reports - not a flat "Master" list.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../components/confirm_dialog.dart';
 import '../l10n/app_strings.dart';

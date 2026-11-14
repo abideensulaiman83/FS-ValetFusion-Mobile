@@ -3,7 +3,7 @@
 // Public complaint form - no login required, matching the guest-tracking pattern elsewhere in
 // the app. Guarded only by a simple math captcha (see CaptchaService on the backend) so a
 // frustrated guest doesn't have to register just to report an issue.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../services/complaint_service.dart';
 import 'complaint_status_page.dart';
 import '../theme/app_theme.dart';

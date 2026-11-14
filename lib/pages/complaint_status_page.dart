@@ -3,7 +3,7 @@
 // Lets a guest check back on a complaint they submitted earlier - no account needed, just the
 // reference number (the complaint id, shown on the submission success screen) plus the mobile
 // number they used, matching how the complaint itself was filed anonymously.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../services/complaint_service.dart';
 import '../theme/app_theme.dart';
 

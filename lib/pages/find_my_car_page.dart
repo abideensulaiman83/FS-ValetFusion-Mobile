@@ -4,7 +4,7 @@
 // area, floor and building, the key hook, how long it has been parked, and the check-in photos so
 // the car can be recognised across the car park. Opened from My Deliveries and from a ticket
 // lookup on the driver desk.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../components/condition_photos.dart';
 import '../l10n/app_strings.dart';
 import '../services/valet_service.dart';

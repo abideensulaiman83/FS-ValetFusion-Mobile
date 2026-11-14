@@ -1,6 +1,6 @@
 // lib/components/protected_route.dart
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../services/secure_store.dart';
@@ -52,6 +52,9 @@ class _ProtectedRouteState extends State<ProtectedRoute> {
 
       if (mounted) {
         Future.microtask(() {
+          if(!mounted) {
+            return;
+          }
           Navigator.of(context).pushReplacementNamed('/login');
         });
       }
@@ -83,6 +86,9 @@ class _ProtectedRouteState extends State<ProtectedRoute> {
 
         if (mounted) {
           Future.microtask(() {
+            if(!mounted) {
+              return;
+            }
             Navigator.of(context).pushReplacementNamed(widget.redirectTo);
           });
         }

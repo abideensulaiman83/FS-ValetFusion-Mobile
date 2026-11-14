@@ -3,7 +3,7 @@
 // Static privacy policy / terms screen, reachable from the landing page - written for
 // ValetFusion's own data handling (ticket/vehicle records, guest mobile numbers, live GPS while
 // a driver is bringing a car back), not copied from a generic template.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../theme/app_theme.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {

@@ -3,7 +3,7 @@
 // Shared full-screen barcode scanner used by both the Driver and Gate Scanner flows to read the
 // ticket barcode. Pops with the scanned code's raw text, or null if cancelled.
 // Reads QR codes and 1D barcodes alike; torch and camera switch for dark garages / desk tablets.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../l10n/app_strings.dart';

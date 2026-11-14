@@ -1,7 +1,7 @@
 // First-login password change (plan B1). Login returned passwordChangeRequired=true with a
 // 10-minute token that only works on /auth/change-password. The page collects the new password
 // and hands the full login response back to the caller, which finishes the sign-in as usual.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../l10n/app_strings.dart';
 import '../services/authentication_service.dart';
 import '../theme/app_theme.dart';

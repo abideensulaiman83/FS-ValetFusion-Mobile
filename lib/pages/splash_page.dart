@@ -7,7 +7,7 @@
 // closed and reopened. This now checks for a saved session and, if one exists, skips straight to
 // the right home screen for that role - "stay logged in until you log out" actually working.
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/app_update_service.dart';
 import '../services/notification_service.dart';

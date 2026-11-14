@@ -4,7 +4,7 @@
 // portal (UndoStepDialog.tsx): what goes back, what happens with it, a required reason (it lands
 // in the audit log). The server enforces the rules (time limit on deliveries, ticket already
 // given to another car) and its message is shown as-is when it refuses.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../services/valet_service.dart';
 import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';

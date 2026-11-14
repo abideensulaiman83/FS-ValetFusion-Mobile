@@ -2,7 +2,7 @@
 //
 // "Still on the way?" - shown to the driver every 5 minutes while a car is ONTHEWAY. One tap
 // answers it: on time, +5/+10/+15/+20 minutes (the guest's ETA moves by that much), or arrived.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../services/valet_service.dart';
 import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';

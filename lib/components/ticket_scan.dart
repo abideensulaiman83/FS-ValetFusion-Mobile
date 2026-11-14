@@ -3,7 +3,7 @@
 // Camera scan of a valet ticket, shared by the Desk, Driver, Shop and Guest screens. The code on
 // a ticket is usually the plain ticket number, but the guest tracking QR (/track/CODE/TICKET) and
 // links with a ?ticket= parameter carry it too - all of them resolve to the bare ticket number.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 import 'barcode_scanner_page.dart';

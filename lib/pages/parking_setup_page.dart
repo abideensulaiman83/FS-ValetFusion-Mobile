@@ -5,7 +5,7 @@
 // up the valet space on each floor: add an area ("Zone A", "Ramp side"), add its numbered slots
 // in one go (B1-01 .. B1-20), and switch slots off / reserve them when the site changes.
 // Drivers are then offered the nearest free slot automatically.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../components/confirm_dialog.dart';
 import '../l10n/app_strings.dart';
 import '../services/authentication_service.dart';

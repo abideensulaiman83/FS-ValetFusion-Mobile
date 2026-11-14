@@ -4,7 +4,7 @@
 // fix sent, distance from the site shown). When checked in, a duty card - site, time on duty,
 // on site / left site - and "Check out", which asks for a short checklist and notes. Recent visits
 // underneath. SupervisorTracker keeps reporting the position in the background meanwhile.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../components/notification_bell.dart';
 import '../l10n/app_strings.dart';
 import '../services/authentication_service.dart';

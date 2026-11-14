@@ -5,7 +5,7 @@
 // drivers first and marks who is on a break or off duty. Ending the shift shows a summary -
 // cars received and handed over this shift, counted from the cars themselves.
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../l10n/app_strings.dart';
 import '../services/valet_service.dart';
 import '../theme/app_theme.dart';

@@ -3,7 +3,7 @@
 // The app-bar bell for staff: unread badge, refreshed every 60 s and whenever the app comes back
 // to the front; tapping it opens the inbox.
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../l10n/app_strings.dart';
 import '../pages/notifications_inbox_page.dart';
 import '../services/inbox_service.dart';

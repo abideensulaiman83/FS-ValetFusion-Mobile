@@ -4,7 +4,7 @@
 // slot or parked, which slot, and how long ago it was received. This is the kind
 // of "which bays are occupied" visibility a property manager actually needs day to day, distinct
 // from the ticket-by-ticket valet desk.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../components/guest_tracking_qr_sheet.dart';
 import '../l10n/app_strings.dart';
 import '../services/valet_service.dart';

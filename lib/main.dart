@@ -1,11 +1,12 @@
 
 import 'dart:ui' show PlatformDispatcher;
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart' hide GlobalMaterialLocalizations, GlobalCupertinoLocalizations;
 import 'l10n/app_strings.dart';
 import 'pages/login_page.dart';
 import 'pages/dashboard_page.dart';
@@ -113,7 +114,7 @@ class MyApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       locale: locale ?? const Locale('en'),
       supportedLocales: const [Locale('en'), Locale('ar')],
-      localizationsDelegates: const [
+      localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,

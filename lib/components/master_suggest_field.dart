@@ -11,7 +11,7 @@
 //    shows on focus, typing filters it, and text that is not a master name is flagged under the
 //    field. The form checks [MasterSuggestFieldState.isValid] before saving. If the list is empty
 //    (failed to load / none set up) free text is accepted, so the desk is never blocked.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../l10n/app_strings.dart';
 
 class MasterSuggestField extends StatefulWidget {

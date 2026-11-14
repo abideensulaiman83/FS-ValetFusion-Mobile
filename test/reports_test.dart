@@ -1,7 +1,8 @@
 // Tests for the company Reports screens' pure parts (no network): the query parameters and file
 // names each report sends, and the report list in English and Arabic.
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:flutter_localizations/flutter_localizations.dart' hide GlobalMaterialLocalizations, GlobalCupertinoLocalizations;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fs_valetfusion/l10n/app_strings.dart';
 import 'package:fs_valetfusion/pages/report_detail_page.dart';
@@ -11,7 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 Widget _app(Widget child, Locale locale) => MaterialApp(
       locale: locale,
       supportedLocales: const [Locale('en'), Locale('ar')],
-      localizationsDelegates: const [
+      localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,

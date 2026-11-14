@@ -7,7 +7,7 @@
 // schedule plus any time the driver added. A position that stops updating is kept on the map as
 // "last known" with its age. Free OpenStreetMap tiles via flutter_map - no API key needed.
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as ll;
 import '../services/live_track_stream.dart';

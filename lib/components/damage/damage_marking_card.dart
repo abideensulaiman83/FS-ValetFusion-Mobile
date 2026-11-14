@@ -6,7 +6,7 @@
 // read-only diagram + list shown at handover. Premium (DAMAGE_MARKING): on a Free plan the card
 // shows the star and the "Part of Premium" sheet instead of the editor; a PLAN_REQUIRED from the
 // server does the same.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/damage_service.dart';
 import '../../services/plan_service.dart';

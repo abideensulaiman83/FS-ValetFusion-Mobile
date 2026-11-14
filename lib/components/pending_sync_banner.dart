@@ -4,7 +4,7 @@
 // waiting to be sent - parking, photos, ETA answers and the lifecycle steps (request, dispatch,
 // arrived, handed over, key holder) - so whoever is holding the phone knows it hasn't gone yet
 // (and can push it now). Tap it to see every queued action.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../services/offline_queue.dart';
 import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';

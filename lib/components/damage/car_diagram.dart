@@ -7,7 +7,7 @@
 // The drawing is never mirrored in right-to-left layouts (its left is the car's left); only the
 // zone labels are translated. Panel names stay English in data (see diagramPartAt) and are
 // translated where they are shown.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/damage_service.dart';
 import '../../theme/app_theme.dart';

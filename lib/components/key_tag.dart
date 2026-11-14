@@ -3,7 +3,7 @@
 // Key tag QR: every hook on the key board carries a QR with its number, as plain text - "HOOK-17",
 // "HOOK 17", "H17" or just "17". Scanning it when hanging the key sets the car's key holder
 // (no typing), and scanning the tag on the key at handover checks it is the right car's key.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 import 'barcode_scanner_page.dart';

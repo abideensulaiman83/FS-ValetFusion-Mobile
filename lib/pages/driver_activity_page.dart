@@ -2,7 +2,7 @@
 //
 // Driver's own "My Activity" report - today's delivery count, lifetime count, average
 // dispatch-to-delivered turnaround, and recent deliveries with the guest's rating where given.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../l10n/app_strings.dart';
 import '../services/valet_service.dart';
 import '../theme/app_theme.dart';

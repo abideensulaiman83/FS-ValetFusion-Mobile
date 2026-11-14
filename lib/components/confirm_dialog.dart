@@ -4,7 +4,7 @@
 // immediate, hard-to-undo action (logging out and losing the current screen's state, deleting
 // something, etc.) without the user meaning to. Title, message and labels go through tr(), so
 // callers can pass the plain English text (an already-translated string passes through as is).
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 

@@ -4,7 +4,7 @@
 // same CentralUser/email account underneath, so one reset flow covers everyone. Code-based rather
 // than a clickable link, since the app has no deep-link handling set up: the user gets a 6-digit
 // code by email and enters it back in-app, same pattern as a phone OTP.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../services/authentication_service.dart';
 import '../theme/app_theme.dart';
 

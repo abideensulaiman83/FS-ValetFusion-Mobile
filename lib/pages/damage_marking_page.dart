@@ -8,7 +8,7 @@
 // Client rule: damage marking is the Key Controller's (control desk) job, not the Lobby user's -
 // see canMarkDeskDamage(); the backend refuses vehicle-damage writes from LOBBY as well.
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../components/damage/damage_marking_card.dart';
 import '../components/premium.dart';
