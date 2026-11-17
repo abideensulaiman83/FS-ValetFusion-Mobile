@@ -125,6 +125,25 @@ class _ShopHomePageState extends State<ShopHomePage> {
     await _lookup();
   }
 
+  /// Quick receive of a free ticket (plate PENDING), then show it for validation as usual.
+  Future<void> _quickReceive() async {
+    final ticketNo = _ticket?.ticketNo ?? _ticketNoController.text.trim();
+    if (ticketNo.isEmpty) return;
+    setState(() => _looking = true);
+    try {
+      await _valetApi.quickReceive(ticketNo);
+      if (!mounted) return;
+      _snack(tr(context, 'Ticket {no} received - you can validate it now', {'no': ticketNo}));
+      setState(() => _looking = false);
+      await _lookup();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _looking = false);
+        _snack(shopErrorMessage(e, fallback: 'Could not receive the ticket'), error: true);
+      }
+    }
+  }
+
   Future<void> _lookup() async {
     final ticketNo = _ticketNoController.text.trim();
     if (ticketNo.isEmpty) {
@@ -351,8 +370,22 @@ class _ShopHomePageState extends State<ShopHomePage> {
       ],
       if (t != null) ...[
         const SizedBox(height: 16),
-        if (t.ticketFree || t.ticketStatus == 'FREE')
-          _banner(Icons.info_outline, context.vf.live, context.vf.infoSoft, tr(context, 'This ticket is not in use'))
+        if (t.ticketFree || t.ticketStatus == 'FREE') ...[
+          // Not received yet - the car is probably still being parked. The outlet can receive it
+          // now (details to follow) and then validate it as usual.
+          _banner(Icons.info_outline, context.vf.live, context.vf.infoSoft,
+              tr(context, 'This ticket has not been received yet - the car is probably still being parked. Receive it now to validate it; the valet enters the car details later.')),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton.icon(
+              onPressed: _looking ? null : _quickReceive,
+              icon: const Icon(Icons.login_rounded),
+              label: Text(tr(context, 'Receive & continue')),
+            ),
+          ),
+        ]
         else if (t.parkingVehicleId == null)
           _banner(Icons.info_outline, context.vf.warning, context.vf.warningSoft,
               t.message.isNotEmpty ? tr(context, t.message) : tr(context, 'No parking record for this ticket - ask the valet desk.'))

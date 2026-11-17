@@ -579,10 +579,12 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
   @override
   Widget build(BuildContext context) {
     final data = _lastLookup;
-    final needsReceive = data != null && data.ticketFree;
-    final needsParkDetails = data != null && !data.ticketFree && data.status == 'RECEIVED' && (data.bayNo == null || data.bayNo!.trim().isEmpty);
+    // A quick-received ticket (plate PENDING - requested or validated before the car was entered)
+    // gets its details through the same receive form; saving fills in the existing record.
+    final needsReceive = data != null && (data.ticketFree || data.detailsPending);
+    final needsParkDetails = data != null && !data.ticketFree && !data.detailsPending && data.status == 'RECEIVED' && (data.bayNo == null || data.bayNo!.trim().isEmpty);
     final alreadyParked = data != null && data.status == 'RECEIVED' && !needsParkDetails;
-    final pastParking = data != null && !data.ticketFree && data.status != 'RECEIVED';
+    final pastParking = data != null && !data.ticketFree && !data.detailsPending && data.status != 'RECEIVED';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),

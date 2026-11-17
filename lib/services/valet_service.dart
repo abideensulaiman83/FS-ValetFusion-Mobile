@@ -101,6 +101,8 @@ class DeskSettings {
 class TicketStatusResponse {
   final String ticketNo;
   final bool ticketFree;
+  /// Quick-received (plate PENDING): the car details are still to be entered by the valet.
+  final bool detailsPending;
   final String? ticketStatus;
   final String message;
   final int? parkingVehicleId;
@@ -156,6 +158,7 @@ class TicketStatusResponse {
   TicketStatusResponse({
     required this.ticketNo,
     required this.ticketFree,
+    this.detailsPending = false,
     this.ticketStatus,
     required this.message,
     this.parkingVehicleId,
@@ -211,6 +214,7 @@ class TicketStatusResponse {
     return TicketStatusResponse(
       ticketNo: json['ticketNo'] ?? '',
       ticketFree: json['ticketFree'] ?? false,
+      detailsPending: json['detailsPending'] ?? false,
       ticketStatus: json['ticketStatus'],
       message: json['message'] ?? '',
       parkingVehicleId: json['parkingVehicleId'],
@@ -698,6 +702,20 @@ class ValetService {
       return TicketStatusResponse.fromJson(jsonDecode(response.body));
     }
     throw apiErrorFrom(response);
+  }
+
+  /// Quick receive: a free ticket is received now with plate PENDING (the car is still being
+  /// parked), so the desk can request it / an outlet can validate it straight away. The valet's
+  /// normal receive later fills in the car details.
+  Future<void> quickReceive(String ticketNo) async {
+    final headers = await _headers();
+    final response = await http
+        .post(Uri.parse('$apiBaseUrl/v1/parking-vehicles/quick-receive'),
+            headers: headers, body: jsonEncode({'ticketNo': ticketNo}))
+        .timeout(timeout);
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw apiErrorFrom(response);
+    }
   }
 
   /// Receive a new vehicle (RECEIVED). Mirrors ParkingVehicleRequestDTO.

@@ -131,6 +131,19 @@ const Map<String, String> _ar = {
   'Type it instead': 'اكتبه يدويًا',
   'Torch': 'الكشاف',
   'Switch camera': 'تبديل الكاميرا',
+  // Quick receive (car requested / validated before it was entered)
+  'Receive and request ticket {no}?': 'استلام التذكرة {no} وطلب السيارة؟',
+  'This ticket has not been received yet - the car is probably still being parked. Receive it now and request it for the guest? The car details stay empty until the valet enters them.':
+      'لم يتم استلام هذه التذكرة بعد - على الأرجح ما زالت السيارة قيد الركن. هل تريد استلامها الآن وطلبها للضيف؟ تبقى بيانات السيارة فارغة حتى يدخلها موظف الصف.',
+  'Receive & request': 'استلام وطلب',
+  'Receive & request now': 'استلام وطلب الآن',
+  'This car was received before its details were entered - fill them in and save.':
+      'تم استلام هذه السيارة قبل إدخال بياناتها - أدخل البيانات واحفظ.',
+  'This ticket has not been received yet - the car is probably still being parked. Receive it now to validate it; the valet enters the car details later.':
+      'لم يتم استلام هذه التذكرة بعد - على الأرجح ما زالت السيارة قيد الركن. استلمها الآن لاعتمادها؛ يدخل موظف الصف بيانات السيارة لاحقًا.',
+  'Receive & continue': 'استلام ومتابعة',
+  'Ticket {no} received - you can validate it now': 'تم استلام التذكرة {no} - يمكنك اعتمادها الآن',
+  'Could not receive the ticket': 'تعذّر استلام التذكرة',
   'Enter or scan your ticket number': 'أدخل رقم التذكرة أو امسحها',
   'How was your experience?': 'كيف كانت تجربتك؟',
   'Any comments? (optional)': 'أي ملاحظات؟ (اختياري)',

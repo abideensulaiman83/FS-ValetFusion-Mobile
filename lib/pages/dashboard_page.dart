@@ -15,6 +15,7 @@ import 'dart:convert';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../components/condition_photos.dart';
+import '../components/confirm_dialog.dart';
 import '../components/desk_board.dart';
 import '../components/guest_tracking_qr_sheet.dart';
 import '../components/key_tag.dart';
@@ -261,6 +262,31 @@ class _DashboardPageState extends State<DashboardPage> {
     await _lookupTicket();
   }
 
+  /// Quick receive: receive the free ticket now (plate PENDING) and open the usual request box.
+  Future<void> _quickReceiveAndRequest(String ticketNo) async {
+    final ok = await showConfirmDialog(
+      context,
+      title: tr(context, 'Receive and request ticket {no}?', {'no': ticketNo}),
+      message: tr(context,
+          'This ticket has not been received yet - the car is probably still being parked. Receive it now and request it for the guest? The car details stay empty until the valet enters them.'),
+      confirmLabel: tr(context, 'Receive & request'),
+    );
+    if (!ok || !mounted) return;
+    setState(() => _loading = true);
+    try {
+      await _valetService.quickReceive(ticketNo);
+      final data = await _valetService.checkTicketStatus(ticketNo);
+      if (!mounted) return;
+      setState(() => _showEntryForm = false);
+      _fetchDashboard();
+      await _openRequestDialog(data);
+    } catch (e) {
+      _showSnack(e.toString().replaceAll('Exception: ', ''), error: true);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   Future<void> _lookupTicket() async {
     final ticketNo = _ticketNoController.text.trim();
     if (ticketNo.isEmpty) return;
@@ -272,18 +298,30 @@ class _DashboardPageState extends State<DashboardPage> {
 
       if (data.ticketFree) {
         if (_isSimplifiedDesk) {
-          _showSnack('This ticket has not been received yet.');
+          // Not received yet: the car is probably still being parked - offer to receive it now
+          // and request it for the guest (the valet enters the details later).
+          if (mounted) setState(() => _loading = false);
+          await _quickReceiveAndRequest(ticketNo);
           return;
         }
         setState(() => _showEntryForm = true);
         return;
       }
 
+      // Quick-received earlier: the full desk enters the car details now (saving fills them in).
+      if (data.detailsPending && !_isSimplifiedDesk) {
+        if (!mounted) return;
+        setState(() => _showEntryForm = true);
+        _showSnack(tr(context, 'This car was received before its details were entered - fill them in and save.'));
+        return;
+      }
+
       switch (data.status) {
         case 'RECEIVED':
           // Key just handed over and nobody has recorded where the car is yet - mark the slot
-          // first; otherwise carry on to the request/payment step as before.
-          if ((data.bayNo == null || data.bayNo!.trim().isEmpty) && data.parkingLocation == null) {
+          // first; otherwise carry on to the request/payment step as before. Not for a
+          // quick-received car: it is still being parked and the guest wants it now.
+          if (!data.detailsPending && (data.bayNo == null || data.bayNo!.trim().isEmpty) && data.parkingLocation == null) {
             await _openParkSheet(data);
           } else {
             await _openRequestDialog(data);
@@ -1249,7 +1287,16 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(tr(context, 'New Vehicle Entry'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Row(
+            children: [
+              Expanded(child: Text(tr(context, 'New Vehicle Entry'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+              // The guest is asking for the car before it has been entered (still being parked).
+              TextButton(
+                onPressed: _loading ? null : () => _quickReceiveAndRequest(_ticketNoController.text.trim()),
+                child: Text(tr(context, 'Receive & request now')),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           TextField(
             controller: _vpaInController,
