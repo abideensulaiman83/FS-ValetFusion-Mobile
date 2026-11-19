@@ -27,6 +27,7 @@ import '../components/wash_requests_section.dart';
 import '../l10n/app_strings.dart';
 import '../services/delivery_tracker.dart';
 import '../services/ocr_service.dart';
+import '../services/plan_service.dart';
 import '../services/valet_service.dart';
 import '../theme/app_theme.dart';
 
@@ -735,20 +736,27 @@ class _DriverReceiveFlowState extends State<DriverReceiveFlow> {
             ),
           ],
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: OutlinedButton.icon(
-              onPressed: _ocrRunning ? null : _captureAndRecognize,
-              icon: _ocrRunning
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.camera_alt_outlined),
-              label: Text(tr(
-                  context,
-                  _ocrRunning
-                      ? 'Reading the car...'
-                      : (_vehicleImage == null ? 'Take Photo' : 'Retake Photo'))),
-            ),
+          // Plate recognition is switched per company (super admin); when off, the details are typed.
+          ValueListenableBuilder<PlanInfo?>(
+            valueListenable: PlanController.instance.plan,
+            builder: (context, plan, _) => plan != null && !plan.ocrEnabled
+                ? Text(tr(context, 'Plate recognition (OCR) is switched off for this company - type the car details below.'),
+                    style: TextStyle(fontSize: 12, color: context.vf.textSecondary))
+                : SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: OutlinedButton.icon(
+                    onPressed: _ocrRunning ? null : _captureAndRecognize,
+                    icon: _ocrRunning
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.camera_alt_outlined),
+                    label: Text(tr(
+                        context,
+                        _ocrRunning
+                            ? 'Reading the car...'
+                            : (_vehicleImage == null ? 'Take Photo' : 'Retake Photo'))),
+                  ),
+                ),
           ),
         ],
       ),

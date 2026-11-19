@@ -63,6 +63,9 @@ class PlanInfo {
   final bool companyAdmin;
   final bool superAdmin;
   final List<PlanFeatureInfo> features;
+  /// Plate recognition (OCR_CAMERA module, switched per company by the super admin). Off: the
+  /// driver app types the car details instead of reading them from a photo.
+  final bool ocrEnabled;
 
   const PlanInfo({
     required this.tier,
@@ -75,6 +78,7 @@ class PlanInfo {
     this.companyAdmin = false,
     this.superAdmin = false,
     this.features = const [],
+    this.ocrEnabled = true,
   });
 
   factory PlanInfo.fromJson(Map<String, dynamic> j) => PlanInfo(
@@ -87,6 +91,7 @@ class PlanInfo {
         canStartTrial: j['canStartTrial'] == true,
         companyAdmin: j['companyAdmin'] == true,
         superAdmin: j['superAdmin'] == true,
+        ocrEnabled: j['ocrEnabled'] != false,
         features: ((j['features'] as List?) ?? const [])
             .whereType<Map>()
             .map((e) => PlanFeatureInfo.fromJson(Map<String, dynamic>.from(e)))
