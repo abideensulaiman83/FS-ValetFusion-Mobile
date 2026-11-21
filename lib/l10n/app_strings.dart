@@ -142,6 +142,7 @@ const Map<String, String> _ar = {
   'This ticket has not been received yet - the car is probably still being parked. Receive it now to validate it; the valet enters the car details later.':
       'لم يتم استلام هذه التذكرة بعد - على الأرجح ما زالت السيارة قيد الركن. استلمها الآن لاعتمادها؛ يدخل موظف الصف بيانات السيارة لاحقًا.',
   'Receive & continue': 'استلام ومتابعة',
+  'Ticket {no}: car details not entered yet (plate PENDING).': 'التذكرة {no}: لم تُدخل بيانات السيارة بعد (اللوحة PENDING).',
   'Plate recognition (OCR) is switched off for this company - type the car details below.':
       'التعرّف على اللوحة (OCR) متوقف لهذه الشركة - أدخل بيانات السيارة أدناه.',
   'Ticket {no} received - you can validate it now': 'تم استلام التذكرة {no} - يمكنك اعتمادها الآن',

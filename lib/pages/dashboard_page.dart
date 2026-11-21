@@ -308,12 +308,11 @@ class _DashboardPageState extends State<DashboardPage> {
         return;
       }
 
-      // Quick-received earlier: the full desk enters the car details now (saving fills them in).
-      if (data.detailsPending && !_isSimplifiedDesk) {
-        if (!mounted) return;
-        setState(() => _showEntryForm = true);
-        _showSnack(tr(context, 'This car was received before its details were entered - fill them in and save.'));
-        return;
+      // Quick-received earlier (plate PENDING): never block the next step - a requested car must
+      // still be dispatchable by scanning it. Just say the details are still to come (the valet
+      // fills them in from the driver app).
+      if (data.detailsPending && mounted) {
+        _showSnack(tr(context, 'Ticket {no}: car details not entered yet (plate PENDING).', {'no': data.ticketNo}));
       }
 
       switch (data.status) {
